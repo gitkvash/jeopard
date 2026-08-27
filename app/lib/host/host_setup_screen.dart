@@ -159,7 +159,7 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
   final _hostTeamName = TextEditingController();
 
   /// Who opens the buzzer, and after how long when that is a timer.
-  BuzzMode _buzzMode = BuzzMode.host;
+  BuzzMode _buzzMode = BuzzMode.instant;
   int _delaySeconds = _delayPresets[1];
   bool _customDelay = false;
   final _customSeconds = TextEditingController(text: '20');

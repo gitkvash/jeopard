@@ -132,7 +132,7 @@ public class GameService {
         game.setProgressRounds(wholePackage);
         game.setHostToken(newToken());
         game.setHostPlays(req.hostPlays());
-        game.setBuzzMode(req.buzzMode() == null ? BuzzMode.HOST : req.buzzMode());
+        game.setBuzzMode(req.buzzMode() == null ? BuzzMode.INSTANT : req.buzzMode());
         game.setBuzzDelaySeconds(buzzDelayFor(game.getBuzzMode(), req.buzzDelaySeconds()));
         game.setState(GameState.LOBBY);
         games.save(game);

@@ -34,7 +34,7 @@ public final class GameDtos {
             boolean hostPlays,
             /* Only used when hostPlays is true. */
             @Size(max = 40) String hostTeamName,
-            /* Defaults to HOST when absent, which is how games behaved before. */
+            /* Defaults to INSTANT when absent. */
             BuzzMode buzzMode,
             /* Required for BuzzMode.TIMER, ignored otherwise. */
             Integer buzzDelaySeconds) {

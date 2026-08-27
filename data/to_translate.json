@@ -1,0 +1,938 @@
+[
+  {
+    "name": "COUNTRIES' HIGHEST POINTS",
+    "clues": [
+      {
+        "Q": "Carrantuohill in Macgillycuddy's Reeks",
+        "A": "Ireland"
+      },
+      {
+        "Q": "Citlaltepetl on the border of the states of Veracruz & Puebla",
+        "A": "Mexico"
+      },
+      {
+        "Q": "Mount Ararat",
+        "A": "Turkey"
+      },
+      {
+        "Q": "Puncak Jaya in Papua province, previously known as Irian Jaya",
+        "A": "Indonesia"
+      },
+      {
+        "Q": "Mount Kilimanjaro",
+        "A": "Tanzania"
+      }
+    ]
+  },
+  {
+    "name": "THE ARTIST OF RECORD",
+    "clues": [
+      {
+        "Q": "Come Fly with Me, Come Dance with Me, Come Swing with Me",
+        "A": "Sinatra"
+      },
+      {
+        "Q": "Stardust, Red-Headed Stranger, Poncho & Lefty",
+        "A": "Willie Nelson"
+      },
+      {
+        "Q": "Ummagumma, Animals, The Wall",
+        "A": "Pink Floyd"
+      },
+      {
+        "Q": "A Night at the Opera, A Day at the Races, Live Killers",
+        "A": "Queen"
+      },
+      {
+        "Q": "Beautiful Noise, Love at the Greek, Velvet Gloves & Spit",
+        "A": "(Neil) Diamond"
+      }
+    ]
+  },
+  {
+    "name": "LITERATURE FOR KIDS",
+    "clues": [
+      {
+        "Q": "\"We looked!  Then we saw him step in on the mat!  We looked!  And we saw him!\"  This famous cat",
+        "A": "the Cat in the Hat"
+      },
+      {
+        "Q": "In a fairy tale by this Danish author, the Snow Queen takes little Kay away in her sleigh to her icy palace",
+        "A": "Hans Christian Andersen"
+      },
+      {
+        "Q": "In \"Little Women\", Margaret March is better known by this nickname",
+        "A": "\"Meg\""
+      },
+      {
+        "Q": "This loving relative who takes care of Tom Sawyer was inspired by Mark Twain's own mother",
+        "A": "Aunt Polly"
+      },
+      {
+        "Q": "This author who wrote about \"The Princess Who Could Not Laugh\" made us smile with \"Winnie-the-Pooh\"",
+        "A": "A.A. Milne"
+      }
+    ]
+  },
+  {
+    "name": "A \"HOUSE\" OF LITERATURE",
+    "clues": [
+      {
+        "Q": "Part of this nursery rhyme reads, \"This is the dog, that worried the cat, that killed the rat...\"",
+        "A": "\"The House that Jack Built\""
+      },
+      {
+        "Q": "The legend of a family curse permeates this Hawthorne work published in 1851",
+        "A": "The House of the Seven Gables"
+      },
+      {
+        "Q": "Tigger makes his first appearance in this sequel to \"Winnie-the-Pooh\"",
+        "A": "The House at Pooh Corner"
+      },
+      {
+        "Q": "Considered by some to be Dickens' best, this novel tells the story of a family waiting in vain to inherit a fortune",
+        "A": "Bleak House"
+      },
+      {
+        "Q": "First produced in 1920, this Shaw comedy takes place in the unconventional home of elderly Capt. Shotover",
+        "A": "Heartbreak House"
+      }
+    ]
+  },
+  {
+    "name": "POP'S MUSIC",
+    "clues": [
+      {
+        "Q": "Dad refuses to see a Guy Ritchie film because he's always had a secret crush on this \"Like A Virgin\" singer",
+        "A": "Madonna"
+      },
+      {
+        "Q": "Dad slow dances by himself to this band's \"Stairway to Heaven\" becuase he's having school dance flashbacks",
+        "A": "Led Zeppelin"
+      },
+      {
+        "Q": "Dad wears that dorky clock on a chain because he was into this Public Enemy before he became a VH1 reality star",
+        "A": "Flavor Flav"
+      },
+      {
+        "Q": "Dad thinks he's an O.G. because he was into these white rappers long before their album \"Ill Communication\"",
+        "A": "the Beastie Boys"
+      },
+      {
+        "Q": "Dad needs help downloading \"In Rainbows\", but he always said this Thom Yorke band was ahead of its time",
+        "A": "Radiohead"
+      }
+    ]
+  },
+  {
+    "name": "COUNTRIES BY NEWSPAPERS",
+    "clues": [
+      {
+        "Q": "The Bunyip & The Alice Springs News",
+        "A": "Australia"
+      },
+      {
+        "Q": "Przewodnik Katolicki & Glos Koszalinski",
+        "A": "Poland"
+      },
+      {
+        "Q": "Dimokratiki & Peloponnisos",
+        "A": "Greece"
+      },
+      {
+        "Q": "The Deccan Herald & The Bihar Times",
+        "A": "India"
+      },
+      {
+        "Q": "El Cronista & El Patagonico",
+        "A": "Argentina"
+      }
+    ]
+  },
+  {
+    "name": "TOURING EUROPEAN CAPITALS",
+    "clues": [
+      {
+        "Q": "Walk across the Ha'penny Bridge at Liffey Street to get the trendy Temple Bar area of this capital",
+        "A": "Dublin"
+      },
+      {
+        "Q": "Purchase some port at the Mercearia Liberdade in this city",
+        "A": "Lisbon"
+      },
+      {
+        "Q": "Thrill to the history of Zamek Krolewski, this city's royal castle",
+        "A": "Warsaw"
+      },
+      {
+        "Q": "Czech in for a luxurious weekend at the Grand Hotel Bohemia in this city",
+        "A": "Prague"
+      },
+      {
+        "Q": "Chill out at the world's first permanent icebar, the Absolut Icebar in this city",
+        "A": "Stockholm"
+      }
+    ]
+  },
+  {
+    "name": "2006 SPORTS LAUGHS",
+    "clues": [
+      {
+        "Q": "Jordin Tootoo of the Nashville Predators got a few chuckles when he changed his jersey number to this",
+        "A": "22"
+      },
+      {
+        "Q": "The White Sox made a deal with a convenience store chain, so weeknight games will start at this time",
+        "A": "7:11"
+      },
+      {
+        "Q": "Oops! Unable to find the tee shot he'd made on the 18th, Tom Kenney took a mulligan & later found his ball was here",
+        "A": "in the hole"
+      },
+      {
+        "Q": "A U.K. company was vilified for marketing \"Little Hooliganz\", action figures of fans of this sport",
+        "A": "soccer"
+      },
+      {
+        "Q": "Caught red-limbed drinking from a flask, the tree mascot for this school near Palo Alto was suspended",
+        "A": "Stanford"
+      }
+    ]
+  },
+  {
+    "name": "WOMEN IN HISTORY",
+    "clues": [
+      {
+        "Q": "Before she was First Lady, this woman from New England was the wife of the first U.S. vice president",
+        "A": "Abigail Adams"
+      },
+      {
+        "Q": "She was the only surviving child of Henry VIII's first wife",
+        "A": "Mary Tudor"
+      },
+      {
+        "Q": "After Julia Ward Howe heard Union soldiers singing \"John Brown's Body\", she wrote this song to the same tune",
+        "A": "\"The Battle Hymn of the Republic\""
+      },
+      {
+        "Q": "St. Thomas' Hospital, where she founded a training school for nurses in 1860, is now home to her museum",
+        "A": "Florence Nightingale"
+      },
+      {
+        "Q": "In the late 1940s she founded a female branch of her husband's political party in Argentina",
+        "A": "Eva Peron"
+      }
+    ]
+  },
+  {
+    "name": "WORLD WAR I VETS",
+    "clues": [
+      {
+        "Q": "Baseball Hall of Famer Christy Mathewson was injured by this WWI weapon, leading to his death from TB",
+        "A": "mustard gas"
+      },
+      {
+        "Q": "Future U.S. president seen <a href=\"http://www.j-archive.com/media/2002-05-02_J_18.jpg\" target=\"_blank\">here</a> on his military ID",
+        "A": "(Harry) Truman"
+      },
+      {
+        "Q": "This future leader of Yugoslavia was captured by the Russians in WWI & became a Bolshevik",
+        "A": "Tito"
+      },
+      {
+        "Q": "Walt Disney served in World War I with this future McDonald's tycoon",
+        "A": "Ray Kroc"
+      },
+      {
+        "Q": "Ernest Hemingway, E.E. Cummings & this \"U.S.A.\" trilogy author all drove ambulances in the war",
+        "A": "(John) Dos Passos"
+      }
+    ]
+  },
+  {
+    "name": "LINES FROM LITERATURE",
+    "clues": [
+      {
+        "Q": "In this novella, \"Holly Golightly had been a tenant in the old brownstone\"",
+        "A": "Breakfast at Tiffany's"
+      },
+      {
+        "Q": "In this novel, one of the inhabitants of Brobdingnag is described as being \"as tall as an ordinary spire-steeple\"",
+        "A": "Gulliver's Travels"
+      },
+      {
+        "Q": "Sandburg wrote that it \"sits looking over harbor and city on silent haunches and then moves on\"",
+        "A": "The Fog"
+      },
+      {
+        "Q": "Chapter 1 of it begins, \"'Camelot--Camelot,' said I to myself. 'I don't seem to remember hearing of it before'\"",
+        "A": "A Connecticut Yankee in King Arthur's Court"
+      },
+      {
+        "Q": "In his \"Ode on\" this, Keats writes, \"Heard melodies are sweet, but those unheard are sweeter\"",
+        "A": "a Grecian Urn"
+      }
+    ]
+  },
+  {
+    "name": "NYC STREET FOODS",
+    "clues": [
+      {
+        "Q": "(Alex: Let's join Sofia on Park Avenue.)  Oops!  I forgot to get a side of this traditional yellow condiment",
+        "A": "mustard"
+      },
+      {
+        "Q": "(Sofia)  This pita contains little balls of this, a deep-fried Mideast treat made from chickpeas or fava beans",
+        "A": "falafel"
+      },
+      {
+        "Q": "(Sofia)  From the Ukranian for \"dumpling\", it's the name of the potato product I'm eating",
+        "A": "knish"
+      },
+      {
+        "Q": "(Alex: Sofie, what's next?)  You can get pizza New York-style or in this thicker style named for an Italian island",
+        "A": "Sicilian"
+      },
+      {
+        "Q": "(Sofia)  Fortunately, also available in New York is this Procter & Gamble tummy-soothing liquid",
+        "A": "Pepto-Bismol"
+      }
+    ]
+  },
+  {
+    "name": "SPORTS GEAR",
+    "clues": [
+      {
+        "Q": "For swimming, you might want an anti-fog pair of these with shatter-resistant lenses",
+        "A": "goggles"
+      },
+      {
+        "Q": "For soccer, you want to protect the front of the leg from the knee to the ankle with a pair of these in addition to socks",
+        "A": "shin guards"
+      },
+      {
+        "Q": "Both spikes & these can be the projections added to shoes for traction or the shoes themselves",
+        "A": "cleats"
+      },
+      {
+        "Q": "In billiards, it's a stick with a notched plate at one end used to support the cue",
+        "A": "a bridge"
+      },
+      {
+        "Q": "(<a href=\"http://www.j-archive.com/media/2007-04-09_J_11.jpg\" target=\"_blank\">Jimmy of the Clue Crew reports from wrestling practice at the University of Iowa.</a>) Ancient Greek wrestlers competed naked; today's wrestlers wear this one-piece garment",
+        "A": "a singlet"
+      }
+    ]
+  },
+  {
+    "name": "\"D\" MEN OF HISTORY",
+    "clues": [
+      {
+        "Q": "In 1581 this world-circumnavigating sailor was made the mayor of Plymouth, England",
+        "A": "Sir Francis Drake"
+      },
+      {
+        "Q": "Tsangyang Gyatso, the sixth man to hold this title, died mysteriously in 1706",
+        "A": "the Dalai Lama"
+      },
+      {
+        "Q": "This man who lost the 1948 presidential election was referred to as \"the little man on the wedding cake\"",
+        "A": "(Thomas) Dewey"
+      },
+      {
+        "Q": "This U.S. mayor who died in 1976 was called the \"last of the big-city bosses\"",
+        "A": "(Richard) Daley"
+      },
+      {
+        "Q": "The topic of the paper he gave to the Manchester Literary & Philosophical Society in 1794 was color blindness",
+        "A": "John Dalton"
+      }
+    ]
+  },
+  {
+    "name": "SHAPELY COUNTRIES",
+    "clues": [
+      {
+        "Q": "<a href=\"http://www.j-archive.com/media/2007-10-10_J_04.jpg\" target=\"_blank\">This </a>island off the coast of Africa is where you might find Alex, Marty and Melman",
+        "A": "Madagascar"
+      },
+      {
+        "Q": "Sugarcane is an important crop of <a href=\"http://www.j-archive.com/media/2007-10-10_J_05.jpg\" target=\"_blank\">this</a> communist Caribbean island",
+        "A": "Cuba"
+      },
+      {
+        "Q": "No wonder <a href=\"http://www.j-archive.com/media/2007-10-10_J_06.jpg\" target=\"_blank\">it's</a> called a low country, much of it is below sea level",
+        "A": "The Netherlands"
+      },
+      {
+        "Q": "<a href=\"http://www.j-archive.com/media/2007-10-10_J_07.jpg\" target=\"_blank\">This</a> country is named for a circle around the Earth",
+        "A": "Ecuador"
+      },
+      {
+        "Q": "The name of <a href=\"http://www.j-archive.com/media/2007-10-10_J_08.jpg\" target=\"_blank\">this</a> Asian country means \"Land of the Free,\" so it's not surprising that it's never been colonized",
+        "A": "Thailand"
+      }
+    ]
+  },
+  {
+    "name": "CHINESE HISTORY",
+    "clues": [
+      {
+        "Q": "Wang Hongwen, Zhang Chunqiao, Yau Wen-Yuan & Jiang Qing, Mao's wife, were known by this collective name",
+        "A": "the Gang of Four"
+      },
+      {
+        "Q": "In 868 this dynasty produced the world's first block-printed book, but not the drink favored by astronauts",
+        "A": "Tang"
+      },
+      {
+        "Q": "On July 22, 1999 the government banned this religious sect after it staged unauthorized demonstrations",
+        "A": "Falun Gong"
+      },
+      {
+        "Q": "A physician educated in the U.S., he led the movement to overthrow the Manchu Dynasty in 1911",
+        "A": "Sun Yat-sen"
+      },
+      {
+        "Q": "In 1816 Lord Amherst, British envoy to China, was not received because he wouldn't perform this ritual",
+        "A": "kowtow"
+      }
+    ]
+  },
+  {
+    "name": "EGYPTIAN MYTHOLOGY",
+    "clues": [
+      {
+        "Q": "Many of these lion-bodied statues were found in ancient Egypt; the most famous is at Giza",
+        "A": "Sphinxes"
+      },
+      {
+        "Q": "Though depicted with the head of a cow, Hathor is a goddess of beauty equated with this Greek goddess",
+        "A": "Aphrodite"
+      },
+      {
+        "Q": "Thoth is a moon god associated with this large, robust monkey",
+        "A": "Baboon"
+      },
+      {
+        "Q": "Egyptians studied The Book Of The Dead to help them get past this presiding god into paradise",
+        "A": "Osiris"
+      },
+      {
+        "Q": "Thor Heyerdahl's 1969 & 1970 expeditions to cross the Atlantic in reed boats were named after this god",
+        "A": "Ra"
+      }
+    ]
+  },
+  {
+    "name": "SPORTS HISTORY",
+    "clues": [
+      {
+        "Q": "At the first modern Olympics, this race was 40,000 meters, slightly shorter than the distance now standard",
+        "A": "Marathon"
+      },
+      {
+        "Q": "Abbreviated NASL, it peaked in the 1970s with stars like Franz Beckenbauer & Pele",
+        "A": "North American Soccer League"
+      },
+      {
+        "Q": "Henry Armstrong is the only boxer to hold titles in 3 classes at once -- featherweight, welterweight & this",
+        "A": "Lightweight"
+      },
+      {
+        "Q": "This golfer came back from a near-fatal car accident to win the 1950 U.S. Open",
+        "A": "Ben Hogan"
+      },
+      {
+        "Q": "(Hi, I'm Keith Olbermann)  Baseball free agency was set in motion with a lawsuit filed by this Cardinal center fielder",
+        "A": "Curt Flood"
+      }
+    ]
+  },
+  {
+    "name": "HOLIDAY CLIP ART",
+    "clues": [
+      {
+        "Q": "On this observance, a Dutchman will wish you \"Vrolijke Kerstmis\"",
+        "A": "Christmas"
+      }
+    ]
+  },
+  {
+    "name": "GREEK ISLANDS",
+    "clues": [
+      {
+        "Q": "One island is the supposed burial place of this reckless mythical flier, & is named for him",
+        "A": "Icarus"
+      }
+    ]
+  },
+  {
+    "name": "THE MUSICAL QUESTION",
+    "clues": [
+      {
+        "Q": "To answer this hit canine question from the Baha Men, sorry, it was me, so please stop asking me about it",
+        "A": "\"Who Let The Dogs Out?\""
+      },
+      {
+        "Q": "Tom Jones purr-fectly crooned this 1965 Top 5 hit",
+        "A": "\"What's New Pussycat?\""
+      },
+      {
+        "Q": "1987 Madonna tune that was No. 1 & 1987 Madonna movie that wasn't quite as popular",
+        "A": "\"Who's That Girl\""
+      },
+      {
+        "Q": "The Bee Gees also asked, \"How can a loser ever win?\" in this 1971 song about fixing a serious medical problem",
+        "A": "\"How Can You Mend A Broken Heart\""
+      },
+      {
+        "Q": "Ray Charles wondered (repeatedly) about words he spoke to his \"baby\" in this 1959 tune",
+        "A": "\"What'd I Say\""
+      }
+    ]
+  },
+  {
+    "name": "FILM ANIMALS",
+    "clues": [
+      {
+        "Q": "Flipper",
+        "A": "dolphin"
+      },
+      {
+        "Q": "Mighty Joe Young",
+        "A": "ape"
+      },
+      {
+        "Q": "Black Beauty",
+        "A": "horse"
+      },
+      {
+        "Q": "Beethoven",
+        "A": "St. Bernard"
+      },
+      {
+        "Q": "Fievel",
+        "A": "mouse"
+      }
+    ]
+  },
+  {
+    "name": "WORLD HERSTORY",
+    "clues": [
+      {
+        "Q": "In 1860, 4 years after leaving the Crimea, she wrote the book \"Notes on Nursing: What It Is and What It Is Not\"",
+        "A": "Florence Nightingale"
+      },
+      {
+        "Q": "Convincing the gang to take the Bozeman Pass was just one of her contributions to Lewis & Clark's expedition",
+        "A": "Sacagawea"
+      },
+      {
+        "Q": "After briefly attending Oxford University, she returned to India in 1941 & married a Parsi lawyer the following year",
+        "A": "Indira Gandhi"
+      },
+      {
+        "Q": "Some scholars believe that this wife of Akhenaton was not Egyptian but an Asian princess from Syria",
+        "A": "Nefertiti"
+      },
+      {
+        "Q": "For supporting a revolt against him, Henry II had this wife imprisoned from 1173 till his death in 1189",
+        "A": "Eleanor of Aquitaine"
+      }
+    ]
+  },
+  {
+    "name": "SOUL & FUNK MUSIC",
+    "clues": [
+      {
+        "Q": "\"Living In America\" from \"Rocky IV\" helped revive the career of this \"Soul Brother Number One\"",
+        "A": "James Brown"
+      },
+      {
+        "Q": "Funk major Robert Bell is better known by this name, especially when working with \"The Gang\"",
+        "A": "Kool"
+      },
+      {
+        "Q": "She sang her hit song \"Think\" in 1980's \"The Blues Brothers Movie\"",
+        "A": "Aretha Franklin"
+      },
+      {
+        "Q": "He was a disc jockey on San Francisco's soul station KSOL before teaming on records with the Family Stone",
+        "A": "Sly"
+      },
+      {
+        "Q": "David Ritz' \"Divided Soul\" is a biography of this \"Sexual Healing\" singer",
+        "A": "Marvin Gaye"
+      }
+    ]
+  },
+  {
+    "name": "EUROPEAN COUNTRY BY CITIES",
+    "clues": [
+      {
+        "Q": "Graz, Salzburg",
+        "A": "Austria"
+      },
+      {
+        "Q": "Bergen, Trondheim",
+        "A": "Norway"
+      },
+      {
+        "Q": "Odessa, Lviv",
+        "A": "Ukraine"
+      },
+      {
+        "Q": "Charleroi, Ghent",
+        "A": "Belgium"
+      },
+      {
+        "Q": "Coimbra, Aveiro",
+        "A": "Portugal"
+      }
+    ]
+  },
+  {
+    "name": "WORDS FROM RELIGION",
+    "clues": [
+      {
+        "Q": "This religion is translated as \"way of the Kami\"",
+        "A": "Shinto"
+      },
+      {
+        "Q": "5-letter word for the set of books that have authority in a religion & no, you can't fire it off",
+        "A": "canon"
+      },
+      {
+        "Q": "Latitudinarianism is a synonym for this broad-minded view, from the Latin for \"to bear\"",
+        "A": "tolerance"
+      },
+      {
+        "Q": "4-letter title for the caliph or successor to Muhammad; it's now used of several Islamic leaders",
+        "A": "imam"
+      },
+      {
+        "Q": "Lao-Tzu referred to this 3-letter word as \"the unproduced producer of all that is\"",
+        "A": "Tao"
+      }
+    ]
+  },
+  {
+    "name": "SHAKESPEAREAN GEOGRAPHY",
+    "clues": [
+      {
+        "Q": "The Boar's Head Tavern is one of many Shakespearean settings in this city",
+        "A": "London"
+      },
+      {
+        "Q": "In \"Henry VI, Part 1\" it's a setting; in \"Romeo and Juliet\" it's a suitor for Juliet's hand",
+        "A": "Paris"
+      },
+      {
+        "Q": "Messina, where \"Much Ado About Nothing\" takes place, is a port on this Italian island",
+        "A": "Sicily"
+      },
+      {
+        "Q": "Hamlet's father, the king of Denmark, killed Fortinbras' father, king of this nearby country",
+        "A": "Norway"
+      },
+      {
+        "Q": "Theseus, duke of this city in \"A Midsummer Night's Dream\", doesn't run into fellow resident Timon",
+        "A": "Athens"
+      }
+    ]
+  },
+  {
+    "name": "PARTY GEOMETRY",
+    "clues": [
+      {
+        "Q": "It's a figure defined by a closed plane curve & a vertex, or what you can fill with a scoop of ice cream",
+        "A": "Cone"
+      },
+      {
+        "Q": "In the game room, the flight paths of well-thrown darts form these parts of circles",
+        "A": "Arcs"
+      },
+      {
+        "Q": "Jill & her boyfriend form these 2 coplanar lines & Jill's dad is relieved they have no point in common",
+        "A": "Parallel lines"
+      },
+      {
+        "Q": "2/3 pi r cubed will give us this measure for our hemispherical punch bowl",
+        "A": "Volume"
+      },
+      {
+        "Q": "2 angles with a common vertex & a common side, or the position of the house next door that called the cops",
+        "A": "Adjacent"
+      }
+    ]
+  },
+  {
+    "name": "ENDS WITH A BODY PART",
+    "clues": [
+      {
+        "Q": "Someone who moves props or lighting for a theatrical production",
+        "A": "a stagehand"
+      },
+      {
+        "Q": "To identify an illness via medical exam",
+        "A": "diagnose"
+      },
+      {
+        "Q": "Smugglers who hid booze in their footwear gave rise to this adjective for something made or sold illicitly",
+        "A": "bootleg"
+      },
+      {
+        "Q": "A spiky sea critter, or a mischievous boy",
+        "A": "an urchin"
+      },
+      {
+        "Q": "Most opulent",
+        "A": "richest"
+      }
+    ]
+  },
+  {
+    "name": "SPORTS SHIFTS",
+    "clues": [
+      {
+        "Q": "The NBA's Jazz franchise spent 5 years in this city before moving to Salt Lake City in 1979",
+        "A": "New Orleans"
+      },
+      {
+        "Q": "In 1966 baseball's L.A. Angels became the California Angels when they moved to this city",
+        "A": "Anaheim"
+      },
+      {
+        "Q": "In 1963 the NBA's Syracuse Nationals moved to Philadelphia & changed their name to this",
+        "A": "Philadelphia 76'ers"
+      },
+      {
+        "Q": "This pro football team began life as the Dallas Texans before moving to Missouri",
+        "A": "Kansas City Chiefs"
+      },
+      {
+        "Q": "In 1982 the NHL's Colorado Rockies became this state's Devils",
+        "A": "New Jersey"
+      }
+    ]
+  },
+  {
+    "name": "THE PARTNER",
+    "clues": [
+      {
+        "Q": "Acquaintances & relatives: ___ & kin",
+        "A": "kith"
+      },
+      {
+        "Q": "In an Israeli patriotic song: blue & ___",
+        "A": "white"
+      },
+      {
+        "Q": "Sausage & potatoes, luv: bangers & ___",
+        "A": "mash"
+      },
+      {
+        "Q": "Dealing with railroads & aviation: House Committee on ___ & Infrastructure",
+        "A": "Transportation"
+      },
+      {
+        "Q": "In the Lesser Antilles: St. Kitts & ___",
+        "A": "Nevis"
+      }
+    ]
+  },
+  {
+    "name": "ARTSY",
+    "clues": [
+      {
+        "Q": "The \"Mona Lisa\" isn't oil on canvas but oil on this",
+        "A": "wood"
+      },
+      {
+        "Q": "A student under Benjamin West, this American also did portraits of Presidents Adams & Jefferson",
+        "A": "(Gilbert) Stuart"
+      },
+      {
+        "Q": "This 19th century movement of Courbet, Millet & Daumier rejected academic styles in favor of everyday subjects",
+        "A": "Realism"
+      },
+      {
+        "Q": "In the 1690s, Jesuit brother Andrea Pozzo appropriately painted a \"Triumph of\" this saint",
+        "A": "Ignatius Loyola"
+      },
+      {
+        "Q": "Surrealist Max Ernst invented this technique of rubbing a pencil over paper laid on a surface",
+        "A": "frottage"
+      }
+    ]
+  },
+  {
+    "name": "SPORTS SUPERSTARS",
+    "clues": [
+      {
+        "Q": "In 1961 Mickey Mantle & this teammate hit a total of 115 home runs--the most by 2 teammates in baseball history",
+        "A": "Roger Maris"
+      },
+      {
+        "Q": "In 1987 this Broncos quarterback became the first quarterback to receive a pass in the Super Bowl",
+        "A": "John Elway"
+      },
+      {
+        "Q": "(<a href=\"http://www.j-archive.com/media/2000-05-25_J_20.jpg\" target=\"_blank\">Hi, I'm Kareem Abdul-Jabbar.</a>) 3 NBA players have officially blocked over 3,000 shots in their career: myself, Mark Eaton & this Houston Rockets star",
+        "A": "Hakeem Olajuwon"
+      },
+      {
+        "Q": "On July 25, 1999 Lance Armstrong became the first American since Greg LeMond to win this 2,300-mile race",
+        "A": "the Tour de France"
+      },
+      {
+        "Q": "In 1999 this former Penguins star became the first retired player to own a major sports team he had played for",
+        "A": "Mario Lemieux"
+      }
+    ]
+  },
+  {
+    "name": "TOUGH BODIES OF WATER",
+    "clues": [
+      {
+        "Q": "St. George's Channel separates Wales from this country",
+        "A": "Ireland"
+      },
+      {
+        "Q": "Bristol Bay is an arm of this sea off Alaska",
+        "A": "the Bering"
+      },
+      {
+        "Q": "Rivers that flow into this sea include the Dnieper, Dniester & Danube",
+        "A": "the Black Sea"
+      },
+      {
+        "Q": "The Uruguay River forms the border between Uruguay & Argentina & most of the border between Argentina & this country",
+        "A": "Brazil"
+      },
+      {
+        "Q": "This Venezuelan lake is the only one of the world's 25 largest lakes whose elevation is sea level",
+        "A": "Lake Maracaibo"
+      }
+    ]
+  },
+  {
+    "name": "RUSSIAN GEOGRAPHY",
+    "clues": [
+      {
+        "Q": "In 1961 Nikita Khrushchev changed its name to Volgograd; this name had lasted almost 40 years",
+        "A": "Stalingrad"
+      },
+      {
+        "Q": "This grassy plain covers Russia from its border with Ukraine east to the Altai Mountains in Siberia",
+        "A": "a steppe"
+      },
+      {
+        "Q": "Mount Elbrus, Europe's highest point at 18,510 feet, rises in this range along the border with Georgia",
+        "A": "the Caucasus"
+      },
+      {
+        "Q": "The Lena River, one of Russia's longest, rises 10 miles from this deep Siberian lake & flows 2,734 miles to the Arctic Ocean",
+        "A": "Lake Baikal"
+      },
+      {
+        "Q": "In 1949 the Ainu people were expelled from this largest Russian island & relocated to Hokkaido",
+        "A": "Sakhalin"
+      }
+    ]
+  },
+  {
+    "name": "EUROPEAN CAPITAL RHYME TIME",
+    "clues": [
+      {
+        "Q": "A Hostess food product in Finland",
+        "A": "a Helsinki Twinkie"
+      },
+      {
+        "Q": "An Italian book",
+        "A": "a Rome tome"
+      },
+      {
+        "Q": "A gear in the Czech Republic",
+        "A": "a Prague cog"
+      },
+      {
+        "Q": "A boy in Ukraine named for actor Schreiber",
+        "A": "a Kiev Liev"
+      },
+      {
+        "Q": "A list of maritime cargo in the capital of Hungary",
+        "A": "a Budapest manifest"
+      }
+    ]
+  },
+  {
+    "name": "BROADWAY MUSICAL SETTINGS",
+    "clues": [
+      {
+        "Q": "\"Fiddler on the Roof\" may be the most famous American musical set in this country",
+        "A": "Russia"
+      },
+      {
+        "Q": "In \"Curtains\", it's curtains for a leading lady who ends up dead in this New England city during a pre-Broadway run",
+        "A": "Boston"
+      },
+      {
+        "Q": "4 blue-collar guys work their way up from the streets of Newark to the heights of stardom in this 2005 smash",
+        "A": "Jersey Boys"
+      },
+      {
+        "Q": "When we first meet Horace Vandergelder in \"Hello, Dolly!\", he's in this N.Y. city & feeling a little \"lost in\" it",
+        "A": "Yonkers"
+      },
+      {
+        "Q": "(<a href=\"http://www.j-archive.com/media/2008-09-12_DJ_17.jpg\" target=\"_blank\">I'm Andrew Lloyd Webber.</a>) The underground lair in which the Phantom lurks is based on fact; there really is a lake beneath this famous building",
+        "A": "the Paris Opera House"
+      }
+    ]
+  },
+  {
+    "name": "WE HAWK OLD INVENTIONS",
+    "clues": [
+      {
+        "Q": "He got movable type moving, & there are only about 40 of his 1450s Bible left!  Act now!",
+        "A": "Gutenberg"
+      },
+      {
+        "Q": "In December 1877 editors of Sci. American checked out his cylinder phonograph; the sentimental value alone is huge!",
+        "A": "Edison"
+      },
+      {
+        "Q": "We have a certain \"view\" of this guy who 1st perfected his \"quick freeze machine\" for fish in 1926; enjoy our 1/2-priced halibut!",
+        "A": "(Clarence) Birdseye"
+      },
+      {
+        "Q": "Within 10 years of inventing the steel plow in 1837, he was producing 1,000 annually; nothing runs like...",
+        "A": "John Deere"
+      },
+      {
+        "Q": "You can't put a price on this German's scale for classifying the relative hardness of minerals--but we can!",
+        "A": "(Friedrich) Mohs"
+      }
+    ]
+  },
+  {
+    "name": "CONTINENTAL GEOGRAPHY",
+    "clues": [
+      {
+        "Q": "The geographic center of North America is in this state that borders Canada",
+        "A": "North Dakota"
+      }
+    ]
+  },
+  {
+    "name": "A CLOSE LOOK AT ART",
+    "clues": [
+      {
+        "Q": "(<a href=\"http://www.j-archive.com/media/2005-11-14_DJ_22.jpg\" target=\"_blank\">Kelly of the Clue Crew points to paints & pigments.</a>)  \"The clash of colors, like the different greens,  express the terrible passions of humanity\", wrote this artist",
+        "A": "Van Gogh"
+      }
+    ]
+  }
+]

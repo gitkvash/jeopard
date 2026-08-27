@@ -1,0 +1,62 @@
+Real trivia facts pulled from a large English-language trivia archive, already filtered to remove anything USA-specific and any English wordplay. They are RAW INSPIRATION ONLY: verify every fact yourself before use, discard anything that turns out to still be US-centric, obscure, or dated, and never translate one of these verbatim -- write your own fresh Georgian clue once you have confirmed the underlying fact.
+
+[EXPLORERS] In 1909 Roald Amundsen set his hopes on being here first, then found out Peary had beaten him to it -> North Pole
+[MOUNTAINS] Encyclopedia Americana calls it the "most photographed peak in Europe" -> The Matterhorn
+[EXPLORERS] In 1960, Don Walsh & Jacques Piccard surfaced as famous explorers of this -> deep sea
+[MOUNTAINS] Home to alpacas & llamas -> the Andes
+[MOUNTAINS] Cotopaxi, the world's highest active volcano, rises just south of Quito, Ecuador in these mountains -> Andes
+[EXPLORERS] While Champlain was "the Father of New France", this Frenchman got to Canada earlier & named Montreal -> Jacques Cartier
+[MOUNTAINS] Coffee & bananas are grown on the lower slopes of this mountain, the highest in Africa -> Mt. Kilimanjaro
+[EXPLORERS] This Dane joined the Russian navy in 1704 & served in the war against Sweden -> Vitus Bering
+[EXPLORERS] This Portuguese explorer commanded the first fleet to reach India from Europe -> Vasco da Gama
+[EXPLORERS] This Icelandic explorer whose statue is seen here visited America almost 500 years before Columbus -> Leif Ericson
+[EXPLORERS] This captain discovered the Great Barrier Reef the hard way, by running the Endeavour onto it -> Captain James Cook
+[MOUNTAINS] The highest active volcano in Europe, it's found in Italy -> Etna
+[MOUNTAINS] The Apennine range runs the length of this Mediterranean country's boot-shaped peninsula -> Italy
+[WEATHER] In Death Valley it's the heat, not this, as this averages less than 5% -> humidity
+[MOUNTAINS] A 7.2 mile auto tunnel through this Alpine peak connects Courmayeur, Italy with Chamonix, France -> Mont Blanc
+[EXPLORATION] In 1498, this Portuguese explorer recruited a pilot in east Africa to help him find India -> Vasco da Gama
+[EXPLORERS] In 1871 he answered, "Yes, and I feel thankful that I am here to welcome you" -> Dr. Livingstone
+[EXPLORATION] On a plateau in central Asia, Marco Polo noted a wild, horned type of this animal, later named for him -> sheep
+[EXPLORERS] He made the 2nd voyage around the world -> Sir Francis Drake
+[EXPLORERS] Believing he'd betrayed his Arab friends, he sought obscurity, changing his name to T.E. Shaw -> T.E. Lawrence
+[EXPLORATION] In 1519 he explored Mexico & won allies among Indians who were subservient to the Aztecs -> Hernando Cortez
+[EXPLORATION] On a trip in this country in 1860 Henri Mouhot set angkor, finding Wat & Thom -> Cambodia
+[EXPLORERS] 9 years after B. Dias rounded Africa's tip, this explorer sailed on to open sea route to India -> Vasco da Gama
+[MOUNTAINS] This 4,000-mile-long mountain system is only about 200 miles wide except in Bolivia where it's about 400 -> Andes
+[EXPLORERS] After his circumnavigation of the world he was made mayor of Plymouth, England -> Sir Francis Drake
+[DISCOVERIES] These sacred scrolls found at Qumran in 1947 have yielded many insights into early Christianity & Rabbinic Judaism -> the Dead Sea scrolls
+[EXPLORERS] Before cannibals ate him in the Indies, this Italian sighted the N.Y. Bay where today a bridge bears his name -> Verrazano
+[EXPLORERS] In 1616, after Hudson died, this man became the 1st European to reach Ellesmere Island; an island & bay are named for him -> (William) Baffin
+[EXPLORERS] On his fourth voyage to the New World, 1502-1504, he reached Panama but did not cross the isthmus -> Christopher Columbus
+[EXPLORERS] Tho he didn't find the Northwest Passage, this Frenchman established France's claim to Canada -> Jacques Cartier
+[EXPLORERS] With about 180 men & 3 ships, he set out for Peru from Central America in January 1531 -> Francisco Pizarro
+[EXPLORERS] He stopped at Gomera in the Canaries for nearly a month, then headed for the New World on Sept. 6, 1492 -> Columbus
+[WEATHER] The instrument most often used to measure surface wind speed -> anemometer
+[WEATHER] A high of 120 degrees or more has been recorded on every continent but this one; it's barely broken 60 -> Antarctica
+[MOUNTAINS] Mount Ansel Adams is found on the southeast boundary of this national park -> Yosemite
+[EXPLORERS] Sailing on behalf of Spain in 1519, this Portuguese explorer's trip proved the Americas were a new world -> Ferdinand Magellan
+[WEATHER] The average weather conditions of a region over a long period of time -> climate
+[EXPLORERS] Hillary said this man left some offerings to the gods of Chomolungma atop Everest in 1953 -> Tenzing Norgay
+[WEATHER] Condition associated with London & pea soup -> fog
+[MOUNTAINS] Range of mountains where Danny Kaye, Alan King & Rip Van Winkle gained fame -> the Catskills
+[MOUNTAINS] (Alex T. in Africa)  Coffee beans are still widely grown on the slopes of this mountain, Africa's second-highest -> Mount Kenya
+[MOUNTAINS] Mt. Chimborazo, whose summit is the farthest from the Earth's center, lies in Ecuador in these mountains -> the Andes
+[MOUNTAINS] Seen here is one of Hokusai's famous wood-block prints of this mountain -> Mount Fuji
+[MOUNTAINS] This sacred Japanese volcano last erupted in 1707 -> Mount Fuji
+[EXPLORERS] In 1955 this explorer published the aptly titled "High Adventure" -> Edmund Hillary
+[MOUNTAINS] Of the summits of this Tanzanian mountain, Kibo is covered with ice & snow; Mawensi is usually clear -> Mount Kilimanjaro
+[EXPLORERS] Alexine Tinne's 1869 attempt to cross this desert ended when she was killed by her Tuareg guides -> Sahara
+[EXPLORERS] Books by this man include "North West Passage" (1908) & "The South Pole" (1912) -> Roald Amundsen
+[MOUNTAINS] In the early 1860s the Bisson brothers climbed to the top of this highest peak & took photos -> Mont Blanc
+[EXPLORERS] In 1858 John Speke & this explorer, not the actor, made the European discovery of Lake Tanganyika -> Richard Burton
+[DISCOVERIES] By McCollum in 1913, this, which you need for healthy eyes -> vitamin A
+[MOUNTAINS] According to the Bible, Moses saw the Promised Land from this mountain in Jordan's Pisgah Range -> Mount Nebo
+[EXPLORERS] He led the expedition that rescued Emin Pasha, as well as the one that found Livingstone -> Henry Stanley
+[MOUNTAINS] The world's 2nd-tallest mountain; it's also known as Kechu -> K2 (Mt. Godwin-Austen)
+[MOUNTAINS] This Greek mountain's peaks include Mytikas, Skolio & the Throne of Zeus -> Mount Olympus
+[WEATHER] The Fujita scale that ranks the intensity of these goes from F-0 on up; an F-5 has wind speeds exceeding 261 mph -> a tornado
+[EXPLORERS] In 1904 this Norwegian discovered that the magnetic poles were not fixed positions -> Roald Amundsen
+[EXPLORERS] Louis Antoine de Bougainville arrived at this island in 1768 & natives gave him fowls, fruit & naked women -> Tahiti
+[EXPLORERS] He was hoping the river named for him would lead him to the Pacific, but he only got to Albany -> Henry Hudson
+[EXPLORERS] Alexander Gordon Laing was killed by natives soon after visiting this exotic Mali city -> Timbuktu

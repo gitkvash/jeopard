@@ -1,0 +1,62 @@
+Real trivia facts pulled from a large English-language trivia archive, already filtered to remove anything USA-specific and any English wordplay. They are RAW INSPIRATION ONLY: verify every fact yourself before use, discard anything that turns out to still be US-centric, obscure, or dated, and never translate one of these verbatim -- write your own fresh Georgian clue once you have confirmed the underlying fact.
+
+[SCIENTISTS] In 1543 he wrote, "Finally we shall place the sun himself at the center of the universe" -> Nicolaus Copernicus
+[SCIENTISTS] Though oxygen was discovered by Joseph Priestley, this 18th century French chemist gave it its name -> Antoine Lavoisier
+[MEDICINE] An exact copy of a cell, a gene or an organism is called this -> a clone
+[MEDICINE] Used by primitives for blood letting, surgeons now use this worm to reattach severed body parts -> a leech
+[HEALTH & MEDICINE] In vitiligo, a common disorder, patches of skin lose this -> pigment (or color)
+[SCIENTISTS] Born in 1686, he invented the first accurate thermometer & devised a temperature scale to go with it -> Fahrenheit
+[SCIENTISTS] With his cousin, this Italian physicist formed the Wireless Telegraph & Signal Co., Ltd. in 1897 -> Guglielmo Marconi
+[MEDICINE] A few almonds might help a headache; they contain salicylic acid, found in this drug synthesized in 1853 -> aspirin
+[MEDICINE] Before discovering penicillin, he discovered lysozyme, an antibacterial agent in tears & saliva -> Sir Alexander Fleming
+[MEDICAL MILESTONES] In the 1950s Peter Safar developed this emergency procedure to maintain airway, breathing & circulation -> CPR
+[MEDICAL MILESTONES] Louise Brown, the first human conceived by in vitro fertilization, is better known as the 1st this "baby" -> test tube baby
+[MEDICINE] It's the removal of skin by sanding to remove tattoos or to improve skin scarred by acne -> Dermabrasion
+[HEALTH & MEDICINE] Lateral epicondylitis is the medical term for this chronic sports injury that affects the arm -> tennis elbow
+[SCIENTISTS] In the 2nd century this Alexandrian astronomer catalogued 47 of the 88 constellations we know today -> Ptolemy
+[HEALTH & MEDICINE] Tried since the 17th C., blood transfusions were mostly unsuccessful until these were discovered -> Blood types
+[SICKNESS & HEALTH] The key ingredient in smelling salts which are used to revive a person who has fainted -> Ammonia
+[MEDICINE] Robert Koch, in 1876, was the first to identify the bacterium causing a specific disease, this disease of cattle & man -> anthrax
+[MEDICINE] In 2003 scientists announced the completion of this program that sequenced human DNA -> the Human Genome Project
+[MEDICINE] To help the baby's nervous system develop, pregnant women need lots of the B vitamin known as this acid -> folic
+[SCIENTISTS] He proved being inoculated with cowpox matter would prevent people from catching smallpox -> Edward Jenner
+[SCIENTISTS] Botanist Asa Gray was one of the earliest supporters of this man's evolution theory -> Charles Darwin
+[SCIENTISTS] Dutch optician Hans Lippershey invented this scientific device in 1608 -> Telescope
+[MEDICINE] This inflammation of the voice box is a broadcaster's nightmare -> laryngitis
+[SCIENTISTS] In 1887 this German was "in the driver's seat" on the subject of electromagnetic waves -> Heinrich Hertz
+[HEALTH & MEDICINE] The flu, which occurs most often in winter, is short for this -> influenza
+[HEALTH & MEDICINE] A sign of this infection from the virus that also causes chicken pox is a blistering rash preceded by severe pain -> shingles
+[HEALTH & MEDICINE] Bacteria in the mouth produce an acid that eats away at this outer part of the tooth & causes cavities -> enamel
+[HEALTH & MEDICINE] Anxiety, stress & lack of food can all trigger one of these severe headaches, from the Greek for "half skull" -> migraine
+[SCIENTISTS] The Dept. of the Interior has an annual lecture named for this biologist; she worked for the Dept. in the 1940s -> Rachel Carson
+[SCIENTISTS] In the 1740s he published "Flora Suecica" & "Fauna Suecica", 2 volumes of his observations -> Carolus Linnaeus
+[MEDICINE] This Baltimore hospital named for its benefactor opened in 1889 -> Johns Hopkins
+[MEDICINE] Today these bloodsucking creatures are sometimes used by physicians to treat hematomas -> leeches
+[HEALTH & MEDICINE] Nicknamed the "kissing disease", it's commonly caused by the Epstein-Barr Virus -> Mononucleosis
+[SCIENTISTS] This astronomer hosted only 13 episodes of the PBS series "Cosmos" (not billions & billions) -> (Carl) Sagan
+[MEDICINE] Hemodialysis removes waste material from the blood, a job usually done by these organs -> Kidneys
+[HEALTH & MEDICINE] Alexia is word blindness; this is a reading disability in which letters are reversed &/or transposed -> Dyslexia
+[MEDICINE] "Needle" is one type of this procedure in which tissue is taken from the body for a microscopic exam -> a biopsy
+[MEDICAL HISTORY] From the Greek for "to stir up", the first of these to be isolated was epinephrine -> Hormone
+[SCIENTISTS] This inventor supposedly offered G.W. Carver over $100,000 a year to work for him, but he declined -> Thomas Edison
+[HEALTH & MEDICINE] Once widely used as an anesthetic, trichloromethane is better known as this -> chloroform
+[MEDICINE] A form of this explosive is often used to treat angina -> nitroglycerin
+[SCIENTISTS] These 3 letters brought together Francis Crick & James Watson, 2 scientists at the Cavendish laboratory -> DNA
+[MEDICINE] In the 1870s germs of this disease of cattle became the first microorganism identified as a cause of illness -> anthrax
+[MEDICINE] This infection of the intestines is caused by a bacterium called Salmonella typhi -> typhoid fever
+[MEDICINE] A disease that comes & goes quickly is "acute", while this describes a disease of long duration -> Chronic
+[SCIENTISTS] Founder of Russian science, Mikhail Vasilievich Lomonosov, has a crater named for him there -> the moon
+[SCIENTISTS] Chemist Paul Lecoq de Boisbaudran named gallium after the Latin word for this country -> France
+[SICKNESS & HEALTH] It's the removal of a piece of tissue from a living body usually for diagnostic study -> Biopsy
+[MEDICAL HISTORY] The Anti-Vacks were doctors opposed to this Edward Jenner anti-smallpox method -> vaccination
+[SCIENTISTS] David Brewster established the law of polarization by reflection & invented this optical toy -> the kaleidoscope
+[MEDICINE] A collection of fluid beneath the outer layer of skin that can be caused by sunburn or a tight shoe -> a blister
+[MEDICINE] During a CABG operation, to bypass these arteries, incisions are made in a leg to get at a vein -> coronary arteries
+[MEDICINE] The process in which these are formed in bone marrow is called leukopoiesis -> white blood cells
+[MEDICINE] Parasitic worms in undercooked pork can cause this disease in humans -> trichinosis
+[SICKNESS & HEALTH] Insufficent amounts of an enzyme in the small intestine cause an intolerance to this milk sugar -> lactose
+[SCIENTISTS] Snell measured the Earth by first using this geometric method to measure the distance between towns -> triangulation
+[SCIENTISTS] Giuseppe Piazzi named the large asteroid he discovered this, after the Roman goddess of grain -> Ceres
+[HEALTH & MEDICINE] Extreme cold can bring on hypothermia & this condition, when areas of skin & underlying tissue freeze -> frostbite
+[MEDICINE] The "mellitus" in the full name of this disease comes from the Latin for "honey-sweet" -> diabetes
+[HEALTH & MEDICINE] It's the medical speciality concerned with such disorders as bunions, ingrown toenails & foot sprains -> Podiatry

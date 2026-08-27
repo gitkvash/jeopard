@@ -1,0 +1,21 @@
+# The client and the API on one origin, locally -- the same shape as the
+# deployment, so what is tested here is what ships. The backend and Postgres stay
+# where they are (run.ps1 and the root docker-compose.yml); this only fronts them.
+#
+#   docker compose -f local.docker-compose.yml up -d
+#   http://localhost:5050
+
+name: jeopard-local
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - ../app/build/web:/srv/web:ro
+    extra_hosts:
+      # Reaches the backend running on the host, not in a container.
+      - "host.docker.internal:host-gateway"

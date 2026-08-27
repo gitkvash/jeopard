@@ -1,0 +1,62 @@
+Real trivia facts pulled from a large English-language trivia archive, already filtered to remove anything USA-specific and any English wordplay. They are RAW INSPIRATION ONLY: verify every fact yourself before use, discard anything that turns out to still be US-centric, obscure, or dated, and never translate one of these verbatim -- write your own fresh Georgian clue once you have confirmed the underlying fact.
+
+[SCIENTISTS] In 1661 Isaac Newton entered this university's Trinity College as a subsizar, a student with domestic duties -> Cambridge
+[SCIENTISTS] Some scientists predict this "seasonal" period of cold & dark weather would be the result of atomic warfare -> nuclear winter
+[SCIENTISTS] Italian whose legendary experiment is recreated in the exhibit (Leaning Tower of Pisa) seen here -> Galileo
+[SCIENTISTS] Robert Hooke spent lots of time arguing over who made discoveries first, notably with this man over gravitation -> Newton
+[SCIENTISTS] It wasn't until this metal became cheap enough that Zeppelin could make the dirigible of his dreams -> Aluminum
+[MEN OF SCIENCE] In 1931, to produce this fiber, Wallace Carothers heated hexamethylene diamine & adipic acid -> Nylon
+[SCIENTISTS] In 1893 she earned a physics degree from the Sorbonne, ranking first in her class -> Marie Curie
+[SCIENTISTS] 2008 Nobelist Osamu Shimomura isolated a glowing green fluorescent protein in this aquatic creature -> a jellyfish
+[SCIENTISTS] Around 1800 this scientist from Como, Italy developed a forerunner of the electric battery -> Alessandro Volta
+[SCIENTISTS] From cowpox germs, he developed the smallpox vaccine -> Jenner
+[INVENTORS] John Fleming invented this in 1904 & fought in court with Lee de Forest, who invented the triode in 1906 -> Diode
+[INVENTORS] When he offered to sell the rights to his telegraph, the government turned him down -> Samuel Morse
+[SCIENTISTS] In the 2nd century this Alexandrian astronomer catalogued 47 of the 88 constellations we know today -> Ptolemy
+[SCIENTISTS] He was the first modern astronomer to chart the Southern Hemisphere, but didn't see -> Edmund Halley
+[SCIENTISTS] In 1980, for her concerns over pollution, she was posthumously awarded a Presidential Medal of Freedom -> Rachel Carson
+[DISCOVERIES] By Rutherford in 1919, this particle, 22 years after the electron -> the proton
+[MEN OF SCIENCE] Studying "on the rocks" of northern Europe, Jean Louis Agassiz developed the idea of this "age" -> Ice Age
+[SCIENTISTS] "The Undersea World of" this marine explorer was a television fixture from 1968 to 1976 -> Jacques Cousteau
+[ASTRONOMERS] This Italian astronomer discovered the division in Saturn's rings that bear his name -> Giovanni Cassini
+[MEN OF SCIENCE] The director of St. Petersburg's Institute of Experimental Medicine until his 1936 death; his name ring a bell? -> (Ivan) Pavlov
+[SCIENTISTS] Bertrand Russell said that "What Galileo and Newton were to the 17th century," this man "was to the 19th" -> Charles Darwin
+[ASTRONOMERS] Astronomer Frank Drake set up Project Ozma about 1960 to search for this -- didn't work -> Extraterrestrial Intelligence/Life Elsewhere
+[SCIENTISTS] John Dalton did the 1st paper on this condition, some say after being told his brown coat was bright scarlet -> color blindness
+[DISCOVERIES] By him in 1899, the Oedipus Complex -> Freud
+[SCIENTISTS] This man's injected dead virus vaccine inspired Albert Sabin's live-virus oral vaccine for polio -> (Jonas) Salk
+[SCIENTISTS] He wondered if the force that pulled an apple to the ground could also pull the moon into the earth's orbit -> Newton
+[INVENTORS] In June 1896 he completed his first automobile at his home on Bagley Avenue in Detroit -> Henry Ford
+[MEN OF SCIENCE] The first mention of this scientist's theoretical cat was in 1935's "The Present Situation in Quantum Physics" -> Schrödinger
+[SCIENTISTS] Sadly, both she & her daughter Irene died of leukemia caused by overexposure to radiation -> Marie Curie
+[MEN OF SCIENCE] Tragically, in 1864, his nitroglycerin factory blew up, killing several people, including his younger brother Emil -> Nobel
+[INVENTORS] In 1895 they invented the cinematographe, which combined a movie camera with a printer & a projector -> The Lumiere Brothers
+[SCIENTISTS] In the 1860s this chemist saved France's wine industry by showing that microbes can be killed with heat -> Louis Pasteur
+[SCIENTISTS] In 1791 this Italian published the results of his experiments in "animal electricity" -> Luigi Galvani
+[ASTRONOMERS] His "belt" about 4.65 billion miles from the sun may contain more than 70,000 objects -> Gerard Kuiper
+[ASTRONOMERS] Aristarchos proposed a heliocentric theory about 1,700 years before this famous Pole -> Nicolaus Copernicus
+[SCIENTISTS] Casimir Funk named these substances, which are essential for normal metabolism -> vitamins
+[SCIENTISTS] In 1871 he issued a new version of his periodic table, leaving gaps for elements not yet known -> Dmitri Mendeleev
+[INVENTORS] He refused to patent or to profit from his lightning rod, a device he first described in a 1751 article -> Benjamin Franklin
+[INVENTORS] Dennis Gabor won a 1971 Nobel Prize for his invention of this process to create 3-D images -> Holography
+[SCIENTISTS] Heike Kamerlingh Onnes discovered superconductivity & was the first to liquefy this light gas, in 1908 -> helium
+[INVENTORS] George Eastman received a patent for this on September 4, 1888;  Say Cheese! -> The Camera
+[SCIENTISTS] Scientist & author Temple Grandin overcame this alienating condition, from the Greek for "self" or "same" -> autism
+[SCIENTISTS] His 1637 "Discours de la methode" prefaced a series of essays on optics, meteorology, and geometry -> Rene Descartes
+[SCIENTISTS] Around 1507 this Polish astronomer began trying to prove that the sun, not earth, was the center of the universe -> Copernicus
+[SCIENTISTS] Botanist Asa Gray was one of the earliest supporters of this man's evolution theory -> Charles Darwin
+[SCIENTISTS] He crossed the oxeye, European & Japanese daisies to produce his famous Shasta daisy -> Luther Burbank
+[MEN OF SCIENCE] In 1986 Dr. Alec Jeffreys became the first scientist to use this to identify suspected criminals -> DNA
+[SCIENTISTS] In the 1740s he published "Flora Suecica" & "Fauna Suecica", 2 volumes of his observations -> Carolus Linnaeus
+[DISCOVERIES] In September 1513 Vasco Nunez de Balboa "discovered" this, though the locals had noticed it before -> the Pacific Ocean
+[SCIENTISTS] It's believed this "Rubaiyat" author helped reform the Muslim calendar -> Omar Khayyam
+[SCIENTISTS] In the 1670s this British genius wrote, "If I have seen further it is by standing on the shoulders of giants" -> Newton
+[SCIENTISTS] Dmitri Mendeleyev developed this chemical classification system in Russia in the 1860s -> Periodic Table of Elements
+[ASTRONOMERS] Members of this family found a division in Saturn's rings & ran the observatory in Paris -> Cassini
+[SCIENTISTS] A law of falling bodies associated with this Italian says that they fall at the same speed regardless of their mass -> Galileo
+[SCIENTISTS] Her daughter Irene also received a Nobel Prize in Chemistry -> Marie Curie
+[SCIENTISTS] This electricity investigator is a hero in the Balkans & a museum in Belgrade was named for him -> Tesla
+[INVENTORS] J. Murray Spangler's upright one of these built in 1907 used a pillow case as the dustbag -> Vacuum cleaner
+[INVENTORS] His father developed a phonetic "visible speech" system used for teaching the deaf -> Alexander Graham Bell
+[SCIENTISTS] In 1887 this German was "in the driver's seat" on the subject of electromagnetic waves -> Heinrich Hertz
+[SCIENTISTS] Chemist Hilaire Chardonnet, who invented rayon, had worked under this man when he was researching silk & silkworms -> Louis Pasteur

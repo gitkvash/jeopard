@@ -1,0 +1,22 @@
+# Postgres for the Jeopard backend.
+#   docker compose up -d
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: jeopard-db
+    environment:
+      POSTGRES_DB: jeopard
+      POSTGRES_USER: jeopard
+      POSTGRES_PASSWORD: jeopard
+    ports:
+      - "5433:5432"   # 5432 is taken by the native PostgreSQL 18 service
+    volumes:
+      - jeopard-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jeopard -d jeopard"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  jeopard-pgdata:

@@ -1,0 +1,32 @@
+# The local mirror of the deployment: one origin at http://localhost:5050
+# serving the built client, the API and the socket.
+#
+# Worth running rather than a bare file server, because the client now derives
+# its API base from the origin it was served from. A plain static server on one
+# port with the backend on another is a shape that no longer exists in
+# production, and testing against it would test the wrong thing.
+#
+#   docker compose -f local.docker-compose.yml up -d
+#   http://localhost:5050
+
+:80 {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy host.docker.internal:8080
+	}
+	handle /ws* {
+		reverse_proxy host.docker.internal:8080
+	}
+	handle /actuator/health {
+		reverse_proxy host.docker.internal:8080
+	}
+
+	handle {
+		root * /srv/web
+		# No caching at all locally: a rebuilt bundle should appear on reload.
+		header Cache-Control "no-store"
+		try_files {path} /index.html
+		file_server
+	}
+}

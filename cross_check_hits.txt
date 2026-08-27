@@ -1,0 +1,55 @@
+300 000 კმ --> data/ai_generated_pilot.json
+ავაზა --> data/agy_packets\packet_18.json, data/agy_packets\packet_20.json, data/agy_packets\packet_33.json, data/agy_packets\packet_34.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+ავარია --> data/agy_packets\packet_15.json, data/packets_all.json
+ანტარქტიდა --> data/agy_packets\packet_12.json, data/agy_packets\packet_29.json, data/agy_packets\packet_33.json, data/packets_all.json, data/ai_generated_pilot.json
+აფრიკა --> data/agy_packets\packet_12.json, data/agy_packets\packet_25.json, data/agy_packets\packet_26.json, data/agy_packets\packet_29.json, data/agy_packets\packet_30.json, data/agy_packets\packet_33.json, data/agy_packets\packet_34.json, data/agy_packets\packet_38.json, data/agy_packets\packet_42.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+აფრიკული სპილო --> data/agy_packets\packet_33.json
+ბენ-ჰური --> data/agy_packets\packet_14.json, data/packets_all.json
+ბრიტანეთის --> data/agy_packets\packet_07.json, data/agy_packets\packet_10.json, data/agy_packets\packet_12.json, data/agy_packets\packet_25.json, data/agy_packets\packet_26.json, data/agy_packets\packet_28.json, data/agy_packets\packet_29.json, data/agy_packets\packet_33.json, data/agy_packets\packet_34.json, data/agy_packets\packet_35.json, data/agy_packets\packet_37.json, data/agy_packets\packet_38.json, data/agy_packets\packet_39.json, data/agy_packets\packet_40.json, data/agy_packets\packet_42.json, data/pilot.json, data/packets_all.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+გენერალი შერმანი --> data/perfect_pilot.json
+გინესი --> data/agy_packets\packet_39.json, data/generated_pilot.json
+დამოუკიდებლობის დღე --> data/csv_packets_candidate.json
+დუბაი --> data/agy_packets\packet_21.json, data/agy_packets\packet_28.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json
+ევკალიპტი --> data/agy_packets\packet_08.json, data/agy_packets\packet_33.json, data/packets_all.json
+ეიფელის კოშკი --> data/agy_packets\packet_28.json, data/packets_all.json, data/ai_generated_pilot.json, data/csv_packets_candidate.json
+ვატიკანი --> data/agy_packets\packet_12.json, data/agy_packets\packet_20.json, data/agy_packets\packet_23.json, data/agy_packets\packet_35.json, data/packets_all.json, data/generated_pilot.json, data/csv_packets_candidate.json
+ვოიაჯერ 1 --> data/agy_packets\packet_18.json, data/agy_packets\packet_24.json, data/packets_all.json
+იური გაგარინი --> data/agy_packets\packet_22.json, data/agy_packets\packet_25.json, data/packets_all.json, data/ai_generated_pilot.json
+კალიფორნია --> data/agy_packets\packet_08.json, data/agy_packets\packet_21.json, data/agy_packets\packet_42.json, data/packets_all.json, data/perfect_pilot.json, data/csv_packets_candidate.json
+კუები --> data/agy_packets\packet_33.json, data/csv_packets_candidate.json
+ლიხტენშტაინი --> data/agy_packets\packet_12.json, data/agy_packets\packet_20.json, data/packets_all.json
+ლონდონი --> data/agy_packets\packet_09.json, data/agy_packets\packet_13.json, data/agy_packets\packet_28.json, data/agy_packets\packet_33.json, data/pilot.json, data/packets_all.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/perfect_pilot.json, data/csv_packets_candidate.json
+ლუვრი --> data/agy_packets\packet_09.json, data/agy_packets\packet_23.json, data/agy_packets\packet_37.json, data/packets_all.json, data/csv_packets_candidate.json
+ლურჯი ვეშაპი --> data/agy_packets\packet_17.json, data/agy_packets\packet_33.json, data/packets_all.json, data/ai_generated_pilot.json, data/csv_packets_candidate.json
+მაიკლ ჯექსონი --> data/ai_generated_pilot.json, data/generated_pilot.json, data/csv_packets_candidate.json
+მარსი --> data/agy_packets\packet_10.json, data/agy_packets\packet_20.json, data/agy_packets\packet_22.json, data/agy_packets\packet_34.json, data/agy_packets\packet_35.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+მიიოს ვიადუკი --> data/agy_packets\packet_28.json, data/packets_all.json
+მკვდარი ზღვა --> data/agy_packets\packet_29.json, data/packets_all.json
+მონაკო --> data/agy_packets\packet_12.json, data/agy_packets\packet_16.json, data/agy_packets\packet_34.json, data/agy_packets\packet_38.json, data/packets_all.json, data/csv_packets_candidate.json
+მონბლანი --> data/csv_packets_candidate.json
+ნილ არმსტრონგი --> data/ai_generated_pilot.json, data/csv_packets_candidate.json
+ნიუ-იორკი --> data/agy_packets\packet_07.json, data/agy_packets\packet_08.json, data/agy_packets\packet_12.json, data/agy_packets\packet_14.json, data/agy_packets\packet_15.json, data/agy_packets\packet_21.json, data/agy_packets\packet_25.json, data/agy_packets\packet_26.json, data/agy_packets\packet_28.json, data/agy_packets\packet_30.json, data/agy_packets\packet_34.json, data/agy_packets\packet_39.json, data/pilot.json, data/packets_all.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+ოქროს კარიბჭე --> data/agy_packets\packet_28.json, data/packets_all.json, data/csv_packets_candidate.json
+პაბლო პიკასო --> data/agy_packets\packet_23.json, data/agy_packets\packet_33.json, data/packets_all.json, data/ai_generated_pilot.json
+პანამის არხი --> data/agy_packets\packet_12.json, data/packets_all.json, data/csv_packets_candidate.json
+პარიზი --> data/agy_packets\packet_08.json, data/agy_packets\packet_13.json, data/agy_packets\packet_14.json, data/agy_packets\packet_16.json, data/agy_packets\packet_26.json, data/agy_packets\packet_28.json, data/agy_packets\packet_29.json, data/agy_packets\packet_30.json, data/agy_packets\packet_39.json, data/agy_packets\packet_40.json, data/agy_packets\packet_42.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+პეტრონასის კოშკები --> data/agy_packets\packet_28.json, data/packets_all.json
+პიქსარი --> data/agy_packets\packet_14.json, data/packets_all.json
+პორტუგალია --> data/agy_packets\packet_10.json, data/agy_packets\packet_12.json, data/agy_packets\packet_26.json, data/pilot.json, data/packets_all.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json
+სან-მარინო --> data/agy_packets\packet_10.json, data/agy_packets\packet_12.json, data/agy_packets\packet_16.json, data/packets_all.json
+საუდის არაბეთი --> data/agy_packets\packet_18.json, data/agy_packets\packet_35.json, data/packets_all.json, data/csv_packets_candidate.json
+სინგაპური --> data/agy_packets\packet_35.json, data/csv_packets_candidate.json
+სირაქლემა --> data/agy_packets\packet_19.json, data/agy_packets\packet_33.json, data/packets_all.json
+სუეცის არხი --> data/agy_packets\packet_12.json, data/packets_all.json
+ტეტრისი --> data/agy_packets\packet_18.json, data/agy_packets\packet_34.json, data/packets_all.json
+ტიტანიკი --> data/agy_packets\packet_14.json, data/agy_packets\packet_37.json, data/agy_packets\packet_39.json, data/agy_packets\packet_40.json, data/packets_all.json, data/ai_generated_pilot.json, data/generated_pilot.json
+ტრიესტი --> data/agy_packets\packet_29.json, data/agy_packets\packet_37.json, data/packets_all.json
+უოლტ დისნეი --> data/agy_packets\packet_15.json, data/packets_all.json
+ურანი --> data/agy_packets\packet_08.json, data/agy_packets\packet_19.json, data/agy_packets\packet_21.json, data/agy_packets\packet_22.json, data/agy_packets\packet_32.json, data/pilot.json, data/packets_all.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+ფიჭვი --> data/agy_packets\packet_08.json, data/agy_packets\packet_11.json, data/agy_packets\packet_38.json, data/packets_all.json, data/csv_packets_candidate.json
+ფრანგი --> data/agy_packets\packet_08.json, data/agy_packets\packet_09.json, data/agy_packets\packet_11.json, data/agy_packets\packet_14.json, data/agy_packets\packet_16.json, data/agy_packets\packet_20.json, data/agy_packets\packet_22.json, data/agy_packets\packet_23.json, data/agy_packets\packet_27.json, data/agy_packets\packet_30.json, data/agy_packets\packet_32.json, data/agy_packets\packet_37.json, data/agy_packets\packet_38.json, data/agy_packets\packet_39.json, data/agy_packets\packet_40.json, data/agy_packets\packet_42.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+ყვირილი --> data/csv_packets_candidate.json
+შანხაი --> data/agy_packets\packet_29.json, data/agy_packets\packet_39.json, data/packets_all.json, data/csv_packets_candidate.json
+ჩინეთი --> data/agy_packets\packet_07.json, data/agy_packets\packet_12.json, data/agy_packets\packet_21.json, data/agy_packets\packet_22.json, data/agy_packets\packet_23.json, data/agy_packets\packet_25.json, data/agy_packets\packet_28.json, data/agy_packets\packet_29.json, data/agy_packets\packet_31.json, data/agy_packets\packet_35.json, data/agy_packets\packet_36.json, data/agy_packets\packet_39.json, data/agy_packets\packet_40.json, data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json, data/csv_packets_candidate.json
+წყნარი ოკეანე --> data/agy_packets\packet_12.json, data/agy_packets\packet_29.json, data/packets_all.json
+ჯოან როულინგი --> data/pilot.json, data/packets_all.json, data/ai_generated_pilot.json, data/generalized_english_pilot.json, data/generated_pilot.json, data/moazrovne.json, data/moazrovne_corrected.json

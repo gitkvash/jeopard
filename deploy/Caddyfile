@@ -1,0 +1,63 @@
+# One origin for the whole app: the Flutter build, the REST API and the
+# WebSocket all answer on the same hostname.
+#
+# That is not tidiness. A page served over https may not open a plain ws://
+# socket, and the client derives the socket URL from the origin it was served
+# from -- so a split deployment loses the buzzer while REST keeps working, which
+# is the worst way for this app to fail. Same origin also means there is no CORS
+# preflight anywhere in the game.
+#
+# JEOPARD_HOST is either a real domain or, with no domain registered, an
+# sslip.io name that resolves to the box's own address -- for example
+# 203-0-113-45.sslip.io. Let's Encrypt issues for those, so TLS is real either
+# way. Set it to :80 to serve plain HTTP (a LAN, or an IP with no name).
+
+{$JEOPARD_HOST} {
+	encode zstd gzip
+
+	# --- the game server ------------------------------------------------
+	# Caddy upgrades WebSocket connections through reverse_proxy on its own; /ws
+	# needs no special handling beyond being routed here.
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+	handle /ws* {
+		reverse_proxy backend:8080
+	}
+	handle /actuator/health {
+		reverse_proxy backend:8080
+	}
+
+	# --- the client -----------------------------------------------------
+	handle {
+		root * /srv/web
+
+		# Flutter's entrypoint keeps the same filename across builds, so a
+		# cached index.html or service worker can go on pointing at a stale
+		# bundle. These must revalidate; everything else is safe to cache hard.
+		@revalidate path / /index.html /flutter_bootstrap.js /flutter_service_worker.js /version.json /manifest.json
+		header @revalidate Cache-Control "no-cache, must-revalidate"
+
+		@immutable path /assets/* /canvaskit/* /icons/* /main.dart.js /favicon.png
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+		# The app has no client-side routes, but a stray path should still land
+		# on the game rather than a 404 page.
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		# The API is same-origin, the fonts are bundled and no third-party script
+		# is loaded, so a strict frame/sniffing posture costs nothing here.
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

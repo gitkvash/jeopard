@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: jeopard-backend
+  datasource:
+    # Overridden by SPRING_DATASOURCE_* in a deployment; the defaults are the
+    # local Docker Postgres on 5433 (5432 belongs to a native install here).
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/jeopard}
+    username: ${SPRING_DATASOURCE_USERNAME:jeopard}
+    password: ${SPRING_DATASOURCE_PASSWORD:jeopard}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate      # Flyway owns the schema
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  # Behind a TLS-terminating proxy Spring must trust X-Forwarded-Proto, or it
+  # believes the request arrived over plain http -- which breaks the WebSocket
+  # handshake and any absolute URL it builds.
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
+
+jeopard:
+  seed:
+    resource: classpath:pilot.json
+  cors:
+    # Flutter web dev server picks a random port, so allow any localhost origin.
+    # Comma-separated (not a YAML list) so @Value can bind it to String[].
+    # A deployment serves the app from the same origin as the API and needs no
+    # CORS at all; this stays for native builds pointed at it directly.
+    allowed-origin-patterns: ${JEOPARD_CORS_ORIGINS:http://localhost:*,http://127.0.0.1:*}
+  ws:
+    # Mobile clients send no Origin header at all, so "*" is the permissive
+    # default; a deployment should pin this to its own origin.
+    allowed-origin-patterns: ${JEOPARD_WS_ORIGINS:*}
+  limits:
+    # Creating a game is unauthenticated by design -- a host just opens the app.
+    # That makes it the one endpoint worth a ceiling, so a public URL cannot be
+    # used to fill the database. Games created per hour, per client address.
+    games-per-hour-per-ip: ${JEOPARD_GAMES_PER_HOUR:30}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    ge.jeopard: DEBUG

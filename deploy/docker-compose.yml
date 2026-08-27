@@ -1,0 +1,78 @@
+# The whole game on one host: proxy, backend, database.
+#
+#   cd deploy && cp .env.example .env && $EDITOR .env
+#   docker compose up -d --build
+#
+# Only Caddy publishes ports. The backend and Postgres are reachable on the
+# internal network and nowhere else, so the database is not exposed at all and
+# the backend cannot be reached except through the proxy that terminates TLS.
+
+name: jeopard
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"     # HTTP/3
+    environment:
+      JEOPARD_HOST: ${JEOPARD_HOST:?set JEOPARD_HOST in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The Flutter build, pushed here by deploy.sh. Read-only to the proxy.
+      - ./web:/srv/web:ro
+      # Certificates and their private keys. Losing this volume means asking
+      # Let's Encrypt for a new certificate, which is rate limited -- so it is a
+      # named volume, not a bind mount into the repo.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jeopard}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-jeopard}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # Behind Caddy, so trust the forwarded protocol -- without this Spring
+      # thinks every request arrived over http.
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      # The app is served from the same origin, so CORS is only for a native
+      # build pointed at this host directly.
+      JEOPARD_CORS_ORIGINS: https://${JEOPARD_HOST},http://${JEOPARD_HOST}
+      # Pinned to this origin. Native clients send no Origin header and are
+      # unaffected.
+      JEOPARD_WS_ORIGINS: https://${JEOPARD_HOST},http://${JEOPARD_HOST}
+      JEOPARD_GAMES_PER_HOUR: ${JEOPARD_GAMES_PER_HOUR:-30}
+      # DEBUG for one namespace is fine for a pilot and invaluable when a game
+      # misbehaves; drop to INFO if the log volume ever matters.
+      LOGGING_LEVEL_GE_JEOPARD: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jeopard}
+      POSTGRES_USER: ${POSTGRES_USER:-jeopard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jeopard} -d ${POSTGRES_DB:-jeopard}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:

@@ -1,0 +1,760 @@
+pilot#1	სრუტეები
+pilot#1	კინოციტატები
+pilot#1	ბერძნული მითოლოგია
+pilot#1	აშშ-ს პრეზიდდენტები
+pilot#1	მატრიცული "არკ"
+pilot#1	ფილმები - მსახიობი
+pilot#1	ინგლისელი პოეტები
+pilot#1	ოპერები - კომპოზიტორი
+pilot#1	მატრიცული "ლემ"
+pilot#1	მობილურები ტელეფონის მწარმოებლები
+pilot#1	ფინანსები
+pilot#1	გეოგრაფია
+pilot#1	ასტრონომია
+pilot#1	გამოგონებები
+pilot#1	ნობელიანტები
+pilot#1	ენები
+pilot#1	I მსოფლიო ომი
+pilot#1	მხატვრობა
+pilot#1	პეტრე I
+pilot#1	სპარტა
+pilot#2	ყურეები
+pilot#2	კინოციტატები
+pilot#2	რომაული მითოლოგია
+pilot#2	ფილმები - რეჟისორი
+pilot#2	მატრიცული “აზა”
+pilot#2	პლანეტები
+pilot#2	ამერიკელი პოეტები
+pilot#2	მატრიცული “კას”
+pilot#2	ქვეყნის ტერიტორიული ერთეულები - ქვეყანა
+pilot#2	ინდუიზმი
+pilot#2	სამხედრო კონფლიქტები და დაპყრობები
+pilot#2	საავტომობილო კომპანიები
+pilot#2	გეოგრაფიული აღმოჩენები
+pilot#2	რელიგია
+pilot#2	მეცნიერული აღმოჩენები
+pilot#2	II მსოფლიო ომი
+pilot#2	ყველაფერი ყველაფერზე
+pilot#2	გერმანული ქალაქები
+pilot#2	თანამედროვე ამერიკული კინო
+pilot#2	ჩინგიზ ყაენი
+pilot#3	ტენისი
+pilot#3	20 სექტემბერი
+pilot#3	მატრიცული „სირ“
+pilot#3	რუსეთ საქართველოს ომი
+pilot#3	მანქანა - ქალაქი, სადაც იგი იწყობა
+pilot#3	ქართული ბიზნესი
+pilot#3	მათემატიკა
+pilot#3	ცნობილი იტალიელები
+pilot#3	პოლიტიკა
+pilot#3	ქართული ტელევიზიები
+pilot#3	11
+pilot#3	მატრიცული “კარ”
+pilot#3	პირველი თემა
+pilot#3	სპორტი
+pilot#3	ქიმია
+pilot#3	ფოტოგრაფია
+pilot#3	ლიტერატურა
+pilot#3	მატრიცული “გურ”
+pilot#3	საერთაშორისო ორგანიზაციები
+pilot#3	ფეხბურთი
+pilot#4	კაპიტალი
+pilot#4	საქართველოს უახლესი ისტორია
+pilot#4	ქართული პოეზია (სტროფი - ავტორი)
+pilot#4	ცათამბჯენები და არა მხოლოდ
+pilot#4	მატრიცული “ვენ”
+pilot#4	აკირა კუროსავა
+pilot#4	გეოგრაფია
+pilot#4	მატრიცული “ბერ”
+pilot#4	მსოფლიოს საოცრებები
+pilot#4	ფილმები
+pilot#4	უნივერსიტეტები
+pilot#4	ყველაფერი ყველაფერზე
+pilot#4	შავი მესა ანუ ჯადოქრების შაბათი
+pilot#4	ამერიკული ფეხბურთი
+pilot#4	ნატო (ჩახო)
+pilot#4	ასტრონომია
+pilot#4	მატრიცული “სებ”
+pilot#4	ბოლო თემა
+pilot#4	პოეზია
+pilot#4	პოლიტიკა
+pilot#5	მატრიცული: "შარ"
+pilot#5	ანეკდოტები პროგრამისტებზე (დაასრულეთ!)
+pilot#5	ყველაზე, ყველაზე
+pilot#5	Ну, погоди!
+pilot#5	მოდით ვითამაშოთ ბანქო
+pilot#5	ტომები და ხალხები
+pilot#5	ადამიანი და მედიცინა
+pilot#5	მათემატიკა
+pilot#5	XXIX ოლიმპიური თამაშები
+pilot#5	მატრიცული: "კაპ"
+pilot#5	მთები
+pilot#5	მხატვრობა (სურათები-ავტორი)
+pilot#5	ციტატები ცნობილი წიგნებიდან
+pilot#5	შარიკ, შარიკ...
+pilot#5	ფილოსოფია
+pilot#5	ქიმია
+pilot#5	დიდი ებრაელები
+pilot#5	პოეზია
+pilot#5	დაასრულეთ ანეკდოტი:
+pilot#5	მოსწრებული ნათქვამი
+pilot#6	შოუ ბიზნესი
+pilot#6	ტოლკიენისტებისთვის
+pilot#6	მატრიცული „იკა“
+pilot#6	პური ჩვენი არსობისა
+pilot#6	კლასიკური მუსიკა
+pilot#6	სასმელები
+pilot#6	ციტატები ფილმებიდან
+pilot#6	ჩოგბურთი
+pilot#6	მატრიცული „რაი“
+pilot#6	ფორმულა 1
+pilot#6	Cherchez la femme
+pilot#6	მუსიკალური ინსტრუმენტები
+pilot#6	ფეხსაცმელები
+pilot#6	ასტრონომია
+pilot#6	თეატრი
+pilot#6	lingua latina
+pilot#6	მხატვრობა
+pilot#6	ლიტერატურა
+pilot#6	კინო
+pilot#6	გამონათქვმები
+data/agy_packets\packet_07.json	გეოგრაფიული ტერმინები
+data/agy_packets\packet_07.json	დროის საზომები
+data/agy_packets\packet_07.json	ქართული სამზარეულო
+data/agy_packets\packet_07.json	მსოფლიო ვალუტები
+data/agy_packets\packet_07.json	ჭადრაკი
+data/agy_packets\packet_07.json	ნავიგაცია
+data/agy_packets\packet_07.json	მწვერვალები და ქედები
+data/agy_packets\packet_07.json	სიტყვების ეტიმოლოგია
+data/agy_packets\packet_07.json	ხალხური რეწვა და ხელოსნობა
+data/agy_packets\packet_07.json	ძველი ერთეულები
+data/agy_packets\packet_07.json	ცნობილი მეტსახელები
+data/agy_packets\packet_07.json	ვაზი და ღვინო
+data/agy_packets\packet_07.json	მსოფლიოს დედაქალაქები
+data/agy_packets\packet_07.json	სახელმწიფო სიმბოლოები
+data/agy_packets\packet_07.json	ცნობილი ცხოველები
+data/agy_packets\packet_07.json	ისტორიული კუთხეები
+data/agy_packets\packet_07.json	ჩაი და ყავა
+data/agy_packets\packet_07.json	ფოსტა და კავშირგაბმულობა
+data/agy_packets\packet_07.json	სავაჭრო გზები
+data/agy_packets\packet_07.json	ქართული დღესასწაულები
+data/agy_packets\packet_08.json	ქიმიური ელემენტების კვალდაკვალ
+data/agy_packets\packet_08.json	მედიცინის ისტორიიდან
+data/agy_packets\packet_08.json	მზის სისტემის ირგვლივ
+data/agy_packets\packet_08.json	ფრინველთა სამყარო
+data/agy_packets\packet_08.json	კლასიკური ფიზიკა
+data/agy_packets\packet_08.json	ხეები და მცენარეები
+data/agy_packets\packet_08.json	კავკასიური ფლორა და ფაუნა
+data/agy_packets\packet_08.json	მეტეოროლოგია
+data/agy_packets\packet_08.json	ფიზიკური ერთეულები
+data/agy_packets\packet_08.json	დიდი ეპიდემიები
+data/agy_packets\packet_08.json	გამოთვლითი ტექნიკის წარსული
+data/agy_packets\packet_08.json	მინერალები
+data/agy_packets\packet_08.json	პოლარული ექსპედიციები
+data/agy_packets\packet_08.json	ოპტიკის სამყაროში
+data/agy_packets\packet_08.json	ავიაციის ისტორია
+data/agy_packets\packet_08.json	ციფრები და მუდმივები
+data/agy_packets\packet_08.json	ვულკანები და მიწისძვრები
+data/agy_packets\packet_08.json	ქართველი მეცნიერები
+data/agy_packets\packet_08.json	გენეტიკა
+data/agy_packets\packet_08.json	ანატომიური ტერმინები
+data/agy_packets\packet_09.json	ქართული ხუროთმოძღვრება
+data/agy_packets\packet_09.json	ლიტერატურული ფსევდონიმები
+data/agy_packets\packet_09.json	ცნობილი ქანდაკებები
+data/agy_packets\packet_09.json	პირველი ფრაზები
+data/agy_packets\packet_09.json	ნიკო ფიროსმანი
+data/agy_packets\packet_09.json	მსოფლიოს მუზეუმები
+data/agy_packets\packet_09.json	ოპერების სიუჟეტები
+data/agy_packets\packet_09.json	ქართული ხელნაწერები
+data/agy_packets\packet_09.json	თეატრის ისტორიიდან
+data/agy_packets\packet_09.json	არქეოლოგიური აღმოჩენები
+data/agy_packets\packet_09.json	მუნჯი კინო
+data/agy_packets\packet_09.json	არქიტექტურული სტილები
+data/agy_packets\packet_09.json	სიმფონიური მუსიკა
+data/agy_packets\packet_09.json	მხატვრობის ტექნიკა და მასალები
+data/agy_packets\packet_09.json	ქართული კინოს კლასიკა
+data/agy_packets\packet_09.json	ცნობილი ბალეტები
+data/agy_packets\packet_09.json	ცნობილი პორტრეტები
+data/agy_packets\packet_09.json	ვეფხისტყაოსანი
+data/agy_packets\packet_09.json	ლიტერატურული პერსონაჟები
+data/agy_packets\packet_09.json	ძველი ბიბლიოთეკები
+data/agy_packets\packet_10.json	ბიზანტიის იმპერატორები
+data/agy_packets\packet_10.json	ძველი მესოპოტამია
+data/agy_packets\packet_10.json	ქართული ჰაგიოგრაფია
+data/agy_packets\packet_10.json	ხელშეკრულებები
+data/agy_packets\packet_10.json	ჰერალდიკა
+data/agy_packets\packet_10.json	საეკლესიო კრებები
+data/agy_packets\packet_10.json	ბაგრატიონთა დინასტია
+data/agy_packets\packet_10.json	ეტიმოლოგია და მკვდარი ენები
+data/agy_packets\packet_10.json	ძველი კოლხეთი და იბერია
+data/agy_packets\packet_10.json	ისტორიული ტიტულები
+data/agy_packets\packet_10.json	ნუმიზმატიკა
+data/agy_packets\packet_10.json	კარტოგრაფიის ისტორია
+data/agy_packets\packet_10.json	საალყო ხელოვნება
+data/agy_packets\packet_10.json	იშვიათი გეოგრაფია
+data/agy_packets\packet_10.json	იდეების ისტორია
+data/agy_packets\packet_10.json	საზომი ერთეულები
+data/agy_packets\packet_10.json	მონასტრები და ორდენები
+data/agy_packets\packet_10.json	ქართული ქრონიკები
+data/agy_packets\packet_10.json	ბიზანტიის კარი
+data/agy_packets\packet_10.json	კალენდარული რეფორმები
+data/agy_packets\packet_11.json	ფარნავაზიანი მეფეები
+data/agy_packets\packet_11.json	ძველი ბერძნები კოლხეთში
+data/agy_packets\packet_11.json	არგონავტების მითი
+data/agy_packets\packet_11.json	ქრისტიანობის გავრცელება
+data/agy_packets\packet_11.json	ვახტანგ გორგასალი
+data/agy_packets\packet_11.json	არაბობა საქართველოში
+data/agy_packets\packet_11.json	ბრძოლები და ომები
+data/agy_packets\packet_11.json	დავით აღმაშენებელი
+data/agy_packets\packet_11.json	თამარ მეფის ეპოქა
+data/agy_packets\packet_11.json	მონღოლთა ბატონობა
+data/agy_packets\packet_11.json	გიორგი ბრწყინვალე
+data/agy_packets\packet_11.json	ბაგრატ III და გაერთიანება
+data/agy_packets\packet_11.json	ქართული ეკლესიის ისტორიიდან
+data/agy_packets\packet_11.json	ჯვაროსნები და საქართველო
+data/agy_packets\packet_11.json	ძველი დედაქალაქები
+data/agy_packets\packet_11.json	„ქართლის ცხოვრების“ ავტორები
+data/agy_packets\packet_11.json	თურქ-სელჩუკები
+data/agy_packets\packet_11.json	ძველი ქართული მონეტები
+data/agy_packets\packet_11.json	ისტორიული ფრაზები
+data/agy_packets\packet_11.json	უცხოელი ისტორიკოსები
+data/agy_packets\packet_12.json	აფრიკის მდინარეები
+data/agy_packets\packet_12.json	მაგელანის ექსპედიცია
+data/agy_packets\packet_12.json	ევროპის კუნძულები
+data/agy_packets\packet_12.json	სამხრეთ ამერიკის ქალაქები
+data/agy_packets\packet_12.json	ვასკო და გამა
+data/agy_packets\packet_12.json	აზიის უდაბნოები
+data/agy_packets\packet_12.json	კოლუმბის პირველი ექსპედიცია
+data/agy_packets\packet_12.json	ავსტრალია და ოკეანეთი
+data/agy_packets\packet_12.json	ევროპული ჯუჯა-სახელმწიფოები
+data/agy_packets\packet_12.json	აშშ-ს შტატების დედაქალაქები
+data/agy_packets\packet_12.json	მარკო პოლო
+data/agy_packets\packet_12.json	საზღვაო არხები
+data/agy_packets\packet_12.json	ჯეიმს კუკი
+data/agy_packets\packet_12.json	აზიის მდინარეები
+data/agy_packets\packet_12.json	ჩრდილოეთ ამერიკის ტბები
+data/agy_packets\packet_12.json	მსოფლიოს ნახევარკუნძულები
+data/agy_packets\packet_12.json	აფრიკული სახელმწიფოები
+data/agy_packets\packet_12.json	ფრენსის დრეიკი
+data/agy_packets\packet_12.json	წყნარი ოკეანე
+data/agy_packets\packet_12.json	გეოგრაფიული რეკორდები
+data/agy_packets\packet_13.json	შექსპირის პიესები
+data/agy_packets\packet_13.json	საბავშვო ლიტერატურა
+data/agy_packets\packet_13.json	რუსული კლასიკა
+data/agy_packets\packet_13.json	დეტექტივები
+data/agy_packets\packet_13.json	ანტიკური ეპოსი
+data/agy_packets\packet_13.json	ქართული რომანი
+data/agy_packets\packet_13.json	ფრანგული რომანი
+data/agy_packets\packet_13.json	სამეცნიერო ფანტასტიკა
+data/agy_packets\packet_13.json	დისტოპია
+data/agy_packets\packet_13.json	დაკარგული თაობა
+data/agy_packets\packet_13.json	ეპიკური პოემები
+data/agy_packets\packet_13.json	ბრიტანელი მწერლები
+data/agy_packets\packet_13.json	ნობელიანტი მწერლები
+data/agy_packets\packet_13.json	ლათინოამერიკული ბუმი
+data/agy_packets\packet_13.json	გერმანულენოვანი პროზა
+data/agy_packets\packet_13.json	XX საუკუნის პოეზია
+data/agy_packets\packet_13.json	იაპონური ლიტერატურა
+data/agy_packets\packet_13.json	ანტიკური დრამა
+data/agy_packets\packet_13.json	მსოფლიო დრამატურგია
+data/agy_packets\packet_13.json	ამერიკული ლიტერატურა
+data/agy_packets\packet_14.json	ოსკარის ლაურეატები
+data/agy_packets\packet_14.json	შექსპირი კინოში
+data/agy_packets\packet_14.json	თეატრალური ლექსიკონი
+data/agy_packets\packet_14.json	კინომიუზიკლები
+data/agy_packets\packet_14.json	კინოს პიონერები
+data/agy_packets\packet_14.json	მსახიობების ნამდვილი სახელები
+data/agy_packets\packet_14.json	ანიმაციური შედევრები
+data/agy_packets\packet_14.json	ბროდვეის სამყაროში
+data/agy_packets\packet_14.json	ქართული თეატრის ვარსკვლავები
+data/agy_packets\packet_14.json	ფრანგული ახალი ტალღა
+data/agy_packets\packet_14.json	კინომუსიკა
+data/agy_packets\packet_14.json	ლეგენდარული თეატრები
+data/agy_packets\packet_14.json	ანტიკური დრამატურგია
+data/agy_packets\packet_14.json	საშინელებათა ფილმები
+data/agy_packets\packet_14.json	იტალიური ნეორეალიზმი
+data/agy_packets\packet_14.json	კინოფესტივალების მთავარი ჯილდოები
+data/agy_packets\packet_14.json	ბიოგრაფიული ფილმები
+data/agy_packets\packet_14.json	ცნობილი კინოსტუდიები
+data/agy_packets\packet_14.json	კინოს რეკორდები
+data/agy_packets\packet_14.json	თეატრალური ტრადიციები
+data/agy_packets\packet_15.json	ქართული საოპერო სცენა
+data/agy_packets\packet_15.json	ცნობილი პიანისტები
+data/agy_packets\packet_15.json	მუსიკალური ტემპი
+data/agy_packets\packet_15.json	ჯაზის ლეგენდები
+data/agy_packets\packet_15.json	ბეთჰოვენის სიმფონიები
+data/agy_packets\packet_15.json	იტალიური ოპერა
+data/agy_packets\packet_15.json	მსოფლიოს საოპერო თეატრები
+data/agy_packets\packet_15.json	მუსიკა და ლიტერატურა
+data/agy_packets\packet_15.json	მუსიკალური ინსტრუმენტების ისტორია
+data/agy_packets\packet_15.json	ჯაზ-კლუბები და ფესტივალები
+data/agy_packets\packet_15.json	მოცარტის ცხოვრება
+data/agy_packets\packet_15.json	მუსიკალური ტერმინოლოგია
+data/agy_packets\packet_15.json	დირიჟორები
+data/agy_packets\packet_15.json	რუსი კომპოზიტორები
+data/agy_packets\packet_15.json	თანამედროვე კომპოზიტორები
+data/agy_packets\packet_15.json	ჯაზის მიმდინარეობები
+data/agy_packets\packet_15.json	ქართული სიმფონიური მუსიკა
+data/agy_packets\packet_15.json	ბაროკოს ეპოქა
+data/agy_packets\packet_15.json	მუსიკა და პოლიტიკა
+data/agy_packets\packet_15.json	უცნაური ინსტრუმენტები
+data/agy_packets\packet_16.json	ანტიკური ოლიმპიადები
+data/agy_packets\packet_16.json	ზამთრის ოლიმპიური თამაშები
+data/agy_packets\packet_16.json	სპორტული ინვენტარი
+data/agy_packets\packet_16.json	ქართველი ოლიმპიური ჩემპიონები
+data/agy_packets\packet_16.json	კალათბურთის სამყაროში
+data/agy_packets\packet_16.json	წყლის სპორტის სახეობები
+data/agy_packets\packet_16.json	ოლიმპიური სიმბოლიკა და ტრადიციები
+data/agy_packets\packet_16.json	მსოფლიო რეკორდსმენები
+data/agy_packets\packet_16.json	საბრძოლო ხელოვნებები
+data/agy_packets\packet_16.json	სპორტი კინემატოგრაფში
+data/agy_packets\packet_16.json	სტადიონები და არენები
+data/agy_packets\packet_16.json	მძლეოსნობის დედოფალი
+data/agy_packets\packet_16.json	ოლიმპიური ბოიკოტები და სკანდალები
+data/agy_packets\packet_16.json	ექსტრემალური სპორტი
+data/agy_packets\packet_16.json	ქალები სპორტში
+data/agy_packets\packet_16.json	სპორტული ტერმინოლოგია
+data/agy_packets\packet_16.json	პარალიმპიური თამაშები
+data/agy_packets\packet_16.json	ავტოსპორტის ლეგენდები
+data/agy_packets\packet_16.json	ოლიმპიური დევიზი
+data/agy_packets\packet_16.json	პირველი ჩემპიონატები
+data/agy_packets\packet_17.json	ვიტამინები
+data/agy_packets\packet_17.json	ფობიები
+data/agy_packets\packet_17.json	ძვლები
+data/agy_packets\packet_17.json	ვაქცინები
+data/agy_packets\packet_17.json	სისხლი
+data/agy_packets\packet_17.json	საქართველოს კურორტები
+data/agy_packets\packet_17.json	ფარმაკოლოგია
+data/agy_packets\packet_17.json	ჯირკვლები
+data/agy_packets\packet_17.json	სამედიცინო ინსტრუმენტები
+data/agy_packets\packet_17.json	ვირუსები
+data/agy_packets\packet_17.json	ძუძუმწოვრები
+data/agy_packets\packet_17.json	ექიმები მწერლობაში
+data/agy_packets\packet_17.json	სამკურნალო მცენარეები
+data/agy_packets\packet_17.json	ქართული მედიცინა
+data/agy_packets\packet_17.json	ანატომიური ეპონიმები
+data/agy_packets\packet_17.json	მედიცინა კინოში
+data/agy_packets\packet_17.json	ფსიქიატრია
+data/agy_packets\packet_17.json	ნობელის პრემია მედიცინაში
+data/agy_packets\packet_17.json	ისტორიული ეპიდემიები
+data/agy_packets\packet_17.json	მემკვიდრეობითობა
+data/agy_packets\packet_18.json	პერსონალური კომპიუტერები
+data/agy_packets\packet_18.json	კოსმოსური ტექნოლოგიები
+data/agy_packets\packet_18.json	ინტერნეტის ისტორია
+data/agy_packets\packet_18.json	საყოფაცხოვრებო ტექნიკა
+data/agy_packets\packet_18.json	ასაფეთქებელი ნივთიერებები
+data/agy_packets\packet_18.json	სამედიცინო აპარატურა
+data/agy_packets\packet_18.json	ელექტროენერგია
+data/agy_packets\packet_18.json	სატრანსპორტო ინოვაციები
+data/agy_packets\packet_18.json	ტელეკომუნიკაციები
+data/agy_packets\packet_18.json	პროგრამირების ენები
+data/agy_packets\packet_18.json	რობოტოტექნიკა
+data/agy_packets\packet_18.json	ოპტიკური ხელსაწყოები
+data/agy_packets\packet_18.json	სამხედრო ტექნიკა
+data/agy_packets\packet_18.json	საწერი საშუალებები
+data/agy_packets\packet_18.json	ნანოტექნოლოგია
+data/agy_packets\packet_18.json	ხმის ჩამწერი მოწყობილობები
+data/agy_packets\packet_18.json	კრიპტოგრაფია და უსაფრთხოება
+data/agy_packets\packet_18.json	ხელოვნური ინტელექტი
+data/agy_packets\packet_18.json	დაკარგული ტექნოლოგიები
+data/agy_packets\packet_18.json	ცნობილი ლოგოები
+data/agy_packets\packet_19.json	სკანდინავიური პანთეონი
+data/agy_packets\packet_19.json	ძველი ეგვიპტის ღმერთები
+data/agy_packets\packet_19.json	ბიბლიური წინასწარმეტყველები
+data/agy_packets\packet_19.json	ქართული მითოლოგია
+data/agy_packets\packet_19.json	მითოლოგიური არსებები
+data/agy_packets\packet_19.json	ისლამური ტრადიციები
+data/agy_packets\packet_19.json	ბუდიზმის სამყარო
+data/agy_packets\packet_19.json	სინტოიზმი და იაპონია
+data/agy_packets\packet_19.json	შუმერული და აქადური მითები
+data/agy_packets\packet_19.json	კელტური მითები
+data/agy_packets\packet_19.json	წმინდა ტექსტები
+data/agy_packets\packet_19.json	ქრისტიანული წმინდანები
+data/agy_packets\packet_19.json	მესოამერიკული მითოლოგია
+data/agy_packets\packet_19.json	ზოროასტრიზმი
+data/agy_packets\packet_19.json	ბიბლიური გეოგრაფია
+data/agy_packets\packet_19.json	ებრაული დღესასწაულები
+data/agy_packets\packet_19.json	ინდური ეპოსი
+data/agy_packets\packet_19.json	სიკვდილის ღვთაებები
+data/agy_packets\packet_19.json	რელიგიური არქიტექტურა
+data/agy_packets\packet_19.json	სლავური ღმერთები
+data/agy_packets\packet_20.json	ხელოვნური ენები
+data/agy_packets\packet_20.json	ანბანი და დამწერლობა
+data/agy_packets\packet_20.json	ტოპონიმებიდან წარმოშობილი
+data/agy_packets\packet_20.json	პროგრამირების ენები
+data/agy_packets\packet_20.json	ფერთა სახელწოდებები
+data/agy_packets\packet_20.json	ცხოველთა ეტიმოლოგია
+data/agy_packets\packet_20.json	ადამიანები-სიტყვები
+data/agy_packets\packet_20.json	კულინარიული ტერმინები
+data/agy_packets\packet_20.json	კალენდრის ეტიმოლოგია
+data/agy_packets\packet_20.json	მითოლოგიური ეტიმოლოგია
+data/agy_packets\packet_20.json	ბრენდების ეტიმოლოგია
+data/agy_packets\packet_20.json	სლენგი და აბრევიატურები
+data/agy_packets\packet_20.json	ენა კინოსა და ლიტერატურაში
+data/agy_packets\packet_20.json	ქართული ეტიმოლოგია
+data/agy_packets\packet_20.json	რომანული ენები
+data/agy_packets\packet_20.json	სხეულის ნაწილების ეტიმოლოგია
+data/agy_packets\packet_20.json	ტანსაცმლის ეტიმოლოგია
+data/agy_packets\packet_20.json	ოფიციალური ენები
+data/agy_packets\packet_20.json	ენათმეცნიერები
+data/agy_packets\packet_20.json	თარგმანები
+data/agy_packets\packet_21.json	ბანკები და ბანკირები
+data/agy_packets\packet_21.json	პირველი ფული
+data/agy_packets\packet_21.json	საფონდო ბირჟა
+data/agy_packets\packet_21.json	ეკონომიკური ტერმინები
+data/agy_packets\packet_21.json	ოქრო და ვერცხლი
+data/agy_packets\packet_21.json	კრიპტოვალუტები
+data/agy_packets\packet_21.json	აბრეშუმი და სანელებლები
+data/agy_packets\packet_21.json	ცნობილი ეკონომისტები
+data/agy_packets\packet_21.json	კრიზისები და დეფოლტები
+data/agy_packets\packet_21.json	გადასახადები
+data/agy_packets\packet_21.json	მონოპოლიები და კორპორაციები
+data/agy_packets\packet_21.json	შავი ბაზარი
+data/agy_packets\packet_21.json	ეკონომიკური თეორიები
+data/agy_packets\packet_21.json	ინფლაცია
+data/agy_packets\packet_21.json	ბრენდების ისტორია
+data/agy_packets\packet_21.json	ფულის ერთეულები
+data/agy_packets\packet_21.json	სავაჭრო ქალაქები
+data/agy_packets\packet_21.json	ვალები და კრედიტები
+data/agy_packets\packet_21.json	ეკონომიკური ნობელი
+data/agy_packets\packet_21.json	ფულის სახელწოდებები
+data/agy_packets\packet_22.json	ტელესკოპების ისტორია
+data/agy_packets\packet_22.json	პირველები კოსმოსში
+data/agy_packets\packet_22.json	თანავარსკვლავედების მითოლოგია
+data/agy_packets\packet_22.json	მთვარის შესწავლა
+data/agy_packets\packet_22.json	გაზის გიგანტები
+data/agy_packets\packet_22.json	ხელოვნური თანამგზავრები
+data/agy_packets\packet_22.json	ქართული სახელები კოსმოსში
+data/agy_packets\packet_22.json	ვარსკვლავთა ცხოვრება
+data/agy_packets\packet_22.json	ჩვენი და სხვა გალაქტიკები
+data/agy_packets\packet_22.json	კომეტები და ასტეროიდები
+data/agy_packets\packet_22.json	აპოლოს მისიები
+data/agy_packets\packet_22.json	ასტრონომია ხელოვნებაში
+data/agy_packets\packet_22.json	შავი ხვრელები და პულსარები
+data/agy_packets\packet_22.json	შორეული ზონდები
+data/agy_packets\packet_22.json	ცნობილი ასტრონომები
+data/agy_packets\packet_22.json	ეგზოპლანეტები
+data/agy_packets\packet_22.json	კოსმოსური სააგენტოები
+data/agy_packets\packet_22.json	ასტროფიზიკის საფუძვლები
+data/agy_packets\packet_22.json	ადამიანი მთვარეზე
+data/agy_packets\packet_22.json	XXI საუკუნის კოსმოსი
+data/agy_packets\packet_23.json	რენესანსის ტიტანები
+data/agy_packets\packet_23.json	ქართველი მოქანდაკეები
+data/agy_packets\packet_23.json	ფერები ტილოებზე
+data/agy_packets\packet_23.json	ქანდაკების მასალები
+data/agy_packets\packet_23.json	იმპრესიონიზმი
+data/agy_packets\packet_23.json	ლუვრის კოლექცია
+data/agy_packets\packet_23.json	ავტოპორტრეტები
+data/agy_packets\packet_23.json	სიურრეალიზმი და დადაიზმი
+data/agy_packets\packet_23.json	ნატიურმორტი
+data/agy_packets\packet_23.json	ანტიკური ქანდაკება
+data/agy_packets\packet_23.json	ესპანელი ოსტატები
+data/agy_packets\packet_23.json	ქართული ფერწერა
+data/agy_packets\packet_23.json	მითოლოგია ტილოზე
+data/agy_packets\packet_23.json	რუსული ფერწერა
+data/agy_packets\packet_23.json	პოსტიმპრესიონიზმი
+data/agy_packets\packet_23.json	მონუმენტური ძეგლები
+data/agy_packets\packet_23.json	ვენეციური სკოლა
+data/agy_packets\packet_23.json	მე-20 საუკუნის სკულპტურა
+data/agy_packets\packet_23.json	მოპარული შედევრები
+data/agy_packets\packet_23.json	ქანდაკების ისტორია
+data/agy_packets\packet_24.json	ქართული ცეკვები
+data/agy_packets\packet_24.json	ქართული ტრადიციული კერძები
+data/agy_packets\packet_24.json	ქართული ხალხური საკრავები
+data/agy_packets\packet_24.json	ქართული ხალხური ზღაპრები
+data/agy_packets\packet_24.json	ქართული ყველი
+data/agy_packets\packet_24.json	ქართული ანდაზები
+data/agy_packets\packet_24.json	სუხიშვილები
+data/agy_packets\packet_24.json	ქართული სუფრის ტრადიციები
+data/agy_packets\packet_24.json	ქართული მითები და ლეგენდები
+data/agy_packets\packet_24.json	სანელებლები და საწებლები
+data/agy_packets\packet_24.json	ქართული ხალხური სიმღერები
+data/agy_packets\packet_24.json	ცომეული კერძები
+data/agy_packets\packet_24.json	სხვადასხვა კუთხის ცეკვები
+data/agy_packets\packet_24.json	ქართული მითოლოგიის პერსონაჟები
+data/agy_packets\packet_24.json	ქართული ტკბილეული
+data/agy_packets\packet_24.json	კუთხური სამზარეულო
+data/agy_packets\packet_24.json	სუფრის სადღეგრძელოები
+data/agy_packets\packet_24.json	ქორეოგრაფიული კოსტიუმები
+data/agy_packets\packet_24.json	კულინარიული ეტიმოლოგია
+data/agy_packets\packet_24.json	ქართული ეპოსი
+data/agy_packets\packet_25.json	ცივი ომის კრიზისები
+data/agy_packets\packet_25.json	პირველი რესპუბლიკა
+data/agy_packets\packet_25.json	კოსმოსური რბოლა
+data/agy_packets\packet_25.json	დიდი დეპრესია
+data/agy_packets\packet_25.json	60-იანი წლები
+data/agy_packets\packet_25.json	დეკოლონიზაცია
+data/agy_packets\packet_25.json	მეორე მსოფლიო ომის სარდლები
+data/agy_packets\packet_25.json	1917 წლის რევოლუცია
+data/agy_packets\packet_25.json	დისიდენტური მოძრაობა
+data/agy_packets\packet_25.json	იუგოსლავიის დაშლა
+data/agy_packets\packet_25.json	1989 წელი ევროპაში
+data/agy_packets\packet_25.json	XX საუკუნის მონარქები
+data/agy_packets\packet_25.json	ახლო აღმოსავლეთის კონფლიქტები
+data/agy_packets\packet_25.json	ესპანეთის სამოქალაქო ომი
+data/agy_packets\packet_25.json	პოლიტიკური მკვლელობები
+data/agy_packets\packet_25.json	ჩინეთის კულტურული რევოლუცია
+data/agy_packets\packet_25.json	აშშ-ის საგარეო პოლიტიკა
+data/agy_packets\packet_25.json	ვიეტნამის ომი
+data/agy_packets\packet_25.json	1939 წელი
+data/agy_packets\packet_25.json	დამსხვრეული იმპერიები
+data/agy_packets\packet_26.json	დიპლომატიური ჟესტები
+data/agy_packets\packet_26.json	ცნობილი იურისტები
+data/agy_packets\packet_26.json	პოლიტიკური სკანდალები
+data/agy_packets\packet_26.json	კონსტიტუციის შესწორებები
+data/agy_packets\packet_26.json	საერთაშორისო სასამართლოები
+data/agy_packets\packet_26.json	საარჩევნო კამპანიები
+data/agy_packets\packet_26.json	გაეროს გენერალური მდივნები
+data/agy_packets\packet_26.json	პოლიტიკური ფსევდონიმები
+data/agy_packets\packet_26.json	ზავები და პაქტები
+data/agy_packets\packet_26.json	რომაული სამართალი
+data/agy_packets\packet_26.json	დიქტატორების აღსასრული
+data/agy_packets\packet_26.json	პარლამენტების სახელები
+data/agy_packets\packet_26.json	პოლიტიკური მკვლელობები
+data/agy_packets\packet_26.json	უცნაური კანონები
+data/agy_packets\packet_26.json	პირველი ლედი
+data/agy_packets\packet_26.json	სასამართლოები კინოში
+data/agy_packets\packet_26.json	პოლიტიკური ტერმინები
+data/agy_packets\packet_26.json	საერთაშორისო აქტები
+data/agy_packets\packet_26.json	საიდუმლო დიპლომატია
+data/agy_packets\packet_26.json	ადამიანის უფლებები
+data/agy_packets\packet_27.json	მათემატიკური სიმბოლოები
+data/agy_packets\packet_27.json	ფიგურები სიბრტყეზე
+data/agy_packets\packet_27.json	ცნობილი თავსატეხები
+data/agy_packets\packet_27.json	სასკოლო არითმეტიკა
+data/agy_packets\packet_27.json	კენტი და ლუწი
+data/agy_packets\packet_27.json	მათემატიკა ბუნებაში
+data/agy_packets\packet_27.json	ალბათობის თეორია
+data/agy_packets\packet_27.json	ქართული მათემატიკური სკოლა
+data/agy_packets\packet_27.json	ანტიკური საბერძნეთის გეომეტრია
+data/agy_packets\packet_27.json	საიდუმლო შიფრები
+data/agy_packets\packet_27.json	თამაშთა თეორია
+data/agy_packets\packet_27.json	წიგნები და რიცხვები
+data/agy_packets\packet_27.json	ფილდსის მედლის ლაურეატები
+data/agy_packets\packet_27.json	მათემატიკოსები ეკრანზე
+data/agy_packets\packet_27.json	ცნობილი თეორემები
+data/agy_packets\packet_27.json	მათემატიკური პარადოქსები
+data/agy_packets\packet_27.json	ტოპოლოგია და გრაფები
+data/agy_packets\packet_27.json	დიდი მათემატიკოსები
+data/agy_packets\packet_27.json	მათემატიკოსის ზღაპარი
+data/agy_packets\packet_27.json	სკოლის მერხიდან
+data/agy_packets\packet_28.json	ცნობილი ხიდები
+data/agy_packets\packet_28.json	ევროპის მოედნები
+data/agy_packets\packet_28.json	ესპანეთის ქალაქები
+data/agy_packets\packet_28.json	ანტიკური ნაგებობები
+data/agy_packets\packet_28.json	ცნობილი არქიტექტორები
+data/agy_packets\packet_28.json	აზიის მეგაპოლისები
+data/agy_packets\packet_28.json	პარიზის არქიტექტურა
+data/agy_packets\packet_28.json	კოშკები
+data/agy_packets\packet_28.json	ქალაქები წყალზე
+data/agy_packets\packet_28.json	სასახლეები
+data/agy_packets\packet_28.json	შუა საუკუნეების ციხესიმაგრეები
+data/agy_packets\packet_28.json	აშშ-ს ქალაქები
+data/agy_packets\packet_28.json	დაკარგული ქალაქები
+data/agy_packets\packet_28.json	რელიგიური არქიტექტურა
+data/agy_packets\packet_28.json	სტადიონები და არენები
+data/agy_packets\packet_28.json	ქართული ციხეები და კოშკები
+data/agy_packets\packet_28.json	ლონდონის ღირსშესანიშნაობები
+data/agy_packets\packet_28.json	არქიტექტურული ტერმინები
+data/agy_packets\packet_28.json	ანტონიო გაუდი
+data/agy_packets\packet_28.json	მონუმენტური არქიტექტურა
+data/agy_packets\packet_29.json	მსოფლიო ოკეანე
+data/agy_packets\packet_29.json	უდაბნოები
+data/agy_packets\packet_29.json	ევროპის მდინარეები
+data/agy_packets\packet_29.json	კუნძულები
+data/agy_packets\packet_29.json	ქარები
+data/agy_packets\packet_29.json	ტბები
+data/agy_packets\packet_29.json	ჩანჩქერები
+data/agy_packets\packet_29.json	მღვიმეები და გამოქვაბულები
+data/agy_packets\packet_29.json	ზღვის დინებები
+data/agy_packets\packet_29.json	ღრუბლები
+data/agy_packets\packet_29.json	მყინვარები
+data/agy_packets\packet_29.json	ტროპიკული ტყეები
+data/agy_packets\packet_29.json	ამერიკის ლანდშაფტები
+data/agy_packets\packet_29.json	ოკეანოგრაფია
+data/agy_packets\packet_29.json	გლობალური დათბობა
+data/agy_packets\packet_29.json	ატმოსფერული მოვლენები
+data/agy_packets\packet_29.json	მარჯნის რიფები
+data/agy_packets\packet_29.json	აზიის ბუნება
+data/agy_packets\packet_29.json	ოკეანის ფსკერი
+data/agy_packets\packet_29.json	ექსტრემალური წერტილები
+data/agy_packets\packet_30.json	რომაული პროვინციები
+data/agy_packets\packet_30.json	ბონდიანას ანტაგონისტები
+data/agy_packets\packet_30.json	ნობელიანტი ქიმიკოსები
+data/agy_packets\packet_30.json	მეტროსადგურები
+data/agy_packets\packet_30.json	ქართული სკულპტურა
+data/agy_packets\packet_30.json	ზოდიაქოს ნიშნების მიღმა
+data/agy_packets\packet_30.json	იაპონური ტრადიციები
+data/agy_packets\packet_30.json	მაკარონის სახეობები
+data/agy_packets\packet_30.json	ბალზაკი და სხვები
+data/agy_packets\packet_30.json	ტემპი და რიტმი
+data/agy_packets\packet_30.json	ტიუდორები და სტიუარტები
+data/agy_packets\packet_30.json	მომწამვლელი ფლორა
+data/agy_packets\packet_30.json	კვანტური მექანიკა
+data/agy_packets\packet_30.json	ჯუნგლებში ჩაკარგულები
+data/agy_packets\packet_30.json	სამხედრო ხუნტები
+data/agy_packets\packet_30.json	რიფტული ხეობის ტბები
+data/agy_packets\packet_30.json	პელოპონესის ომი
+data/agy_packets\packet_30.json	სკანდინავიური პანთეონი
+data/agy_packets\packet_30.json	ჯვაროსნული ლაშქრობები
+data/agy_packets\packet_30.json	ეგზოპლანეტები
+data/agy_packets\packet_31.json	ფარაონები
+data/agy_packets\packet_31.json	ინკების იმპერია
+data/agy_packets\packet_31.json	ჩინეთის დინასტიები
+data/agy_packets\packet_31.json	რომის იმპერატორები
+data/agy_packets\packet_31.json	ანტიკური ფილოსოფია
+data/agy_packets\packet_31.json	კართაგენი
+data/agy_packets\packet_31.json	ალექსანდრე მაკედონელი
+data/agy_packets\packet_31.json	მაიას ცივილიზაცია
+data/agy_packets\packet_31.json	ბაბილონი
+data/agy_packets\packet_31.json	აქემენიანთა იმპერია
+data/agy_packets\packet_31.json	გლადიატორები
+data/agy_packets\packet_31.json	ტროას ომი
+data/agy_packets\packet_31.json	ასურეთი
+data/agy_packets\packet_31.json	იულიუს კეისარი
+data/agy_packets\packet_31.json	ანტიკური იარაღი
+data/agy_packets\packet_31.json	უძველესი ქალაქები
+data/agy_packets\packet_31.json	კელტები
+data/agy_packets\packet_31.json	ფინიკია
+data/agy_packets\packet_31.json	სტოუნჰენჯი
+data/agy_packets\packet_31.json	როზეტის ქვა
+data/agy_packets\packet_32.json	ძველი ბერძენი ფილოსოფოსები
+data/agy_packets\packet_32.json	ისლამის ისტორია
+data/agy_packets\packet_32.json	ფრანგი განმანათლებლები
+data/agy_packets\packet_32.json	ჩინური ფილოსოფია
+data/agy_packets\packet_32.json	ლოგიკა
+data/agy_packets\packet_32.json	პოლიტიკური იდეოლოგიები
+data/agy_packets\packet_32.json	მე-19 საუკუნის ფილოსოფია
+data/agy_packets\packet_32.json	ფსიქოლოგია
+data/agy_packets\packet_32.json	ინგლისელი მოაზროვნეები
+data/agy_packets\packet_32.json	ქრისტიანული კონფესიები
+data/agy_packets\packet_32.json	ფილოსოფიური ტერმინები
+data/agy_packets\packet_32.json	ეთიკა და მორალი
+data/agy_packets\packet_32.json	მე-20 საუკუნის ფილოსოფია
+data/agy_packets\packet_32.json	რელიგიური ტიტულები
+data/agy_packets\packet_32.json	ცნობილი ტრაქტატები
+data/agy_packets\packet_32.json	საზოგადოებრივი მეცნიერებები
+data/agy_packets\packet_32.json	ფილოსოფიური პრინციპები
+data/agy_packets\packet_32.json	ნობელის მშვიდობის პრემია
+data/agy_packets\packet_32.json	ანტიკური სტოიციზმი
+data/agy_packets\packet_32.json	განმანათლებლობა
+data/agy_packets\packet_33.json	მწერები
+data/agy_packets\packet_33.json	დინოზავრები
+data/agy_packets\packet_33.json	ძაღლის ჯიშები
+data/agy_packets\packet_33.json	წყალქვეშა სამყარო
+data/agy_packets\packet_33.json	კატისებრთა ოჯახი
+data/agy_packets\packet_33.json	ცხოველები ლიტერატურაში
+data/agy_packets\packet_33.json	აფრიკის ფაუნა
+data/agy_packets\packet_33.json	ამფიბიები
+data/agy_packets\packet_33.json	ენდემური სახეობები
+data/agy_packets\packet_33.json	ზოოლოგიური ტერმინები
+data/agy_packets\packet_33.json	გადაშენებული ცხოველები
+data/agy_packets\packet_33.json	ფანტასტიკური ცხოველები
+data/agy_packets\packet_33.json	ჩიტები
+data/agy_packets\packet_33.json	შხამიანი არსებები
+data/agy_packets\packet_33.json	ავსტრალიის ფაუნა
+data/agy_packets\packet_33.json	ცხოველები დროშებზე
+data/agy_packets\packet_33.json	ძუძუმწოვრების რეკორდები
+data/agy_packets\packet_33.json	ცხოველები ხელოვნებაში
+data/agy_packets\packet_33.json	პრიმატები
+data/agy_packets\packet_33.json	ჩარლზ დარვინი
+data/agy_packets\packet_34.json	სამაგიდო თამაშები
+data/agy_packets\packet_34.json	ვიდეო თამაშები
+data/agy_packets\packet_34.json	სათამაშოების ბრენდები
+data/agy_packets\packet_34.json	თოჯინები
+data/agy_packets\packet_34.json	კაზინო
+data/agy_packets\packet_34.json	ცრურწმენები
+data/agy_packets\packet_34.json	ჰოროსკოპი
+data/agy_packets\packet_34.json	პოკერი
+data/agy_packets\packet_34.json	გოლფი
+data/agy_packets\packet_34.json	ბოულინგი
+data/agy_packets\packet_34.json	ლატარია
+data/agy_packets\packet_34.json	ფოკუსები და ილუზიები
+data/agy_packets\packet_34.json	ნარდი და შაში
+data/agy_packets\packet_34.json	ბავშვობის სათამაშოები
+data/agy_packets\packet_34.json	კროსვორდები
+data/agy_packets\packet_34.json	რაგბი
+data/agy_packets\packet_34.json	დარტსი
+data/agy_packets\packet_34.json	ბანქოს მასტები
+data/agy_packets\packet_34.json	ლოგიკური თამაშები
+data/agy_packets\packet_34.json	სუმო
+data/agy_packets\packet_35.json	აფრიკის დროშები
+data/agy_packets\packet_35.json	ფულის ნიშნები
+data/agy_packets\packet_35.json	საგზაო ნიშნები
+data/agy_packets\packet_35.json	მცენარეები გერბებზე
+data/agy_packets\packet_35.json	ვარსკვლავები დროშებზე
+data/agy_packets\packet_35.json	ჯვრები ჰერალდიკაში
+data/agy_packets\packet_35.json	პუნქტუაციის ნიშნები
+data/agy_packets\packet_35.json	ალქიმიური სიმბოლოები
+data/agy_packets\packet_35.json	შავი ფერი
+data/agy_packets\packet_35.json	მუსიკალური ნოტაცია
+data/agy_packets\packet_35.json	ევროპის დროშები
+data/agy_packets\packet_35.json	ჩინური კალენდარი
+data/agy_packets\packet_35.json	აზიის დროშები
+data/agy_packets\packet_35.json	ორდენები და მედლები
+data/agy_packets\packet_35.json	სამედიცინო სიმბოლოები
+data/agy_packets\packet_35.json	საიდუმლო ნიშნები
+data/agy_packets\packet_35.json	სიმბოლოები არქიტექტურაში
+data/agy_packets\packet_35.json	მითიური არსებები გერბებზე
+data/agy_packets\packet_35.json	ეროვნული ვალუტა
+data/agy_packets\packet_35.json	საერთაშორისო სიმბოლოები
+data/agy_packets\packet_36.json	საახალწლო ტრადიციები
+data/agy_packets\packet_36.json	მსოფლიოს ფესტივალები
+data/agy_packets\packet_36.json	საქორწინო წეს-ჩვეულებები
+data/agy_packets\packet_36.json	ეროვნული სამოსი
+data/agy_packets\packet_36.json	საგაზაფხულო დღესასწაულები
+data/agy_packets\packet_36.json	კულინარიული ფესტივალები
+data/agy_packets\packet_36.json	შობის ღამე
+data/agy_packets\packet_36.json	მსოფლიოს ჰიმნები
+data/agy_packets\packet_36.json	საშემოდგომო დღესასწაულები
+data/agy_packets\packet_36.json	ხალხური ცეკვები
+data/agy_packets\packet_36.json	მისალმების ტრადიციები
+data/agy_packets\packet_36.json	უცნაური ფესტივალები
+data/agy_packets\packet_36.json	მსოფლიოს ანდაზები
+data/agy_packets\packet_36.json	ზამთრის ტრადიციები
+data/agy_packets\packet_36.json	მოსავლის აღების დღესასწაულები
+data/agy_packets\packet_36.json	თილისმები და ამულეტები
+data/agy_packets\packet_36.json	ფერების სიმბოლიკა
+data/agy_packets\packet_36.json	მსოფლიოს ნიღბები
+data/agy_packets\packet_36.json	ტრადიციული სიმბოლოები
+data/agy_packets\packet_36.json	ეროვნული დღესასწაულები
+data/agy_packets\packet_37.json	ფიზიკის სამყარო
+data/agy_packets\packet_37.json	შვედეთი
+data/agy_packets\packet_37.json	სამედიცინო მიღწევები
+data/agy_packets\packet_37.json	მსოფლიო ლიტერატურა
+data/agy_packets\packet_37.json	ეკონომიკის მეცნიერება
+data/agy_packets\packet_37.json	ლათინური ამერიკა
+data/agy_packets\packet_37.json	პრემიის კატეგორიები
+data/agy_packets\packet_37.json	ქალები მეცნიერებაში
+data/agy_packets\packet_37.json	გერმანული მემკვიდრეობა
+data/agy_packets\packet_37.json	ფრანგული კულტურა
+data/agy_packets\packet_37.json	ბრიტანეთის იმპერია
+data/agy_packets\packet_37.json	მშვიდობისმყოფელები
+data/agy_packets\packet_37.json	ქიმიური ნაერთები
+data/agy_packets\packet_37.json	ცნობილი ზღვაოსნები
+data/agy_packets\packet_37.json	ოქროს მედლები
+data/agy_packets\packet_37.json	მეოცე საუკუნის დასაწყისი
+data/agy_packets\packet_37.json	სამყაროს შეცნობა
+data/agy_packets\packet_37.json	ისტორიული ფიგურები
+data/agy_packets\packet_37.json	ანდერძი
+data/agy_packets\packet_37.json	ალფრედ ნობელი
+data/agy_packets\packet_38.json	იტალიური სამზარეულო
+data/agy_packets\packet_38.json	შუა საუკუნეების ისტორია
+data/agy_packets\packet_38.json	მსოფლიოს სანელებლები
+data/agy_packets\packet_38.json	ინდური სამზარეულო
+data/agy_packets\packet_38.json	ცნობილი ფიზიკოსები
+data/agy_packets\packet_38.json	ეგზოტიკური ხილი
+data/agy_packets\packet_38.json	ფრანგული სამზარეულო
+data/agy_packets\packet_38.json	სამურაები და ნინძები
+data/agy_packets\packet_38.json	მუსიკალური ჯგუფები
+data/agy_packets\packet_38.json	ევროპული მონარქიები
+data/agy_packets\packet_38.json	ანტიკური რომი
+data/agy_packets\packet_38.json	ცნობილი სუპები
+data/agy_packets\packet_38.json	მექსიკური სამზარეულო
+data/agy_packets\packet_38.json	ცნობილი კომპიუტერული ვირუსები
+data/agy_packets\packet_38.json	ევროპული ყველები
+data/agy_packets\packet_38.json	ფოტოგრაფიის ისტორია
+data/agy_packets\packet_38.json	აფრიკის გეოგრაფია
+data/agy_packets\packet_38.json	მსოფლიოს დესერტები
+data/agy_packets\packet_38.json	მიშლენის მეგზური
+data/agy_packets\packet_38.json	ცნობილი დიქტატორები

@@ -1,0 +1,22 @@
+[
+  {"number": 31, "subtitle": "ძველი ცივილიზაციები", "categories": ["ANCIENT HISTORY", "ANCIENT TIMES", "ANCIENT EGYPT", "ANCIENT GREECE", "ANCIENT ROME", "ROMANS", "EARLY MAN", "ARCHAEOLOGY", "HISTORIC NAMES", "PREHISTORIC TIMES"]},
+  {"number": 32, "subtitle": "ფილოსოფია და აზრის ისტორია", "categories": ["PHILOSOPHY", "PHILOSOPHERS", "RELIGION", "WORLD RELIGION", "HISTORIC QUOTES", "FAMOUS QUOTES", "QUOTATIONS"]},
+  {"number": 33, "subtitle": "ცხოველთა სამყარო", "categories": ["ZOOLOGY", "MAMMALS", "BIRDS", "INSECTS", "FISH", "THE ANIMAL KINGDOM", "ANIMAL GROUPS", "REPTILES", "SEA CREATURES", "BUGS"]},
+  {"number": 34, "subtitle": "თამაშები და გასართობები მსოფლიოში", "categories": ["TOYS & GAMES", "GAMES", "CARD GAMES", "ASTROLOGY", "SUPERSTITIONS"]},
+  {"number": 35, "subtitle": "დროშები, გერბები და სიმბოლოები", "categories": ["FLAGS", "WORLD FLAGS", "FLAGS OF THE WORLD", "SIGNS & SYMBOLS", "MEDALS & DECORATIONS"]},
+  {"number": 36, "subtitle": "მსოფლიოს ხალხური ტრადიციები და დღესასწაულები", "categories": ["SUPERSTITIONS", "WOMEN OF THE WORLD", "NATIONAL ANTHEMS", "OFFICIAL LANGUAGES", "PROVERBS"]},
+  {"number": 37, "subtitle": "ნობელის პრემიის ლაურეატები", "categories": ["SCIENTISTS", "ASTRONOMERS", "MEN OF SCIENCE", "DISCOVERIES", "INVENTORS"]},
+  {"number": 38, "subtitle": "მსოფლიოს სამზარეულო", "categories": ["INTERNATIONAL CUISINE", "INTERNATIONAL FOOD & DRINK", "FOOD", "FOOD & DRINK", "COOKING", "WINE", "FRENCH CUISINE", "HERBS & SPICES", "FRUITS & VEGETABLES"]},
+  {"number": 39, "subtitle": "ტრანსპორტისა და მოგზაურობის ისტორია", "categories": ["TRANSPORTATION", "SHIPS", "AVIATION", "EXPLORERS", "EXPLORATION", "TRAVEL & TOURISM", "WORLD TRAVEL"]},
+  {"number": 40, "subtitle": "დამწერლობა და ანბანები", "categories": ["FOREIGN WORDS & PHRASES", "LANGUAGES", "OFFICIAL LANGUAGES", "HISTORIC DOCUMENTS", "EPONYMS"]},
+  {"number": 41, "subtitle": "მსოფლიო რეკორდები და საოცრებები", "categories": ["THE LARGEST IN AREA", "THE SMALLEST IN AREA", "THE MOST POPULOUS NATION", "WORLD HERITAGE SITES", "FAMOUS FIRSTS", "WOMEN'S FIRSTS", "BORN FIRST"]},
+  {"number": 42, "subtitle": "მოდისა და საიუველირო ხელოვნების ისტორია", "categories": ["FASHION", "FASHION DESIGNERS", "FASHION HISTORY", "GEMS & JEWELRY", "GEMS", "JEWELRY"]},
+  {"number": 43, "subtitle": "არქეოლოგია და დაკარგული ცივილიზაციები", "categories": ["ARCHAEOLOGY", "ANCIENT TIMES", "PREHISTORIC TIMES", "HISTORIC DOCUMENTS", "DISCOVERIES"]},
+  {"number": 44, "subtitle": "ოკეანეთა სიცოცხლე და წყლის სამყარო", "categories": ["MARINE BIOLOGY", "SEA CREATURES", "FISH", "BODIES OF WATER", "SEAS", "LAKES & RIVERS", "WATERFALLS"]},
+  {"number": 45, "subtitle": "კინემატოგრაფია მსოფლიოს გარშემო", "categories": ["FOREIGN FILMS", "MOVIE TITLE TRANSLATIONS", "SCIENCE FICTION", "WORLD LITERATURE"]},
+  {"number": 46, "subtitle": "სამედიცინო აღმოჩენები და ეპიდემიების ისტორია", "categories": ["MEDICINE", "HEALTH & MEDICINE", "MEDICAL HISTORY", "MEDICAL MILESTONES", "SICKNESS & HEALTH", "SCIENTISTS"]},
+  {"number": 47, "subtitle": "ცოდნის ისტორია — ბიბლიოთეკები და უნივერსიტეტები", "categories": ["HISTORIC DOCUMENTS", "PHILOSOPHERS", "WORLD LEADERS", "DISCOVERIES", "BIOGRAPHY"]},
+  {"number": 48, "subtitle": "კალენდარები და დროის აღრიცხვის ისტორია", "categories": ["THE UNIVERSE", "ASTRONOMY", "ANCIENT EGYPT", "ANCIENT ROME", "GEOGRAPHIC TERMS"]},
+  {"number": 49, "subtitle": "პოლარული და მთის ექსპედიციები", "categories": ["EXPLORERS", "EXPLORATION", "MOUNTAINS", "WEATHER", "DISCOVERIES"]},
+  {"number": 50, "subtitle": "ბიომრავალფეროვნება — ეკოსისტემები და გადაშენებული სახეობები", "categories": ["THE ANIMAL KINGDOM", "PLANT LIFE", "NATURE", "NATURE STUDY", "PREHISTORIC TIMES", "DINOSAURS"]}
+]

@@ -1,0 +1,12 @@
+total rows      216,930
+translated      26,475  (12.2%)
+
+status column:
+   190,450  PENDING
+    26,480  DONE
+
+rounds among translated:
+    12,939  Double Jeopardy!
+       443  Final Jeopardy!
+    13,092  Jeopardy!
+         1  Tiebreaker

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/game_feed.dart';
 import '../core/models.dart';
@@ -871,6 +872,9 @@ class _JoinCodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Generate link based on the current window URL (frontend), not the API backend.
+    final joinLink = Uri.base.replace(queryParameters: {'code': code}).toString();
+
     return Column(
       children: [
         Text(L.shareCode.toUpperCase(), style: kTicker),
@@ -930,7 +934,59 @@ class _JoinCodeCard extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: joinLink));
+                showToast(context, L.linkCopied);
+              },
+              icon: const Icon(Icons.link, color: JColors.brass),
+              label: const Text(L.shareLink, style: TextStyle(color: JColors.brass)),
+            ),
+            const SizedBox(width: 12),
+            TextButton.icon(
+              onPressed: () => _showQrDialog(context, joinLink),
+              icon: const Icon(Icons.qr_code, color: JColors.brass),
+              label: const Text(L.qrCode, style: TextStyle(color: JColors.brass)),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+
+  void _showQrDialog(BuildContext context, String link) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: const EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: 250,
+                height: 250,
+                child: QrImageView(
+                  data: link,
+                  version: 4,
+                  errorCorrectionLevel: QrErrorCorrectLevel.L,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(L.ok),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

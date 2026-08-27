@@ -42,6 +42,7 @@ dependencies:
   # Dart SDK's own package set -- no native code, so `flutter test` and the
   # Android build stay as they were. See core/session_store.dart.
   web: ^1.1.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

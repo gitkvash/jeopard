@@ -25,6 +25,15 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
   final _name = TextEditingController();
   final _newTeam = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    final codeParam = Uri.base.queryParameters['code'];
+    if (codeParam != null && codeParam.length == 6) {
+      _code.text = codeParam.toUpperCase();
+    }
+  }
+
   /// Non-null once the code is accepted; holds the teams already in the game.
   LobbyView? _lobby;
   bool _busy = false;

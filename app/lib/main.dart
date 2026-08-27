@@ -10,6 +10,7 @@ import 'core/theme.dart';
 import 'host/host_game_screen.dart';
 import 'role_screen.dart';
 import 'team/buzzer_screen.dart';
+import 'team/join_screen.dart';
 import 'widgets/stage.dart';
 
 void main() {
@@ -53,6 +54,17 @@ class _EntryState extends State<_Entry> {
   void initState() {
     super.initState();
     _saved = SessionStore.read();
+    
+    if (_saved == null) {
+      final code = Uri.base.queryParameters['code'];
+      if (code != null && code.length == 6) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const JoinScreen()),
+          );
+        });
+      }
+    }
   }
 
   @override

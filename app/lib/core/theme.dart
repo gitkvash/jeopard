@@ -410,6 +410,9 @@ class L {
   static const startGame = 'თამაშის დაწყება';
   static const noTeamsYet = 'ჯერ არავინ შემოსულა';
   static const shareCode = 'უთხარით მოთამაშეებს ეს კოდი';
+  static const shareLink = 'ბმულის კოპირება';
+  static const qrCode = 'QR კოდი';
+  static const linkCopied = 'ბმული დაკოპირდა';
   static const copied = 'კოდი დაკოპირდა';
 
   // board / clue

@@ -49,6 +49,11 @@ class HostSetupScreen extends ConsumerStatefulWidget {
 class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
   int? _packageId;
 
+  /// The generated packet, once created -- not part of [packagesProvider]'s
+  /// fetched list, so it is tracked separately.
+  PackageSummary? _extraPackage;
+  bool _generatingRandom = false;
+
   void _pick(PackageSummary package, {required bool twoPane}) {
     setState(() => _packageId = package.id);
     if (twoPane) return;
@@ -58,6 +63,23 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => HostOptionsScreen(package: package)),
     );
+  }
+
+  Future<void> _pickRandom({required bool twoPane}) async {
+    setState(() => _generatingRandom = true);
+    try {
+      final generated = await ref.read(restClientProvider).randomPackage();
+      if (!mounted) return;
+      setState(() {
+        _extraPackage = generated;
+        _generatingRandom = false;
+      });
+      _pick(generated, twoPane: twoPane);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _generatingRandom = false);
+      showToast(context, L.randomPackageError, error: true);
+    }
   }
 
   @override
@@ -81,7 +103,9 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final twoPane = constraints.maxWidth >= _twoPaneWidth;
-        final selected = list.where((p) => p.id == _packageId).firstOrNull;
+        final selected = _extraPackage?.id == _packageId
+            ? _extraPackage
+            : list.where((p) => p.id == _packageId).firstOrNull;
 
         final packageList = _PackageList(
           packages: list,
@@ -90,6 +114,8 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
           // tapping it opens a page, it says so with a chevron instead.
           opensPage: !twoPane,
           onPick: (p) => _pick(p, twoPane: twoPane),
+          onPickRandom: () => _pickRandom(twoPane: twoPane),
+          generatingRandom: _generatingRandom,
         );
 
         if (!twoPane) return packageList;
@@ -440,12 +466,16 @@ class _PackageList extends StatelessWidget {
     required this.selectedId,
     required this.opensPage,
     required this.onPick,
+    required this.onPickRandom,
+    required this.generatingRandom,
   });
 
   final List<PackageSummary> packages;
   final int? selectedId;
   final bool opensPage;
   final ValueChanged<PackageSummary> onPick;
+  final VoidCallback onPickRandom;
+  final bool generatingRandom;
 
   @override
   Widget build(BuildContext context) {
@@ -457,6 +487,15 @@ class _PackageList extends StatelessWidget {
         return ListView(
           padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 24),
           children: [
+            // Offered first, above every named packet: a host who does not care
+            // which specific one they play should not have to scan thirty of them.
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _RandomPackageCard(
+                generating: generatingRandom,
+                onTap: generatingRandom ? null : onPickRandom,
+              ),
+            ),
             // Two provenances, two sections. With thirty packages a flat list is
             // a long scroll in which the six authentic games are lost among the
             // generated ones, and which of the two a host is picking is the thing
@@ -497,6 +536,87 @@ class _PackageList extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// The card offered above every named packet: assembles a fresh one from
+/// topics sampled across the whole library, rather than picking a fixed set.
+class _RandomPackageCard extends StatelessWidget {
+  const _RandomPackageCard({required this.generating, required this.onTap});
+
+  final bool generating;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Plate(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFFF0C4),
+                  JColors.goldBright,
+                  Color(0xFFC99A2E),
+                ],
+                stops: [0, 0.12, 1],
+              ),
+              borderRadius: BorderRadius.circular(JRadius.tile),
+            ),
+            child: const Icon(
+              Icons.shuffle,
+              size: 22,
+              color: Color(0xFF14120A),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  L.randomPackage,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                    color: JColors.goldBright,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  L.randomPackageHint,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: JColors.textFaint,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (generating)
+            const SizedBox(
+              width: 21,
+              height: 21,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            const Icon(Icons.chevron_right, color: JColors.brass, size: 21),
+        ],
+      ),
     );
   }
 }

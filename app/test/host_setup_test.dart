@@ -6,8 +6,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jeopard_app/core/models.dart';
 import 'package:jeopard_app/core/providers.dart';
+import 'package:jeopard_app/core/rest_client.dart';
 import 'package:jeopard_app/core/theme.dart';
 import 'package:jeopard_app/host/host_setup_screen.dart';
+
+/// A [RestClient] standing in for the real one, so a test can drive what
+/// "generating a random packet" returns without a server.
+class _FakeRestClient extends RestClient {
+  _FakeRestClient(this.randomResult);
+
+  /// A package to return from [randomPackage], or null to make it throw --
+  /// exercising the error path without a real network failure.
+  final PackageSummary? randomResult;
+  int randomCalls = 0;
+
+  @override
+  Future<PackageSummary> randomPackage() async {
+    randomCalls++;
+    if (randomResult == null) {
+      throw ApiException(500, 'server exploded');
+    }
+    return randomResult!;
+  }
+}
 
 /// The picker holds thirty packages of two different provenances, and which one
 /// a host is choosing is the thing they most need to see.
@@ -40,9 +61,11 @@ void main() {
         ],
       );
 
-  Widget setupScreen(List<PackageSummary> packages) => ProviderScope(
+  Widget setupScreen(List<PackageSummary> packages, {RestClient? restClient}) =>
+      ProviderScope(
         overrides: [
           packagesProvider.overrideWith((ref) => packages),
+          if (restClient != null) restClientProvider.overrideWithValue(restClient),
         ],
         child: MaterialApp(
           theme: buildTheme(),
@@ -254,5 +277,64 @@ void main() {
         isFalse);
     final create = find.widgetWithText(FilledButton, L.create);
     expect(tester.widget<FilledButton>(create).onPressed, isNull);
+  });
+
+  testWidgets('the random packet card is offered first, above every named packet',
+      (tester) async {
+    await tester.pumpWidget(setupScreen([
+      package(1, generated: false),
+      package(7, generated: true),
+    ]));
+    await tester.pumpAndSettle();
+
+    expect(find.text(L.randomPackage), findsOneWidget);
+    final randomTop = tester.getTopLeft(find.text(L.randomPackage)).dy;
+    final originalTop =
+        tester.getTopLeft(find.textContaining(L.originalPackages)).dy;
+    expect(randomTop, lessThan(originalTop));
+  });
+
+  testWidgets('tapping the random packet card generates one and opens it',
+      (tester) async {
+    usePhoneScreen(tester);
+    final generated = package(99, generated: false);
+    final client = _FakeRestClient(generated);
+    await tester.pumpWidget(setupScreen(
+      [package(1, generated: false)],
+      restClient: client,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(L.randomPackage));
+    await tester.pumpAndSettle();
+
+    expect(client.randomCalls, 1);
+    // Opened exactly like any other package: a page of its own, holding the
+    // generated one and its setup.
+    expect(find.text('პაკეტი #99'), findsOneWidget);
+    expect(find.text(L.wholePackage), findsOneWidget);
+  });
+
+  testWidgets('a failed generation shows an error and leaves the list as it was',
+      (tester) async {
+    useWideScreen(tester);
+    final client = _FakeRestClient(null);
+    await tester.pumpWidget(setupScreen(
+      [package(1, generated: false)],
+      restClient: client,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(L.randomPackage));
+    await tester.pumpAndSettle();
+
+    expect(client.randomCalls, 1);
+    expect(find.text(L.randomPackageError), findsOneWidget);
+    // Still on the list, nothing picked.
+    expect(find.text(L.choosePackage), findsOneWidget);
+
+    // Let the toast's own dismiss timer run out so the test ends clean.
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
   });
 }

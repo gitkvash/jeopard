@@ -23,6 +23,10 @@ public class QuizPackage {
     @Column(name = "source_url")
     private String sourceUrl;
 
+    /** True for a packet assembled at runtime by remixing existing content. */
+    @Column(nullable = false)
+    private boolean synthetic;
+
     @OneToMany(mappedBy = "quizPackage", cascade = CascadeType.ALL)
     @OrderBy("idx ASC")
     private List<GameRound> rounds = new ArrayList<>();
@@ -37,5 +41,7 @@ public class QuizPackage {
     public void setSubtitle(String subtitle) { this.subtitle = subtitle; }
     public String getSourceUrl() { return sourceUrl; }
     public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }
+    public boolean isSynthetic() { return synthetic; }
+    public void setSynthetic(boolean synthetic) { this.synthetic = synthetic; }
     public List<GameRound> getRounds() { return rounds; }
 }

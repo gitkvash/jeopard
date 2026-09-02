@@ -360,6 +360,9 @@ class L {
   static const packageLabel = 'პაკეტი';
   static const originalPackages = 'ორიგინალური პაკეტები (2008)';
   static const generatedPackages = 'გენერირებული პაკეტები';
+  static const randomPackage = 'შემთხვევითი პაკეტი';
+  static const randomPackageHint = 'თემები შემთხვევითობით აირჩევა ყველა პაკეტიდან';
+  static const randomPackageError = 'ვერ მოხერხდა შემთხვევითი პაკეტის შექმნა';
   static const choosePackage = 'აირჩიეთ პაკეტი';
   static const choosePackageHint =
       'აირჩიეთ პაკეტი მარცხნივ, პარამეტრები აქ გამოჩნდება';

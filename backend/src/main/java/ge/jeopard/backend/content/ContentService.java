@@ -9,8 +9,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -22,14 +27,23 @@ public class ContentService {
     private static final Comparator<Clue> BY_VALUE =
             Comparator.comparing(Clue::getValue, Comparator.nullsFirst(Comparator.naturalOrder()));
 
+    /** Rounds 1-3 are the playable boards a random packet remixes topic by topic. */
+    private static final int PLAYABLE_ROUNDS = 3;
+    private static final int TOPICS_PER_ROUND = 6;
+
+    private final SecureRandom random = new SecureRandom();
+
     private final PackageRepository packages;
     private final RoundRepository rounds;
     private final TopicRepository topics;
+    private final ClueRepository clues;
 
-    ContentService(PackageRepository packages, RoundRepository rounds, TopicRepository topics) {
+    ContentService(PackageRepository packages, RoundRepository rounds, TopicRepository topics,
+                    ClueRepository clues) {
         this.packages = packages;
         this.rounds = rounds;
         this.topics = topics;
+        this.clues = clues;
     }
 
     public List<PackageSummary> listPackages() {
@@ -87,5 +101,84 @@ public class ContentService {
                 .toList();
         return new PackageSummary(p.getId(), p.getNumber(), p.getTitle(), p.getSubtitle(),
                 p.getSourceUrl(), roundSummaries);
+    }
+
+    /**
+     * Assembles a fresh packet by sampling topics from the existing (non-synthetic)
+     * packets: six random topics per playable round, plus one final round cloned
+     * whole from a random source packet. Persisted like any other packet, just
+     * marked {@code synthetic} so it stays out of {@link #listPackages()}.
+     */
+    @Transactional
+    public PackageSummary generateRandomPackage() {
+        QuizPackage pkg = new QuizPackage();
+        pkg.setId(packages.nextSyntheticId());
+        pkg.setNumber(packages.maxNumber() + 1);
+        pkg.setTitle("შემთხვევითი პაკეტი #" + pkg.getNumber());
+        pkg.setSubtitle("თემები შემთხვევითობით აღებულია ყველა პაკეტიდან");
+        pkg.setSynthetic(true);
+
+        for (int idx = 1; idx <= PLAYABLE_ROUNDS; idx++) {
+            GameRound round = newRound(pkg, idx, false, true);
+            for (Topic source : pickDistinctByName(topics.findPlayableTopicsForRoundIdx(idx), TOPICS_PER_ROUND)) {
+                round.getTopics().add(cloneTopic(source, round));
+            }
+            pkg.getRounds().add(round);
+        }
+
+        List<GameRound> finalPool = rounds.findFinalRounds();
+        if (!finalPool.isEmpty()) {
+            GameRound sourceFinal = finalPool.get(random.nextInt(finalPool.size()));
+            GameRound round = newRound(pkg, PLAYABLE_ROUNDS + 1, true, false);
+            for (Topic source : topics.findByRoundIdWithClues(sourceFinal.getId())) {
+                round.getTopics().add(cloneTopic(source, round));
+            }
+            pkg.getRounds().add(round);
+        }
+
+        packages.save(pkg);
+        return toSummary(pkg);
+    }
+
+    private GameRound newRound(QuizPackage pkg, int idx, boolean finalRound, boolean playable) {
+        GameRound round = new GameRound();
+        round.setId(rounds.nextSyntheticId());
+        round.setQuizPackage(pkg);
+        round.setIdx(idx);
+        round.setFinalRound(finalRound);
+        round.setPlayable(playable);
+        round.setTopicCount(0);
+        return round;
+    }
+
+    private Topic cloneTopic(Topic source, GameRound round) {
+        Topic topic = new Topic();
+        topic.setId(topics.nextSyntheticId());
+        topic.setRound(round);
+        topic.setIdx(round.getTopics().size() + 1);
+        topic.setName(source.getName());
+        for (Clue sourceClue : source.getClues()) {
+            Clue clue = new Clue();
+            clue.setId(clues.nextSyntheticId());
+            clue.setTopic(topic);
+            clue.setValue(sourceClue.getValue());
+            clue.setQuestion(sourceClue.getQuestion());
+            clue.setAnswer(sourceClue.getAnswer());
+            topic.getClues().add(clue);
+        }
+        round.setTopicCount(round.getTopics().size() + 1);
+        return topic;
+    }
+
+    /** Shuffles then takes the first {@code count} topics with distinct names. */
+    private List<Topic> pickDistinctByName(List<Topic> pool, int count) {
+        List<Topic> shuffled = new ArrayList<>(pool);
+        Collections.shuffle(shuffled, random);
+        Map<String, Topic> chosen = new LinkedHashMap<>();
+        for (Topic t : shuffled) {
+            if (chosen.size() >= count) break;
+            chosen.putIfAbsent(t.getName(), t);
+        }
+        return new ArrayList<>(chosen.values());
     }
 }

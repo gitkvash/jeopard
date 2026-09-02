@@ -51,10 +51,14 @@ public class GameCreationLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Exactly one endpoint: POST /api/games. Anything below it (start, judge,
-        // buzz) already needs a token from a game that exists.
-        return !("POST".equalsIgnoreCase(request.getMethod())
-                && "/api/games".equals(request.getRequestURI()));
+        // POST /api/games, and POST /api/packages/random which is the same kind of
+        // unauthenticated row-seeding write. Anything below /api/games (start,
+        // judge, buzz) already needs a token from a game that exists.
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        String uri = request.getRequestURI();
+        return !("/api/games".equals(uri) || "/api/packages/random".equals(uri));
     }
 
     @Override

@@ -45,6 +45,14 @@ class RestClient {
         .toList();
   }
 
+  /// Assembles a fresh packet server-side by sampling topics from the existing
+  /// ones. Returns a normal [PackageSummary]; the game it starts is created the
+  /// same way as any other package.
+  Future<PackageSummary> randomPackage() async {
+    final body = await _post('/api/packages/random');
+    return PackageSummary.fromJson(body as Map<String, dynamic>);
+  }
+
   // ---------- setup ----------
 
   /// Pass [packageId] to play a whole package (boards 1-3 then the final with

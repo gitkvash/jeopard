@@ -40,26 +40,39 @@ class JeopardApp extends StatelessWidget {
 /// [SessionStore.read] is synchronous, so this costs nothing and happens before
 /// the first frame -- a reloaded browser tab never flashes the role picker on
 /// its way back into the game.
-class _Entry extends StatefulWidget {
+class _Entry extends ConsumerStatefulWidget {
   const _Entry();
 
   @override
-  State<_Entry> createState() => _EntryState();
+  ConsumerState<_Entry> createState() => _EntryState();
 }
 
-class _EntryState extends State<_Entry> {
+class _EntryState extends ConsumerState<_Entry> {
   GameSession? _saved;
 
   @override
   void initState() {
     super.initState();
     _saved = SessionStore.read();
-    
+
     if (_saved == null) {
       final code = Uri.base.queryParameters['code'];
-      if (code != null && code.length == 6) {
+      if (code == null || code.length != 6) {
+        // Nothing to resume and no game to join, so this run opens on the role
+        // picker -- and the next thing a host does there is ask for the package
+        // list. Start fetching it now, while they are still reading the two
+        // cards, instead of at the top of the setup screen where the wait is a
+        // spinner they have to watch. The provider caches, so the setup screen
+        // finds it done rather than fetching a second time.
+        ref.read(packagesProvider);
+      } else {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.of(context).pushReplacement(
+          // Pushed, not pushReplacement: a player who arrived by scanning the
+          // host's QR code lands straight on the join form, and replacing this
+          // route left them with a one-route stack -- no back arrow, no way to
+          // reach the role picker, and nothing to do but reopen the app
+          // without the ?code. The picker stays underneath instead.
+          Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const JoinScreen()),
           );
         });

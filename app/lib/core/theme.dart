@@ -407,6 +407,7 @@ class L {
   static const members = 'წევრები';
   static const joinThisTeam = 'შეუერთდი';
   static const next2 = 'გაგრძელება';
+  static const mainMenu = 'მთავარი მენიუ';
   static const joinGame = 'შესვლა';
   static const waitingForHost = 'ველოდებით მასპინძელს';
   static const teamsJoined = 'შემოსული გუნდები';

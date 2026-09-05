@@ -8,6 +8,7 @@ import '../core/rest_client.dart';
 import '../core/session.dart';
 import '../core/session_store.dart';
 import '../core/theme.dart';
+import '../role_screen.dart';
 import 'buzzer_screen.dart';
 
 /// Joining is two steps, because a team can hold several people:
@@ -25,12 +26,18 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
   final _name = TextEditingController();
   final _newTeam = TextEditingController();
 
+  /// True when the code arrived in the URL -- a scanned QR code, or a shared
+  /// link. The one field left to fill is then the name, so that is what takes
+  /// the keyboard.
+  bool _codeFromLink = false;
+
   @override
   void initState() {
     super.initState();
     final codeParam = Uri.base.queryParameters['code'];
     if (codeParam != null && codeParam.length == 6) {
       _code.text = codeParam.toUpperCase();
+      _codeFromLink = true;
     }
   }
 
@@ -124,15 +131,25 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(lobby == null ? L.joinGame : L.chooseTeam),
-        leading: lobby == null
-            ? null
-            : IconButton(
+        leading: lobby != null
+            ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => setState(() {
                   _lobby = null;
                   _error = null;
                 }),
-              ),
+              )
+            // Nothing to pop means this screen is the whole history -- which is
+            // what a scanned QR code produces. The app bar would draw no
+            // leading widget at all and the app would have no exit, so offer
+            // the one destination that always exists.
+            : (Navigator.of(context).canPop()
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.home_outlined),
+                      tooltip: L.mainMenu,
+                      onPressed: () => RoleScreen.replaceAll(context),
+                    )),
       ),
       body: SafeArea(child: lobby == null ? _identityStep() : _teamStep(lobby)),
     );
@@ -161,7 +178,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                 textCapitalization: TextCapitalization.characters,
                 maxLength: 6,
                 textAlign: TextAlign.center,
-                autofocus: true,
+                autofocus: !_codeFromLink,
                 inputFormatters: [
                   UpperCaseFormatter(),
                   FilteringTextInputFormatter.allow(RegExp('[A-Z0-9]')),
@@ -186,6 +203,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
               TextField(
                 controller: _name,
                 textInputAction: TextInputAction.go,
+                autofocus: _codeFromLink,
                 decoration: const InputDecoration(labelText: L.yourName),
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _lookUpGame(),
@@ -208,6 +226,17 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                       )
                     : const Icon(Icons.arrow_forward, size: 20),
                 label: const Text(L.next2),
+              ),
+              const SizedBox(height: 6),
+              // Named, not just an arrow. Most players reach this screen by
+              // scanning the host's QR code, which opens the app on the join
+              // form with no visible history -- and someone who scanned the
+              // wrong code, or who meant to host, needs a way out that reads
+              // as a way out.
+              TextButton.icon(
+                onPressed: _busy ? null : () => RoleScreen.replaceAll(context),
+                icon: const Icon(Icons.home_outlined, size: 18),
+                label: const Text(L.mainMenu),
               ),
             ],
           ),

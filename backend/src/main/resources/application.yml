@@ -8,12 +8,29 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:jeopard}
     password: ${SPRING_DATASOURCE_PASSWORD:jeopard}
     hikari:
+      # Every room shares this pool, and every buzz, join and snapshot needs a
+      # connection out of it. The transactions are short -- a state flip and a
+      # broadcast -- so the pool is sized for how many rooms can be mid-action
+      # at once rather than for how many people are playing. The default of ten
+      # is a single-room number; this is a few rooms' worth, and still an order
+      # of magnitude under a stock Postgres max_connections.
+      maximum-pool-size: ${JEOPARD_DB_POOL:20}
       data-source-properties:
         # Set on the driver rather than in the URL so it survives whatever
         # SPRING_DATASOURCE_URL a deployment supplies. Turns each JDBC batch
         # into one multi-row INSERT instead of one statement per row -- the
         # other half of hibernate.jdbc.batch_size below.
         reWriteBatchedInserts: true
+  mvc:
+    problemdetails:
+      # Every refusal in this app carries a sentence meant to be read: "another
+      # team buzzed first", "that player name is taken", "game is mid-clue; join
+      # between clues". Without this, Spring answers a ResponseStatusException
+      # with {"timestamp","status","error","path"} and drops the sentence, so the
+      # client -- which looks for "detail" and falls back to printing the raw
+      # body -- showed the player that JSON blob instead. RFC 9457 puts the
+      # reason in "detail", which is the field the client was already reading.
+      enabled: true
   jpa:
     open-in-view: false
     hibernate:
@@ -50,6 +67,14 @@ jeopard:
     # Mobile clients send no Origin header at all, so "*" is the permissive
     # default; a deployment should pin this to its own origin.
     allowed-origin-patterns: ${JEOPARD_WS_ORIGINS:*}
+  board-cache:
+    # Boards held in memory, least recently used evicted first. The working set
+    # is one board per game in progress; the bound exists because generated
+    # packages mint rounds that one game plays and nothing ever asks for again.
+    size: ${JEOPARD_BOARD_CACHE:256}
+  buzz-timer:
+    # Threads shared by every room's automatic buzzer. See SchedulingConfig.
+    threads: ${JEOPARD_BUZZ_TIMER_THREADS:4}
   limits:
     # Creating a game is unauthenticated by design -- a host just opens the app.
     # That makes it the one endpoint worth a ceiling, so a public URL cannot be

@@ -174,10 +174,18 @@ public class GameService {
      * A person joins: they name themselves, then either join an existing team or
      * start a new one. Several players may share a team, so identity here is the
      * player name -- the team name is not unique to one device.
+     *
+     * <p>The game row is locked for the whole of this, because everything below
+     * reads the room before writing to it: whether a name is taken, and how many
+     * teams there are (which is the next seat). A roomful of people scanning the
+     * host's code join within the same second, so without the lock they all read
+     * the same empty room -- twelve simultaneous joins produced ten teams
+     * claiming seat 1. The lock is on this game's row, so a busy lobby never
+     * slows a game in the next room.
      */
     @Transactional
     public JoinedPlayer join(String joinCode, JoinRequest req) {
-        Game game = requireByCode(joinCode);
+        Game game = requireByCodeForUpdate(joinCode);
 
         if (game.getState() != GameState.LOBBY && game.getState() != GameState.BOARD) {
             throw new ResponseStatusException(CONFLICT, "game is mid-clue; join between clues");
@@ -350,8 +358,13 @@ public class GameService {
     }
 
     /**
-     * First buzz wins. Concurrent callers queue on the game row lock, so exactly
-     * one of them observes a null {@code buzzedTeamId} and takes the buzz.
+     * First buzz wins, and the database decides which one that is.
+     *
+     * <p>The checks below are the fast, friendly path: they turn the ordinary
+     * refusals into an explanation the player can read. None of them is what
+     * makes the race safe -- {@link GameRepository#claimBuzz} re-tests every
+     * condition that matters inside one conditional UPDATE, so a buzz that
+     * passed a check a millisecond before the state moved still loses.
      */
     @Transactional
     public Snapshot buzz(UUID gameId, String playerToken) {
@@ -378,7 +391,8 @@ public class GameService {
             throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "host looked at the answer on this clue");
         }
 
-        int updated = games.claimBuzz(gameId, player.getTeamId(), player.getId(), GameState.BUZZ_OPEN, GameState.BUZZED);
+        int updated = games.claimBuzz(gameId, player.getTeamId(), player.getId(), clueId,
+                player.isHost(), GameState.BUZZ_OPEN, GameState.BUZZED);
         if (updated == 0) {
             throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "another team buzzed first");
         }
@@ -733,12 +747,17 @@ public class GameService {
                 .count();
     }
 
+    /**
+     * Only ever called with this game's row locked -- by {@link #createGame},
+     * which has just inserted it, or by {@link #join}, which locks it. That is
+     * what makes reading the highest seat and then taking the next one safe.
+     */
     private Team addTeam(UUID gameId, String name) {
         Team team = new Team();
         team.setId(UUID.randomUUID());
         team.setGameId(gameId);
         team.setName(name);
-        team.setSeat(teams.countByGameId(gameId) + 1);
+        team.setSeat(teams.maxSeat(gameId) + 1);
         return teams.save(team);
     }
 
@@ -754,9 +773,20 @@ public class GameService {
     }
 
     private Game requireByCode(String joinCode) {
-        return games.findByJoinCode(joinCode.trim().toUpperCase(Locale.ROOT))
+        return games.findByJoinCode(normalise(joinCode))
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
                         "no game with that code"));
+    }
+
+    /** As {@link #requireByCode}, holding the row until the transaction ends. */
+    private Game requireByCodeForUpdate(String joinCode) {
+        return games.findByJoinCodeForUpdate(normalise(joinCode))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
+                        "no game with that code"));
+    }
+
+    private static String normalise(String joinCode) {
+        return joinCode.trim().toUpperCase(Locale.ROOT);
     }
 
     private static void clearBuzz(Game game) {

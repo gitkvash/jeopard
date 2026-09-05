@@ -267,9 +267,14 @@ LOBBY ──> BOARD ──> CLUE_READING ──> BUZZ_OPEN ──> BUZZED ──
 - **Players can see the board.** While the host is choosing, every player device shows the same
   board read-only, so the category and value in play are never a mystery. Once a clue is chosen its
   category and points are shown large on every screen.
-- **First buzz wins, decided by the database.** Each buzz takes a `SELECT … FOR UPDATE` on the game
-  row, so simultaneous buzzes queue and exactly one finds the slot empty. Correctness does not
-  depend on JVM-local locking.
+- **First buzz wins, decided by the database.** A buzz is one conditional `UPDATE` — it claims the
+  game row only while the buzzer is open, nobody holds it, and this team is not locked out — so of
+  any number of simultaneous buzzes exactly one updates a row and the rest update none. Nothing
+  queues and nothing depends on JVM-local locking, so it survives more than one instance.
+  Every other write to a game takes `SELECT … FOR UPDATE` on that row first, including joining:
+  a room's teams are numbered by reading the room and then writing to it, and a roomful of people
+  scanning the host's code do that within the same second. The lock is per game row, so a busy
+  lobby never touches the room next door.
 - **A wrong answer is not the end of the clue.** The team loses the value and is locked out of that
   clue; the buzzer reopens for the rest — including any team that has not tried yet. When no one is
   left, the answer is revealed.

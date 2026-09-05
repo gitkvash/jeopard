@@ -54,6 +54,18 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
   PackageSummary? _extraPackage;
   bool _generatingRandom = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // The list is fetched at app start rather than here (see main.dart), which
+    // is what makes this screen usually open on packages instead of a spinner.
+    // The cost of that is a failed prefetch outliving its cause -- a backend
+    // still booting, a phone not yet on the Wi-Fi -- so a stale failure is
+    // thrown away and tried again rather than shown to a host who has only
+    // just arrived.
+    if (ref.read(packagesProvider).hasError) ref.invalidate(packagesProvider);
+  }
+
   void _pick(PackageSummary package, {required bool twoPane}) {
     setState(() => _packageId = package.id);
     if (twoPane) return;
@@ -477,67 +489,106 @@ class _PackageList extends StatelessWidget {
   final VoidCallback onPickRandom;
   final bool generatingRandom;
 
+  /// The list flattened to one row per line: the shuffle card, two headings,
+  /// and a card per package.
+  ///
+  /// Built as data rather than as widgets because the widgets are not cheap --
+  /// every card is a gradient tile, a bevel and two blurred shadows -- and the
+  /// list rebuilds on every keystroke-sized state change in the screen above
+  /// it. As data, a rebuild costs forty-odd small objects and `ListView.builder`
+  /// only inflates the handful actually on screen.
+  List<_Row> _rows() {
+    // Two provenances, two sections. With forty packages a flat list is a long
+    // scroll in which the six authentic games are lost among the generated
+    // ones, and which of the two a host is picking is the thing they most need
+    // to know.
+    final original = <_Row>[];
+    final generated = <_Row>[];
+    for (final p in packages) {
+      (p.generated ? generated : original).add(_PackageRow(p));
+    }
+
+    return [
+      // Offered first, above every named packet: a host who does not care which
+      // specific one they play should not have to scan forty of them.
+      const _RandomRow(),
+      for (final group in [
+        (label: L.originalPackages, rows: original),
+        (label: L.generatedPackages, rows: generated),
+      ])
+        if (group.rows.isNotEmpty) ...[
+          _HeaderRow('${group.label}  ·  ${group.rows.length}'),
+          ...group.rows,
+        ],
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final rows = _rows();
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final side = (constraints.maxWidth - _listWidth) / 2;
         final gutter = side > 16 ? side : 16.0;
 
-        return ListView(
+        return ListView.builder(
           padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 24),
-          children: [
-            // Offered first, above every named packet: a host who does not care
-            // which specific one they play should not have to scan thirty of them.
-            Padding(
+          itemCount: rows.length,
+          itemBuilder: (context, i) => switch (rows[i]) {
+            _HeaderRow(label: final label) => _SectionLabel(label),
+            _RandomRow() => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _RandomPackageCard(
                 generating: generatingRandom,
                 onTap: generatingRandom ? null : onPickRandom,
               ),
             ),
-            // Two provenances, two sections. With thirty packages a flat list is
-            // a long scroll in which the six authentic games are lost among the
-            // generated ones, and which of the two a host is picking is the thing
-            // they most need to know.
-            for (final group in [
-              (
-                label: L.originalPackages,
-                items: packages.where((p) => !p.generated),
+            _PackageRow(package: final p) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _PackageCard(
+                package: p,
+                selected: p.id == selectedId,
+                onTap: () => onPick(p),
+                trailing: Icon(
+                  p.id == selectedId
+                      ? Icons.check_circle
+                      : (opensPage
+                            ? Icons.chevron_right
+                            : Icons.circle_outlined),
+                  color: p.id == selectedId
+                      ? JColors.goldBright
+                      : (opensPage ? JColors.brass : JColors.line),
+                  size: 21,
+                ),
               ),
-              (
-                label: L.generatedPackages,
-                items: packages.where((p) => p.generated),
-              ),
-            ])
-              if (group.items.isNotEmpty) ...[
-                _SectionLabel('${group.label}  ·  ${group.items.length}'),
-                for (final p in group.items)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _PackageCard(
-                      package: p,
-                      selected: p.id == selectedId,
-                      onTap: () => onPick(p),
-                      trailing: Icon(
-                        p.id == selectedId
-                            ? Icons.check_circle
-                            : (opensPage
-                                  ? Icons.chevron_right
-                                  : Icons.circle_outlined),
-                        color: p.id == selectedId
-                            ? JColors.goldBright
-                            : (opensPage ? JColors.brass : JColors.line),
-                        size: 21,
-                      ),
-                    ),
-                  ),
-              ],
-          ],
+            ),
+          },
         );
       },
     );
   }
+}
+
+/// One line of the picker.
+sealed class _Row {
+  const _Row();
+}
+
+class _RandomRow extends _Row {
+  const _RandomRow();
+}
+
+class _HeaderRow extends _Row {
+  const _HeaderRow(this.label);
+
+  final String label;
+}
+
+class _PackageRow extends _Row {
+  const _PackageRow(this.package);
+
+  final PackageSummary package;
 }
 
 /// The card offered above every named packet: assembles a fresh one from

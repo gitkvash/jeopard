@@ -16,21 +16,30 @@ class Stage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0, -1.15),
-          radius: 1.35,
-          colors: [JColors.stageLit, JColors.stage],
-          stops: [0.0, 0.78],
+    // Both gradients are screen-sized and neither ever changes, so each gets a
+    // repaint boundary of its own. Sharing a layer with the content meant every
+    // scrolled pixel -- of a forty-package list, of a board -- re-rasterised two
+    // full-screen radial gradients along with it, which on CanvasKit is most of
+    // a frame's budget spent redrawing something identical.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const RepaintBoundary(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -1.15),
+                radius: 1.35,
+                colors: [JColors.stageLit, JColors.stage],
+                stops: [0.0, 0.78],
+              ),
+            ),
+          ),
         ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          child,
-          // Drawn over the content, but only at the edges and only faintly.
-          const IgnorePointer(
+        child,
+        // Drawn over the content, but only at the edges and only faintly.
+        const IgnorePointer(
+          child: RepaintBoundary(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
@@ -42,8 +51,8 @@ class Stage extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

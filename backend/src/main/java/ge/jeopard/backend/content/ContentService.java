@@ -5,6 +5,7 @@ import ge.jeopard.backend.content.ContentDtos.BoardTopic;
 import ge.jeopard.backend.content.ContentDtos.BoardView;
 import ge.jeopard.backend.content.ContentDtos.PackageSummary;
 import ge.jeopard.backend.content.ContentDtos.RoundSummary;
+import ge.jeopard.backend.content.TopicRepository.TopicRef;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,6 +17,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -38,6 +43,20 @@ public class ContentService {
     private final TopicRepository topics;
     private final ClueRepository clues;
 
+    /**
+     * The browsable package list, and the tag that identifies this copy of it.
+     *
+     * <p>Seeded content never changes while the process is up -- and the one
+     * thing that does write packages, {@link #generateRandomPackage()}, writes
+     * only synthetic ones, which this list excludes by definition. So the list
+     * is worth building once: a fresh page load then costs no query, no DTO
+     * mapping, and (thanks to the tag) often not even a response body.
+     */
+    private volatile List<PackageSummary> packageCache;
+    private volatile String packageCacheTag = "\"empty\"";
+
+    private final ConcurrentHashMap<Long, BoardView> boardCache = new ConcurrentHashMap<>();
+
     ContentService(PackageRepository packages, RoundRepository rounds, TopicRepository topics,
                     ClueRepository clues) {
         this.packages = packages;
@@ -47,10 +66,27 @@ public class ContentService {
     }
 
     public List<PackageSummary> listPackages() {
-        return packages.findAllWithRounds().stream()
+        List<PackageSummary> cached = packageCache;
+        if (cached != null) return cached;
+
+        List<PackageSummary> fresh = packages.findAllWithRounds().stream()
                 .sorted(Comparator.comparing(QuizPackage::getNumber))
                 .map(ContentService::toSummary)
                 .toList();
+        // Tomcat is serving before the seeder has finished its first run, so an
+        // empty answer here is "not ready yet", not "no packages" -- caching it
+        // would freeze the app on an empty picker for the life of the process.
+        if (!fresh.isEmpty()) {
+            packageCacheTag = '"' + Integer.toHexString(fresh.hashCode()) + '"';
+            packageCache = fresh;
+        }
+        return fresh;
+    }
+
+    /** Strong ETag for {@link #listPackages()}; changes when the content does. */
+    public String packagesTag() {
+        listPackages();
+        return packageCacheTag;
     }
 
     public GameRound requireRound(Long roundId) {
@@ -71,8 +107,6 @@ public class ContentService {
                 .findFirstByQuizPackageIdAndIdxGreaterThanOrderByIdxAsc(packageId, idx)
                 .orElse(null);
     }
-
-    private final java.util.concurrent.ConcurrentHashMap<Long, BoardView> boardCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Topic names and tile values only -- deliberately no question/answer text. */
     public BoardView board(Long roundId) {
@@ -108,9 +142,49 @@ public class ContentService {
      * packets: six random topics per playable round, plus one final round cloned
      * whole from a random source packet. Persisted like any other packet, just
      * marked {@code synthetic} so it stays out of {@link #listPackages()}.
+     *
+     * <p>The host is watching a spinner while this runs, so it is written to a
+     * round-trip budget rather than to whatever JPA does by default: a handful
+     * of reads -- names to choose from, then only the chosen topics, then one
+     * id block per table -- and a hundred and seventeen rows inserted in a few
+     * JDBC batches. What it replaced asked the sequence for every id one at a
+     * time and hydrated every candidate topic <em>with its clues</em> to pick
+     * six of them, which is where the second of wall clock went.
      */
     @Transactional
     public PackageSummary generateRandomPackage() {
+        // --- choose, using nothing heavier than topic names -------------------
+        Map<Integer, List<TopicRef>> pool = topics.findPlayableTopicRefs(PLAYABLE_ROUNDS).stream()
+                .collect(Collectors.groupingBy(TopicRef::getRoundIdx));
+
+        Map<Integer, List<Long>> boardTopicIds = new LinkedHashMap<>();
+        for (int idx = 1; idx <= PLAYABLE_ROUNDS; idx++) {
+            boardTopicIds.put(idx, pickDistinctByName(
+                    pool.getOrDefault(idx, List.of()), TOPICS_PER_ROUND));
+        }
+
+        List<Long> finalRoundIds = rounds.findFinalRoundIds();
+        List<Long> finalTopicIds = finalRoundIds.isEmpty()
+                ? List.of()
+                : topics.findIdsByRoundId(finalRoundIds.get(random.nextInt(finalRoundIds.size())));
+
+        // --- load only what is actually being copied --------------------------
+        List<Long> chosen = new ArrayList<>(finalTopicIds);
+        boardTopicIds.values().forEach(chosen::addAll);
+        Map<Long, Topic> sources = topics.findAllWithCluesByIdIn(chosen).stream()
+                .collect(Collectors.toMap(Topic::getId, Function.identity()));
+
+        int roundCount = PLAYABLE_ROUNDS + (finalTopicIds.isEmpty() ? 0 : 1);
+        int clueCount = chosen.stream()
+                .map(sources::get)
+                .filter(Objects::nonNull)
+                .mapToInt(t -> t.getClues().size())
+                .sum();
+        Ids roundIds = new Ids(rounds.nextSyntheticIds(roundCount));
+        Ids topicIds = new Ids(topics.nextSyntheticIds(chosen.size()));
+        Ids clueIds = new Ids(clues.nextSyntheticIds(clueCount));
+
+        // --- assemble ---------------------------------------------------------
         QuizPackage pkg = new QuizPackage();
         pkg.setId(packages.nextSyntheticId());
         pkg.setNumber(packages.maxNumber() + 1);
@@ -119,66 +193,78 @@ public class ContentService {
         pkg.setSynthetic(true);
 
         for (int idx = 1; idx <= PLAYABLE_ROUNDS; idx++) {
-            GameRound round = newRound(pkg, idx, false, true);
-            for (Topic source : pickDistinctByName(topics.findPlayableTopicsForRoundIdx(idx), TOPICS_PER_ROUND)) {
-                round.getTopics().add(cloneTopic(source, round));
-            }
-            pkg.getRounds().add(round);
+            pkg.getRounds().add(cloneRound(pkg, roundIds.take(), idx, false, true,
+                    boardTopicIds.get(idx), sources, topicIds, clueIds));
         }
-
-        List<GameRound> finalPool = rounds.findFinalRounds();
-        if (!finalPool.isEmpty()) {
-            GameRound sourceFinal = finalPool.get(random.nextInt(finalPool.size()));
-            GameRound round = newRound(pkg, PLAYABLE_ROUNDS + 1, true, false);
-            for (Topic source : topics.findByRoundIdWithClues(sourceFinal.getId())) {
-                round.getTopics().add(cloneTopic(source, round));
-            }
-            pkg.getRounds().add(round);
+        if (!finalTopicIds.isEmpty()) {
+            pkg.getRounds().add(cloneRound(pkg, roundIds.take(), PLAYABLE_ROUNDS + 1, true, false,
+                    finalTopicIds, sources, topicIds, clueIds));
         }
 
         packages.save(pkg);
         return toSummary(pkg);
     }
 
-    private GameRound newRound(QuizPackage pkg, int idx, boolean finalRound, boolean playable) {
+    private GameRound cloneRound(QuizPackage pkg, Long id, int idx, boolean finalRound,
+                                 boolean playable, List<Long> sourceTopicIds,
+                                 Map<Long, Topic> sources, Ids topicIds, Ids clueIds) {
         GameRound round = new GameRound();
-        round.setId(rounds.nextSyntheticId());
+        round.setId(id);
         round.setQuizPackage(pkg);
         round.setIdx(idx);
         round.setFinalRound(finalRound);
         round.setPlayable(playable);
-        round.setTopicCount(0);
+
+        for (Long sourceId : sourceTopicIds) {
+            Topic source = sources.get(sourceId);
+            if (source == null) continue;
+            round.getTopics().add(cloneTopic(source, round, topicIds, clueIds));
+        }
+        round.setTopicCount(round.getTopics().size());
         return round;
     }
 
-    private Topic cloneTopic(Topic source, GameRound round) {
+    private Topic cloneTopic(Topic source, GameRound round, Ids topicIds, Ids clueIds) {
         Topic topic = new Topic();
-        topic.setId(topics.nextSyntheticId());
+        topic.setId(topicIds.take());
         topic.setRound(round);
         topic.setIdx(round.getTopics().size() + 1);
         topic.setName(source.getName());
         for (Clue sourceClue : source.getClues()) {
             Clue clue = new Clue();
-            clue.setId(clues.nextSyntheticId());
+            clue.setId(clueIds.take());
             clue.setTopic(topic);
             clue.setValue(sourceClue.getValue());
             clue.setQuestion(sourceClue.getQuestion());
             clue.setAnswer(sourceClue.getAnswer());
             topic.getClues().add(clue);
         }
-        round.setTopicCount(round.getTopics().size() + 1);
         return topic;
     }
 
     /** Shuffles then takes the first {@code count} topics with distinct names. */
-    private List<Topic> pickDistinctByName(List<Topic> pool, int count) {
-        List<Topic> shuffled = new ArrayList<>(pool);
+    private List<Long> pickDistinctByName(List<TopicRef> pool, int count) {
+        List<TopicRef> shuffled = new ArrayList<>(pool);
         Collections.shuffle(shuffled, random);
-        Map<String, Topic> chosen = new LinkedHashMap<>();
-        for (Topic t : shuffled) {
+        Map<String, Long> chosen = new LinkedHashMap<>();
+        for (TopicRef t : shuffled) {
             if (chosen.size() >= count) break;
-            chosen.putIfAbsent(t.getName(), t);
+            chosen.putIfAbsent(t.getName(), t.getId());
         }
         return new ArrayList<>(chosen.values());
+    }
+
+    /** A block of sequence values fetched in one round trip, handed out one at a time. */
+    private static final class Ids {
+        private final List<Long> values;
+        private int next;
+
+        Ids(List<Long> values) {
+            this.values = values;
+        }
+
+        Long take() {
+            return values.get(next++);
+        }
     }
 }

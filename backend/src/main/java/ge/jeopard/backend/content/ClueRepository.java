@@ -13,6 +13,7 @@ public interface ClueRepository extends JpaRepository<Clue, Long> {
     @Query("select count(c) from Clue c")
     long countAll();
 
-    @Query(value = "select nextval('clue_synthetic_id_seq')", nativeQuery = true)
-    Long nextSyntheticId();
+    @Query(value = "select nextval('clue_synthetic_id_seq') from generate_series(1, ?1)",
+            nativeQuery = true)
+    List<Long> nextSyntheticIds(int count);
 }

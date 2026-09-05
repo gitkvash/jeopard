@@ -7,12 +7,26 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/jeopard}
     username: ${SPRING_DATASOURCE_USERNAME:jeopard}
     password: ${SPRING_DATASOURCE_PASSWORD:jeopard}
+    hikari:
+      data-source-properties:
+        # Set on the driver rather than in the URL so it survives whatever
+        # SPRING_DATASOURCE_URL a deployment supplies. Turns each JDBC batch
+        # into one multi-row INSERT instead of one statement per row -- the
+        # other half of hibernate.jdbc.batch_size below.
+        reWriteBatchedInserts: true
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: validate      # Flyway owns the schema
     properties:
       hibernate.jdbc.time_zone: UTC
+      # Ids are hand-assigned (no IDENTITY anywhere), so Hibernate is free to
+      # batch. Without this every insert is its own round trip, which is what
+      # made seeding 2,760 clues and assembling a random packet -- 117 rows
+      # while the host watches a spinner -- cost a round trip per row.
+      hibernate.jdbc.batch_size: 100
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
   flyway:
     enabled: true
     locations: classpath:db/migration

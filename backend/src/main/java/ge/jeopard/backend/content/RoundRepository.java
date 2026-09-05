@@ -19,9 +19,10 @@ public interface RoundRepository extends JpaRepository<GameRound, Long> {
     List<GameRound> findByQuizPackageIdOrderByIdxAsc(Long packageId);
 
     /** Source pool for a random packet's final round: cloned whole, not remixed topic by topic. */
-    @Query("select r from GameRound r where r.finalRound = true and r.quizPackage.synthetic = false")
-    List<GameRound> findFinalRounds();
+    @Query("select r.id from GameRound r where r.finalRound = true and r.quizPackage.synthetic = false")
+    List<Long> findFinalRoundIds();
 
-    @Query(value = "select nextval('round_synthetic_id_seq')", nativeQuery = true)
-    Long nextSyntheticId();
+    @Query(value = "select nextval('round_synthetic_id_seq') from generate_series(1, ?1)",
+            nativeQuery = true)
+    List<Long> nextSyntheticIds(int count);
 }

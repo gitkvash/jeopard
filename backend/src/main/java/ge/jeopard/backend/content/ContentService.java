@@ -6,6 +6,7 @@ import ge.jeopard.backend.content.ContentDtos.BoardView;
 import ge.jeopard.backend.content.ContentDtos.PackageSummary;
 import ge.jeopard.backend.content.ContentDtos.RoundSummary;
 import ge.jeopard.backend.content.TopicRepository.TopicRef;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,7 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -58,14 +58,40 @@ public class ContentService {
     private volatile List<PackageSummary> packageCache;
     private volatile String packageCacheTag = "\"empty\"";
 
-    private final ConcurrentHashMap<Long, BoardView> boardCache = new ConcurrentHashMap<>();
+    /**
+     * Boards already built, least recently used first.
+     *
+     * <p>Bounded, which the plain map it replaces was not. Seeded rounds are a
+     * fixed set and would have been fine forever, but every random packet mints
+     * four more rounds that exactly one game will ever play -- so the old cache
+     * grew for as long as the process ran, and a deployment where hosts like the
+     * random packet button was the case where it grew fastest.
+     *
+     * <p>The working set is one board per game in progress, so this holds far
+     * more rooms than the application will ever run at once, and what falls out
+     * is whatever nobody has looked at for longest -- a finished game's board,
+     * every time. Losing one costs a single query to rebuild.
+     *
+     * <p>Access-ordered, which means a <em>read</em> reorders the map: it has to
+     * be a synchronized map rather than a concurrent one, because a plain
+     * {@code ConcurrentHashMap} cannot express that at all.
+     */
+    private final Map<Long, BoardView> boardCache;
 
     ContentService(PackageRepository packages, RoundRepository rounds, TopicRepository topics,
-                    ClueRepository clues) {
+                    ClueRepository clues,
+                    @Value("${jeopard.board-cache.size:256}") int maxCachedBoards) {
         this.packages = packages;
         this.rounds = rounds;
         this.topics = topics;
         this.clues = clues;
+        this.boardCache = Collections.synchronizedMap(
+                new LinkedHashMap<>(64, 0.75f, true) {
+                    @Override
+                    protected boolean removeEldestEntry(Map.Entry<Long, BoardView> eldest) {
+                        return size() > maxCachedBoards;
+                    }
+                });
     }
 
     public List<PackageSummary> listPackages() {
@@ -113,21 +139,34 @@ public class ContentService {
 
     /** Topic names and tile values only -- deliberately no question/answer text. */
     public BoardView board(Long roundId) {
-        return boardCache.computeIfAbsent(roundId, id -> {
-            GameRound round = requireRound(id);
-            List<BoardTopic> boardTopics = topics.findByRoundIdWithClues(id).stream()
-                    .sorted(Comparator.comparing(Topic::getIdx))
-                    .map(t -> new BoardTopic(t.getId(), t.getIdx(), t.getName(),
-                            t.getClues().stream()
-                                    .sorted(BY_VALUE)
-                                    .map(c -> new BoardTile(c.getId(), c.getValue()))
-                                    .toList()))
-                    .toList();
+        BoardView cached = boardCache.get(roundId);
+        if (cached != null) {
+            return cached;
+        }
+        // Built outside the map's monitor on purpose. That lock is shared by
+        // every room, and this is a query: holding it across the query would
+        // make one room's cache miss a pause in the next room's broadcast. Two
+        // misses on the same round race to build the same immutable view, which
+        // costs a duplicate query and cannot produce a wrong answer.
+        BoardView fresh = buildBoard(roundId);
+        boardCache.put(roundId, fresh);
+        return fresh;
+    }
 
-            QuizPackage pkg = round.getQuizPackage();
-            return new BoardView(round.getId(), round.getIdx(), round.isFinalRound(),
-                    pkg.getNumber(), pkg.getTitle(), boardTopics);
-        });
+    private BoardView buildBoard(Long roundId) {
+        GameRound round = requireRound(roundId);
+        List<BoardTopic> boardTopics = topics.findByRoundIdWithClues(roundId).stream()
+                .sorted(Comparator.comparing(Topic::getIdx))
+                .map(t -> new BoardTopic(t.getId(), t.getIdx(), t.getName(),
+                        t.getClues().stream()
+                                .sorted(BY_VALUE)
+                                .map(c -> new BoardTile(c.getId(), c.getValue()))
+                                .toList()))
+                .toList();
+
+        QuizPackage pkg = round.getQuizPackage();
+        return new BoardView(round.getId(), round.getIdx(), round.isFinalRound(),
+                pkg.getNumber(), pkg.getTitle(), boardTopics);
     }
 
     private static PackageSummary toSummary(QuizPackage p) {

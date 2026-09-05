@@ -17,6 +17,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A ceiling on how many games one client may create per hour.
@@ -45,6 +46,9 @@ public class GameCreationLimitFilter extends OncePerRequestFilter {
     private final int limit;
     private final Map<String, Deque<Instant>> creations = new ConcurrentHashMap<>();
 
+    /** So a misconfigured proxy is reported once rather than per request. */
+    private final AtomicBoolean proxyWarningIssued = new AtomicBoolean();
+
     GameCreationLimitFilter(@Value("${jeopard.limits.games-per-hour-per-ip}") int limit) {
         this.limit = limit;
     }
@@ -69,6 +73,8 @@ public class GameCreationLimitFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+
+        warnIfBehindAnUntrustedProxy(request);
 
         String client = clientAddress(request);
         if (!allow(client)) {
@@ -118,18 +124,46 @@ public class GameCreationLimitFilter extends OncePerRequestFilter {
     /**
      * The address the request really came from.
      *
-     * <p>Behind the reverse proxy every request arrives from the proxy, so the
-     * limit would be global rather than per client. Spring's
-     * {@code forward-headers-strategy} makes {@code getRemoteAddr()} report the
-     * forwarded address, but only the first hop is trustworthy -- the rest of
-     * {@code X-Forwarded-For} is client-supplied and easy to forge.
+     * <p>This used to read {@code X-Forwarded-For} itself and fall back to
+     * {@code getRemoteAddr()}. That inverted the limit: the header is supplied
+     * by whoever is calling, so a different value on each request bought a fresh
+     * allowance every time, and the one endpoint with no credentials had, in
+     * effect, no ceiling either.
+     *
+     * <p>{@code getRemoteAddr()} cannot be forged -- it is the address the TCP
+     * connection came from. Behind a proxy that address is the proxy's, and
+     * making it the client's again is a deployment decision rather than this
+     * filter's: {@code server.forward-headers-strategy} (set to {@code
+     * framework} in deploy/docker-compose.yml) puts a filter ahead of this one
+     * that rewrites {@code getRemoteAddr()} from the forwarded headers and then
+     * strips them. Trusting a header is only safe when something upstream is
+     * known to have written it, and only the deployment knows that.
+     *
+     * @see #warnIfBehindAnUntrustedProxy(HttpServletRequest)
      */
     private static String clientAddress(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            int comma = forwarded.indexOf(',');
-            return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
-        }
         return request.getRemoteAddr();
+    }
+
+    /**
+     * Says so, once, if this looks like a proxy nobody told Spring about.
+     *
+     * <p>A forwarded header still visible here means the filter that would have
+     * consumed it is not installed -- so every request is arriving from the same
+     * address, the proxy's, and this limit is one shared allowance for the whole
+     * internet rather than one per host. That misconfiguration is silent until
+     * the thirty-first game of the hour is refused for somebody who created
+     * none, which is a bad way to find out.
+     */
+    private void warnIfBehindAnUntrustedProxy(HttpServletRequest request) {
+        if (proxyWarningIssued.get() || request.getHeader("X-Forwarded-For") == null) {
+            return;
+        }
+        if (proxyWarningIssued.compareAndSet(false, true)) {
+            log.warn("X-Forwarded-For is present but Spring is not configured to trust it, so "
+                    + "every request looks like it came from {}: the game creation limit is now "
+                    + "shared by all clients. Set server.forward-headers-strategy=framework.",
+                    request.getRemoteAddr());
+        }
     }
 }

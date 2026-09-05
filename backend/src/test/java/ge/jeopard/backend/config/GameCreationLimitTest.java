@@ -65,6 +65,25 @@ class GameCreationLimitTest {
     }
 
     @Test
+    @DisplayName("a forged X-Forwarded-For does not buy a fresh allowance")
+    void cannotBeBypassedByForgingAForwardedHeader() throws Exception {
+        for (int i = 1; i <= 3; i++) {
+            assertThat(createGame().statusCode()).isEqualTo(200);
+        }
+
+        // This filter used to read the header itself, so a new value on each
+        // request was a new bucket -- which meant the one endpoint that needs no
+        // credentials had no ceiling either. getRemoteAddr() is the address the
+        // connection came from and cannot be typed into a request.
+        for (String forged : new String[] {"203.0.113.7", "198.51.100.4, 203.0.113.7", "::1"}) {
+            HttpResponse<String> refused = createGame(forged);
+            assertThat(refused.statusCode())
+                    .as("X-Forwarded-For: %s should not reset the count", forged)
+                    .isEqualTo(429);
+        }
+    }
+
+    @Test
     @DisplayName("the limit applies to creation only, not to playing")
     void doesNotTouchOtherEndpoints() throws Exception {
         // A game that exists can still be driven however much it needs to be;
@@ -86,12 +105,18 @@ class GameCreationLimitTest {
     }
 
     private HttpResponse<String> createGame() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(uri("/api/games"))
+        return createGame(null);
+    }
+
+    private HttpResponse<String> createGame(String forwardedFor) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(uri("/api/games"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(
-                        "{\"packageId\":1,\"hostPlays\":false}"))
-                .build();
-        return http.send(request, HttpResponse.BodyHandlers.ofString());
+                        "{\"packageId\":1,\"hostPlays\":false}"));
+        if (forwardedFor != null) {
+            request.header("X-Forwarded-For", forwardedFor);
+        }
+        return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private URI uri(String path) {

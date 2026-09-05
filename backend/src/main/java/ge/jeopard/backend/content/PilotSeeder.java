@@ -13,7 +13,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -24,12 +29,12 @@ import java.util.Set;
  * package -&gt; round -&gt; topic -&gt; clue nesting and assigns ids in the same
  * order, so row ids line up with data/pilot.db.
  *
- * <p><b>Additive, not a sync.</b> A package the database already has is left
- * exactly as it is, so shipping a corrected clue for an existing package still
- * means emptying the content tables ({@code backend/reseed.ps1}). What this does
- * buy is that <em>new</em> packages reach a running deployment without dropping
- * every game that references the old ones -- which is the whole reason it is not
- * simply "skip if the table is not empty" any more.
+ * <p><b>Content, not structure.</b> A package the database already has keeps its
+ * rounds, topics, tiles and ids exactly as they are -- this never adds a clue to
+ * an existing board or takes one away. What it does do is bring the wording of
+ * those clues up to date, so a package can gain a new question and a seeded one
+ * can gain a correction without emptying the content tables and deleting every
+ * game along with them.
  *
  * <p>That works only because ids are positional rather than generated: the nth
  * package in the file is always id n. Reordering the file, or inserting a
@@ -92,6 +97,7 @@ public class PilotSeeder implements ApplicationRunner {
         long finals = 0;
         long added = 0;
         long skipped = 0;
+        Map<Long, Clue> fromFile = new HashMap<>();
 
         for (JsonNode pkgNode : root.path("packages")) {
             QuizPackage pkg = new QuizPackage();
@@ -148,32 +154,90 @@ public class PilotSeeder implements ApplicationRunner {
                 pkg.getRounds().add(round);
             }
 
-            // Built and then dropped for a package that is already in the
-            // database. Building it is what advanced rid/tid/cid past its
-            // rows, and deriving those spans some other way would be a second
-            // description of this loop's shape, free to drift from it.
+            // A package already in the database is not saved again -- but its
+            // clues are still worth comparing, so a corrected question reaches
+            // a deployment without emptying the content tables. Building the
+            // graph is also what advanced rid/tid/cid past its rows; deriving
+            // those spans some other way would be a second description of this
+            // loop's shape, free to drift from it.
             if (present.contains(pkg.getId())) {
                 skipped++;
+                pkg.getRounds().forEach(r -> r.getTopics()
+                        .forEach(t -> t.getClues().forEach(c -> fromFile.put(c.getId(), c))));
                 continue;
             }
             packages.save(pkg);
             added++;
         }
 
-        if (added == 0) {
-            log.info("content already seeded ({} packages, {} clues) -- nothing to add",
+        long corrections = applyCorrections(fromFile);
+
+        if (added == 0 && corrections == 0) {
+            log.info("content already seeded ({} packages, {} clues) -- nothing to add or correct",
                     skipped, clues.count());
             return;
         }
-        log.info("seeded {} package(s) ({} already present), {} rounds "
-                        + "({} playable boards, {} finals), {} topics, {} clues ({} corrected) in the file",
-                added, skipped, rid, boards, finals, tid, cid, corrected);
-        if (skipped > 0) {
-            // Worth saying out loud: this adds packages, it does not update
-            // them. A correction to a clue that is already in the database
-            // still needs the content tables emptied (backend/reseed.ps1).
-            log.info("existing packages were left untouched -- reseed to pick up edits to them");
+        if (added > 0) {
+            log.info("seeded {} package(s) ({} already present), {} rounds "
+                            + "({} playable boards, {} finals), {} topics, {} clues ({} carrying a "
+                            + "2008 correction note) in the file",
+                    added, skipped, rid, boards, finals, tid, cid, corrected);
         }
+        if (corrections > 0) {
+            // Structure is never rewritten, so this cannot renumber a board or
+            // move a tile: an existing package gains no clues and loses none.
+            log.info("reworded {} clue(s) in packages that were already seeded", corrections);
+        }
+    }
+
+    /**
+     * Brings clues that are already in the database up to date with the file.
+     *
+     * <p>Only the wording moves. A clue keeps its id, its value and its place on
+     * the board, which is what lets this run against a live database: a game
+     * holding clue 3,900 still holds clue 3,900 afterwards, and the next time it
+     * is read aloud it is read in the corrected words.
+     *
+     * <p>The value is the tripwire. Ids are positional, so if the file were ever
+     * reordered, id 3,900 would name a different clue and this would happily
+     * overwrite one clue with another's text. A value that disagrees is the
+     * cheapest evidence that has happened, so nothing is written at all and the
+     * mismatch is reported instead -- reordering the file is a mistake to fix,
+     * not to absorb.
+     *
+     * @return how many clues were reworded
+     */
+    private long applyCorrections(Map<Long, Clue> fromFile) {
+        if (fromFile.isEmpty()) return 0;
+
+        List<Clue> stale = new ArrayList<>();
+        for (ClueRepository.ClueText row : clues.findAllText()) {
+            Clue parsed = fromFile.get(row.getId());
+            if (parsed == null) continue;
+            if (!Objects.equals(parsed.getValue(), row.getValue())) {
+                log.error("clue {} is worth {} in the database but {} in {} -- ids no longer line up "
+                                + "with the file, so no clue text was updated. Reseed instead.",
+                        row.getId(), row.getValue(), parsed.getValue(), seedLocation);
+                return 0;
+            }
+            if (!parsed.getQuestion().equals(row.getQuestion())
+                    || !parsed.getAnswer().equals(row.getAnswer())) {
+                stale.add(parsed);
+            }
+        }
+        if (stale.isEmpty()) return 0;
+
+        // Loaded only now, and only for the handful that actually differ.
+        for (Clue parsed : stale) {
+            clues.findById(parsed.getId()).ifPresent(row -> {
+                row.setQuestion(parsed.getQuestion());
+                row.setAnswer(parsed.getAnswer());
+                row.setQuestionOriginal(parsed.getQuestionOriginal());
+                row.setAnswerOriginal(parsed.getAnswerOriginal());
+                row.setCorrectionNote(parsed.getCorrectionNote());
+            });
+        }
+        return stale.size();
     }
 
     private static String text(JsonNode node, String field) {

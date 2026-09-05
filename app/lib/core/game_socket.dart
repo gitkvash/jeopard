@@ -50,7 +50,9 @@ class GameSocket {
   }
 
   void _onConnect(StompFrame frame) {
-    _connected.add(true);
+    // A reconnect brings a new subscription; drop the handle to the old one
+    // rather than leaving it to be overwritten and never called.
+    _unsubscribe?.call();
     _unsubscribe = _client?.subscribe(
       destination: '/topic/games/$gameId',
       callback: (StompFrame message) {
@@ -72,6 +74,11 @@ class GameSocket {
         }
       },
     );
+    // Announced only once the topic is really subscribed. Listeners treat this
+    // as "you may have missed something, go and look", and a frame broadcast
+    // between the socket opening and the subscription landing is exactly what
+    // they would have missed.
+    _connected.add(true);
   }
 
   /// Buzz over the socket -- the lowest-latency path we have.

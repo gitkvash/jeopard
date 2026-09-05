@@ -45,7 +45,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   @override
   void initState() {
     super.initState();
-    _feed = GameFeed(gameId: _gameId)..addListener(_onFeed);
+    _feed = GameFeed(gameId: _gameId, onResync: _refresh)..addListener(_onFeed);
     _feed.connect();
     SessionStore.write(widget.session.renew());
     _refresh();

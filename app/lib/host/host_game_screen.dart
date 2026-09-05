@@ -52,7 +52,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   @override
   void initState() {
     super.initState();
-    _feed = GameFeed(gameId: _gameId)..addListener(_onFeed);
+    _feed = GameFeed(gameId: _gameId, onResync: _refresh)..addListener(_onFeed);
     _feed.connect();
     // Renew the stored session: it is what a reload comes back through, and
     // the timestamp is what stops a days-old token being offered.

@@ -13,16 +13,29 @@ import 'models.dart';
 /// holding a 6x5 board, a scoreboard and a clue panel. Widgets instead watch
 /// the one field they care about through [SnapshotBuilder].
 class GameFeed extends ChangeNotifier {
-  GameFeed({required this.gameId}) : _socket = GameSocket(gameId: gameId) {
+  GameFeed({required this.gameId, this.onResync})
+    : _socket = GameSocket(gameId: gameId) {
     _snapSub = _socket.snapshots.listen(_onSnapshot);
     _connSub = _socket.connectionState.listen((up) {
       if (_connected == up) return;
       _connected = up;
       notifyListeners();
+      // The socket carries state changes, not state: whatever happened while
+      // this device was away was broadcast to a socket that was not there to
+      // hear it, and nothing will say it again until the host next does
+      // something. On a phone that slept through a clue that means a buzzer
+      // screen showing the wrong clue -- or a closed buzzer while the real one
+      // is open. So every time the socket comes up, go and fetch the truth.
+      if (up) onResync?.call();
     });
   }
 
   final String gameId;
+
+  /// Called whenever the socket (re)connects, so the owner can pull a fresh
+  /// snapshot over REST. Optional: a screen that does not care may omit it.
+  final VoidCallback? onResync;
+
   final GameSocket _socket;
 
   StreamSubscription<Snapshot>? _snapSub;

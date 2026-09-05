@@ -374,6 +374,9 @@ class L {
   static const wholePackageHint = 'სამი ტური და ფინალი, ქულები გროვდება';
   static const hostPlaysToo = 'მასპინძელიც თამაშობს';
   static const hostTeamName = 'მასპინძლის გუნდის სახელი';
+  static const participantsSeeQuestions = 'მონაწილეები ხედავენ შეკითხვას';
+  static const participantsSeeQuestionsHint =
+      'გამორთეთ, თუ მონაწილეებმა შეკითხვა მხოლოდ ხმამაღლა უნდა მოისმინონ და არ წაიკითხონ — მასპინძელი მას მაინც ხედავს';
 
   // how the buzzer opens
   static const buzzModeLabel = 'ღილაკის გახსნა';
@@ -444,6 +447,8 @@ class L {
   static const readAloud = 'წაიკითხეთ ხმამაღლა';
   static const peekWarning =
       'პასუხის ნახვა ამ შეკითხვაზე თქვენს ღილაკს გათიშავს';
+  static const questionHiddenFromParticipants =
+      'შეკითხვის ტექსტი დამალულია — მოუსმინეთ მასპინძელს';
 
   // final round
   static const wager = 'ფსონი';

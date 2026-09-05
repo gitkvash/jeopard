@@ -196,6 +196,10 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
   bool _creating = false;
   final _hostTeamName = TextEditingController();
 
+  /// Off makes a team listen rather than read: the host still gets the clue
+  /// text regardless, just not on a participant's own device.
+  bool _questionsVisibleToParticipants = true;
+
   /// Who opens the buzzer, and after how long when that is a timer.
   BuzzMode _buzzMode = BuzzMode.instant;
   int _delaySeconds = _delayPresets[1];
@@ -250,6 +254,7 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
             hostTeamName: _hostPlays ? _hostTeamName.text.trim() : null,
             buzzMode: _buzzMode,
             buzzDelaySeconds: _delay,
+            questionsVisibleToParticipants: _questionsVisibleToParticipants,
           );
       if (!mounted) return;
       // Remembered before the screen even opens, so a reload during the lobby
@@ -406,6 +411,20 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                   ),
                 ],
               ],
+              const SizedBox(height: 16),
+              Card(
+                child: SwitchListTile(
+                  value: _questionsVisibleToParticipants,
+                  onChanged: (v) =>
+                      setState(() => _questionsVisibleToParticipants = v),
+                  title: const Text(L.participantsSeeQuestions),
+                  subtitle: const Text(L.participantsSeeQuestionsHint),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               Card(
                 child: Column(

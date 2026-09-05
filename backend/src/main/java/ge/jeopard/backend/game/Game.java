@@ -48,6 +48,15 @@ public class Game {
     @Column(name = "host_plays", nullable = false)
     private boolean hostPlays;
 
+    /**
+     * Whether a participant's own device shows the clue text at all. The host
+     * sees it regardless -- {@link ge.jeopard.backend.game.GameService} fetches
+     * it for them over a channel a participant's device cannot reach -- so this
+     * only ever narrows what a team sees, never what runs the game.
+     */
+    @Column(name = "questions_visible_to_participants", nullable = false)
+    private boolean questionsVisibleToParticipants = true;
+
     /** Who or what opens the buzzer once a clue is up. */
     @Enumerated(EnumType.STRING)
     @Column(name = "buzz_mode", nullable = false)
@@ -113,6 +122,10 @@ public class Game {
     public void setState(GameState state) { this.state = state; }
     public boolean isHostPlays() { return hostPlays; }
     public void setHostPlays(boolean hostPlays) { this.hostPlays = hostPlays; }
+    public boolean isQuestionsVisibleToParticipants() { return questionsVisibleToParticipants; }
+    public void setQuestionsVisibleToParticipants(boolean questionsVisibleToParticipants) {
+        this.questionsVisibleToParticipants = questionsVisibleToParticipants;
+    }
     public BuzzMode getBuzzMode() { return buzzMode; }
     public void setBuzzMode(BuzzMode buzzMode) { this.buzzMode = buzzMode; }
     public int getBuzzDelaySeconds() { return buzzDelaySeconds; }

@@ -144,6 +144,14 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   /// My team -- the thing that holds my score.
   TeamView? get _me => _feed.snapshot?.teamById(_teamId);
 
+  /// The server already omits [CurrentClue.question] on this game -- this just
+  /// turns that gap into something a player understands instead of a blank
+  /// panel, or a lonely "...".
+  CurrentClue _hideQuestionIfNeeded(CurrentClue clue, Snapshot snap) =>
+      (clue.question == null && !snap.questionsVisibleToParticipants)
+      ? clue.copyWith(question: L.questionHiddenFromParticipants)
+      : clue;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -369,7 +377,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                 child: CluePanel(
-                  clue: clue,
+                  clue: _hideQuestionIfNeeded(clue, snap),
                   showAnswer: snap.answerRevealed,
                   banner: switch (snap.state) {
                     // A closed buzzer that is about to open on its own is
@@ -579,7 +587,10 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
         if (snap == null || clue == null) return const SizedBox.shrink();
         return Padding(
           padding: const EdgeInsets.all(12),
-          child: CluePanel(clue: clue, showAnswer: snap.answerRevealed),
+          child: CluePanel(
+            clue: _hideQuestionIfNeeded(clue, snap),
+            showAnswer: snap.answerRevealed,
+          ),
         );
       },
     );

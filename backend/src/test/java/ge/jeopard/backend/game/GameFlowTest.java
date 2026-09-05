@@ -220,6 +220,33 @@ class GameFlowTest {
     }
 
     @Test
+    @DisplayName("turning off participant visibility hides the question from everyone but the host")
+    void questionCanBeHiddenFromParticipants() throws Exception {
+        Game game = newGame("{\"roundId\":1,\"hostPlays\":false,\"buzzMode\":\"HOST\","
+                + "\"questionsVisibleToParticipants\":false}");
+        game.join("გუნდი ა");
+        JsonNode snap = game.host("start", null).body();
+        long clueId = firstTileValued(snap, 30);
+        snap = game.host("select-clue", "{\"clueId\":" + clueId + "}").body();
+
+        // The flag rides along on every snapshot, so a client can explain the
+        // gap instead of just showing a blank clue.
+        assertThat(snap.path("questionsVisibleToParticipants").asBoolean()).isFalse();
+        // The host's own action response is the same shape a team's own action
+        // gets back -- it does not special-case who happened to call it.
+        assertThat(snap.path("currentClue").path("question").isNull()).isTrue();
+
+        // An unauthenticated poll -- what a team's own device does -- gets
+        // nothing either.
+        JsonNode publicSnap = get("/api/games/" + game.id).body();
+        assertThat(publicSnap.path("currentClue").path("question").isNull()).isTrue();
+
+        // The host, proving who they are, still gets the text.
+        JsonNode hostSnap = get("/api/games/" + game.id, game.hostToken).body();
+        assertThat(hostSnap.path("currentClue").path("question").asString()).isNotBlank();
+    }
+
+    @Test
     @DisplayName("a playing host who looks at the answer loses the buzzer for that clue")
     void peekingCostsAPlayingHostTheBuzzer() throws Exception {
         Response created = post("/api/games",
@@ -437,9 +464,15 @@ class GameFlowTest {
     }
 
     private Response get(String path) throws Exception {
-        HttpResponse<byte[]> res = http.send(
-                HttpRequest.newBuilder(uri(path)).GET().build(),
-                HttpResponse.BodyHandlers.ofByteArray());
+        return get(path, null);
+    }
+
+    private Response get(String path, String hostToken) throws Exception {
+        HttpRequest.Builder req = HttpRequest.newBuilder(uri(path)).GET();
+        if (hostToken != null) {
+            req.header(HOST_TOKEN, hostToken);
+        }
+        HttpResponse<byte[]> res = http.send(req.build(), HttpResponse.BodyHandlers.ofByteArray());
         return toResponse(res);
     }
 

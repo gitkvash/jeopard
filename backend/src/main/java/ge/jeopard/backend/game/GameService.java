@@ -46,7 +46,12 @@ public class GameService {
     /** No I/O/0/1 -- these get misread when someone reads a code out loud. */
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-    /** States in which the clue question is public. */
+    /**
+     * States in which the clue question is public -- the floor everyone gets.
+     * A game can narrow this further with {@link Game#isQuestionsVisibleToParticipants()},
+     * which only ever removes it from a participant's own device; it never
+     * widens what these states already allow, and it never touches the host.
+     */
     private static final Set<GameState> QUESTION_VISIBLE = EnumSet.of(
             GameState.CLUE_READING, GameState.BUZZ_OPEN, GameState.BUZZED,
             GameState.RESOLVED, GameState.FINAL_CLUE, GameState.FINAL_RESULT);
@@ -134,6 +139,9 @@ public class GameService {
         game.setHostPlays(req.hostPlays());
         game.setBuzzMode(req.buzzMode() == null ? BuzzMode.INSTANT : req.buzzMode());
         game.setBuzzDelaySeconds(buzzDelayFor(game.getBuzzMode(), req.buzzDelaySeconds()));
+        game.setQuestionsVisibleToParticipants(req.questionsVisibleToParticipants() == null
+                ? true
+                : req.questionsVisibleToParticipants());
         game.setState(GameState.LOBBY);
         games.save(game);
 
@@ -576,19 +584,33 @@ public class GameService {
     // Snapshots
     // ------------------------------------------------------------------
 
+    /**
+     * @param hostToken the caller's claimed host token, or null. Matching this
+     *                  game's own is what lifts {@link Snapshot#currentClue()}'s
+     *                  question past {@link Game#isQuestionsVisibleToParticipants()}
+     *                  -- a wrong or absent token gets exactly what a team's own
+     *                  device would.
+     */
     @Transactional(readOnly = true)
-    public Snapshot snapshot(UUID gameId) {
+    public Snapshot snapshot(UUID gameId, String hostToken) {
         Game game = games.findById(gameId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
-        return buildSnapshot(game);
+        return buildSnapshot(game, matchesHostToken(game, hostToken));
     }
 
     @Transactional(readOnly = true)
-    public Snapshot snapshotByCode(String joinCode) {
-        return buildSnapshot(requireByCode(joinCode));
+    public Snapshot snapshotByCode(String joinCode, String hostToken) {
+        Game game = requireByCode(joinCode);
+        return buildSnapshot(game, matchesHostToken(game, hostToken));
     }
 
-    private Snapshot buildSnapshot(Game game) {
+    /**
+     * @param forHost true to show the clue question regardless of
+     *                {@link Game#isQuestionsVisibleToParticipants()}. Only ever
+     *                true for a caller who has already proved they hold the
+     *                host token -- see {@link #matchesHostToken}.
+     */
+    private Snapshot buildSnapshot(Game game, boolean forHost) {
         UUID gameId = game.getId();
         Clue current = game.getCurrentClue();
 
@@ -634,7 +656,8 @@ public class GameService {
 
         CurrentClue currentView = null;
         if (current != null) {
-            boolean showQuestion = QUESTION_VISIBLE.contains(game.getState());
+            boolean showQuestion = QUESTION_VISIBLE.contains(game.getState())
+                    && (forHost || game.isQuestionsVisibleToParticipants());
             currentView = new CurrentClue(
                     current.getId(),
                     current.getTopic().getName(),
@@ -654,6 +677,7 @@ public class GameService {
                 game.isAnswerRevealed(), game.isAnswerPeeked(),
                 gameClues.countByGameIdAndStatus(gameId, ClueStatus.AVAILABLE),
                 game.getBuzzMode(), game.getBuzzDelaySeconds(), buzzOpensInMs(game),
+                game.isQuestionsVisibleToParticipants(),
                 game.getEventSeq(), attribution.text());
     }
 
@@ -797,12 +821,22 @@ public class GameService {
     private Game lockAndAuthorise(UUID gameId, String hostToken) {
         Game game = games.findByIdForUpdate(gameId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
-        byte[] want = game.getHostToken().getBytes(StandardCharsets.UTF_8);
-        byte[] got = hostToken == null ? new byte[0] : hostToken.getBytes(StandardCharsets.UTF_8);
-        if (!MessageDigest.isEqual(want, got)) {
+        if (!matchesHostToken(game, hostToken)) {
             throw new ResponseStatusException(FORBIDDEN, "host token required");
         }
         return game;
+    }
+
+    /**
+     * Same comparison {@link #lockAndAuthorise} enforces, but as a boolean
+     * rather than a refusal -- what a read-only snapshot fetch needs, since a
+     * team polling with no token at all is a normal request, not a forbidden
+     * one, and should just get the team's own view back.
+     */
+    private static boolean matchesHostToken(Game game, String hostToken) {
+        byte[] want = game.getHostToken().getBytes(StandardCharsets.UTF_8);
+        byte[] got = hostToken == null ? new byte[0] : hostToken.getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(want, got);
     }
 
     private static void expect(Game game, GameState expected) {
@@ -824,14 +858,23 @@ public class GameService {
         game.setEventSeq(game.getEventSeq() + 1);
     }
 
+    /**
+     * Every mutating action shares this, the host-only ones alongside
+     * {@code buzz} and {@code setWager}, which a team calls with its own
+     * player token -- so this always builds the team's own view, never the
+     * host's, regardless of which of those called it. The host's screen gets
+     * the question separately, over {@link #snapshot}, with its token.
+     */
     private Snapshot snapshotAndBroadcast(Game game) {
-        Snapshot snap = buildSnapshot(game);
+        Snapshot snap = buildSnapshot(game, false);
         publishAfterCommit(game.getId(), snap);
         return snap;
     }
 
     private void broadcastAfterCommit(UUID gameId) {
-        publishAfterCommit(gameId, snapshot(gameId));
+        Game game = games.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
+        publishAfterCommit(gameId, buildSnapshot(game, false));
     }
 
     /** Publish only once the transaction really committed. */

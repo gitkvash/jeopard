@@ -249,6 +249,20 @@ class CurrentClue {
   final String? correctionNote;
   final List<String> lockedOutTeamIds;
 
+  /// Only ever used to overlay a question the host fetched on the side (a
+  /// host-token'd snapshot fetch, when the game hides it from participants) or
+  /// an explanation of why a team's device is not getting one -- every other
+  /// field stays what the server sent.
+  CurrentClue copyWith({String? question}) => CurrentClue(
+    clueId: clueId,
+    topicName: topicName,
+    value: value,
+    question: question ?? this.question,
+    answer: answer,
+    correctionNote: correctionNote,
+    lockedOutTeamIds: lockedOutTeamIds,
+  );
+
   factory CurrentClue.fromJson(Map<String, dynamic> j) => CurrentClue(
     clueId: j['clueId'] as int,
     topicName: j['topicName'] as String? ?? '',
@@ -286,6 +300,7 @@ class Snapshot {
     required this.buzzMode,
     required this.buzzDelaySeconds,
     required this.buzzOpensInMs,
+    required this.questionsVisibleToParticipants,
     required this.seq,
     required this.attribution,
   });
@@ -325,6 +340,11 @@ class Snapshot {
   /// when nothing is counting. A remaining duration rather than a deadline, so
   /// a device with a wrong clock still counts down correctly.
   final int? buzzOpensInMs;
+
+  /// False when this game keeps the clue text off a participant's own device.
+  /// The host always gets it regardless, fetched with the host token, so this
+  /// never affects the host's own screen.
+  final bool questionsVisibleToParticipants;
 
   final int seq;
   final String? attribution;
@@ -366,6 +386,8 @@ class Snapshot {
     buzzMode: BuzzMode.parse(j['buzzMode'] as String?),
     buzzDelaySeconds: j['buzzDelaySeconds'] as int? ?? 0,
     buzzOpensInMs: (j['buzzOpensInMs'] as num?)?.toInt(),
+    questionsVisibleToParticipants:
+        j['questionsVisibleToParticipants'] as bool? ?? true,
     seq: (j['seq'] as num?)?.toInt() ?? 0,
     attribution: j['attribution'] as String?,
   );

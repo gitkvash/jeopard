@@ -37,6 +37,16 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   String? _hostAnswer;
   int? _hostAnswerClueId;
 
+  /// Question fetched with the host token, held only while this clue is in
+  /// play -- populated only when the game hides the question from
+  /// participants, which is otherwise the one thing a snapshot never gives the
+  /// host either, since it is the same payload a team's own device gets.
+  /// [_fetchingQuestionForClue] just stops [_onFeed] from firing that fetch on
+  /// every broadcast for a clue it is already holding (or already asked for).
+  String? _hostQuestion;
+  int? _hostQuestionClueId;
+  int? _fetchingQuestionForClue;
+
   /// Set the instant the host's own team buzzes, mirroring [BuzzerScreen] --
   /// same instant latch, before any round trip.
   bool _buzzSent = false;
@@ -69,24 +79,45 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
 
   void _onFeed() {
     final snap = _feed.snapshot;
+    final clue = snap?.currentClue;
     // A new clue invalidates any answer we were holding.
-    final staleAnswer =
-        snap?.currentClue?.clueId != _hostAnswerClueId && _hostAnswer != null;
+    final staleAnswer = clue?.clueId != _hostAnswerClueId && _hostAnswer != null;
     // Same idea as BuzzerScreen: the latch only lasts until the snapshot
     // confirms it, or moves on without it.
     final staleBuzz =
         _buzzSent &&
-        (snap?.currentClue?.clueId != _buzzSentForClue ||
-            snap?.state != GameState.buzzOpen);
-    if (staleAnswer || staleBuzz) {
+        (clue?.clueId != _buzzSentForClue || snap?.state != GameState.buzzOpen);
+    // Fetched separately with the host token (see _refresh); once the clue
+    // moves on, that fetch was for the clue before this one.
+    final staleHostQuestion =
+        clue?.clueId != _hostQuestionClueId && _hostQuestion != null;
+    if (staleAnswer || staleBuzz || staleHostQuestion) {
       setState(() {
         if (staleAnswer) {
           _hostAnswer = null;
           _hostAnswerClueId = null;
         }
         if (staleBuzz) _buzzSent = false;
+        if (staleHostQuestion) {
+          _hostQuestion = null;
+          _hostQuestionClueId = null;
+        }
       });
     }
+
+    // The server withholds the question only because this game hides it from
+    // participants -- nothing else on screen would tell the host what to
+    // read, so fetch it with the host token instead of leaving the panel
+    // blank. Guarded so this fires once per clue rather than on every
+    // broadcast (a wrong buzz alone produces several while one clue is live).
+    if (clue != null &&
+        clue.question == null &&
+        !(snap?.questionsVisibleToParticipants ?? true) &&
+        _fetchingQuestionForClue != clue.clueId) {
+      _fetchingQuestionForClue = clue.clueId;
+      _refresh();
+    }
+
     // Nothing left to resume once the game is over.
     if (snap?.state == GameState.finished) SessionStore.clear();
   }
@@ -123,8 +154,21 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
 
   Future<void> _refresh() async {
     try {
-      final s = await ref.read(restClientProvider).snapshot(_gameId);
+      // The host token is what gets the clue question past a game that hides
+      // it from participants -- see GameService.snapshot on the backend.
+      final s = await ref
+          .read(restClientProvider)
+          .snapshot(_gameId, hostToken: _token);
       _feed.push(s);
+      // Hold onto it by clue id: the next broadcast for this same event
+      // carries the gated view a team's own device gets, which would
+      // otherwise blank this straight back out (see _onFeed).
+      final question = s.currentClue?.question;
+      if (question == null || !mounted) return;
+      setState(() {
+        _hostQuestion = question;
+        _hostQuestionClueId = s.currentClue!.clueId;
+      });
     } catch (_) {
       // The socket will deliver the next broadcast anyway.
     }
@@ -143,6 +187,13 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// Overlays [_hostQuestion] onto [clue] when the server withheld it for
+  /// being hidden from participants -- everywhere else, [clue] as sent.
+  CurrentClue _withHostQuestion(CurrentClue clue) =>
+      (clue.question == null && clue.clueId == _hostQuestionClueId)
+      ? clue.copyWith(question: _hostQuestion)
+      : clue;
 
   Future<void> _peek() async {
     if (_busy) return;
@@ -430,6 +481,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final buzzed = snap.teamById(snap.buzzedTeamId);
+        final displayClue = _withHostQuestion(clue);
 
         final opensIn = snap.buzzOpensInMs;
         final banner = switch (snap.state) {
@@ -470,7 +522,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                   children: [
                     Expanded(
                       child: CluePanel(
-                        clue: clue,
+                        clue: displayClue,
                         showAnswer: snap.answerRevealed,
                         banner: banner,
                       ),
@@ -704,7 +756,10 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: CluePanel(clue: clue, showAnswer: snap.answerRevealed),
+                child: CluePanel(
+                  clue: _withHostQuestion(clue),
+                  showAnswer: snap.answerRevealed,
+                ),
               ),
             ),
             _FinalShelf(

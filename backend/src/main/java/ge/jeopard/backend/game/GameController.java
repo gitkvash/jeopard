@@ -48,15 +48,23 @@ public class GameController {
         return gameService.lobby(joinCode);
     }
 
+    /**
+     * The host token is optional here, unlike every host action below: a team
+     * polls this same endpoint with none at all, and should get its own view
+     * back rather than a 403. Supplying the right one is what lifts the clue
+     * question past {@link GameDtos.Snapshot#questionsVisibleToParticipants()}.
+     */
     @GetMapping("/{gameId}")
-    public Snapshot snapshot(@PathVariable UUID gameId) {
-        return gameService.snapshot(gameId);
+    public Snapshot snapshot(@PathVariable UUID gameId,
+                              @RequestHeader(value = HOST_TOKEN, required = false) String hostToken) {
+        return gameService.snapshot(gameId, hostToken);
     }
 
     /** Lets a team that only knows the code find the game to subscribe to. */
     @GetMapping("/by-code/{joinCode}")
-    public Snapshot snapshotByCode(@PathVariable String joinCode) {
-        return gameService.snapshotByCode(joinCode);
+    public Snapshot snapshotByCode(@PathVariable String joinCode,
+                                    @RequestHeader(value = HOST_TOKEN, required = false) String hostToken) {
+        return gameService.snapshotByCode(joinCode, hostToken);
     }
 
     // ---------- host actions ----------

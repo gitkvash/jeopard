@@ -64,6 +64,7 @@ class RestClient {
     String? hostTeamName,
     BuzzMode buzzMode = BuzzMode.host,
     int? buzzDelaySeconds,
+    bool questionsVisibleToParticipants = true,
   }) async {
     assert(
       (packageId == null) != (roundId == null),
@@ -83,6 +84,7 @@ class RestClient {
           'hostTeamName': hostTeamName,
         'buzzMode': buzzMode.wire,
         if (buzzMode == BuzzMode.timer) 'buzzDelaySeconds': buzzDelaySeconds,
+        'questionsVisibleToParticipants': questionsVisibleToParticipants,
       },
     );
     return CreatedGame.fromJson(body as Map<String, dynamic>);
@@ -113,13 +115,20 @@ class RestClient {
     return JoinedPlayer.fromJson(body as Map<String, dynamic>);
   }
 
-  Future<Snapshot> snapshot(String gameId) async => Snapshot.fromJson(
-    await _get('/api/games/$gameId') as Map<String, dynamic>,
-  );
+  /// Supply [hostToken] to get the clue question even when this game keeps it
+  /// off a participant's own device -- omit it for the view a team itself
+  /// would get.
+  Future<Snapshot> snapshot(String gameId, {String? hostToken}) async =>
+      Snapshot.fromJson(
+        await _get('/api/games/$gameId', hostToken: hostToken)
+            as Map<String, dynamic>,
+      );
 
-  Future<Snapshot> snapshotByCode(String joinCode) async => Snapshot.fromJson(
-    await _get('/api/games/by-code/$joinCode') as Map<String, dynamic>,
-  );
+  Future<Snapshot> snapshotByCode(String joinCode, {String? hostToken}) async =>
+      Snapshot.fromJson(
+        await _get('/api/games/by-code/$joinCode', hostToken: hostToken)
+            as Map<String, dynamic>,
+      );
 
   // ---------- host actions ----------
 
@@ -204,8 +213,11 @@ class RestClient {
     return Snapshot.fromJson(json as Map<String, dynamic>);
   }
 
-  Future<dynamic> _get(String path) async {
-    final res = await _client.get(Uri.parse('${ApiConfig.baseUrl}$path'));
+  Future<dynamic> _get(String path, {String? hostToken}) async {
+    final res = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}$path'),
+      headers: {'X-Host-Token': ?hostToken},
+    );
     return _decode(res);
   }
 

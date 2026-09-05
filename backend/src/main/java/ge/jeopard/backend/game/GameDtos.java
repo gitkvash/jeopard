@@ -15,6 +15,12 @@ import java.util.UUID;
  * only populated once the host has revealed it. A host that needs the answer in
  * order to judge fetches it separately over REST with its host token, so the
  * answer never travels on the shared topic.
+ *
+ * <p>{@link CurrentClue#question()} gets the same treatment when a game turns
+ * off {@link Snapshot#questionsVisibleToParticipants()}: the shared payload
+ * omits it, and the host's own screen fetches it separately with its token
+ * (the plain snapshot GET, not a dedicated endpoint -- unlike the answer,
+ * there is no reveal moment or peek penalty to model, so no need for one).
  */
 public final class GameDtos {
 
@@ -37,7 +43,13 @@ public final class GameDtos {
             /* Defaults to INSTANT when absent. */
             BuzzMode buzzMode,
             /* Required for BuzzMode.TIMER, ignored otherwise. */
-            Integer buzzDelaySeconds) {
+            Integer buzzDelaySeconds,
+            /*
+             * Whether a participant's own device shows the clue text at all.
+             * Defaults to true (visible) when absent. The host sees the clue
+             * text regardless of this -- it only ever narrows what a team sees.
+             */
+            Boolean questionsVisibleToParticipants) {
     }
 
     /**
@@ -184,6 +196,13 @@ public final class GameDtos {
              * instant so a client with a wrong clock still counts down right.
              */
             Long buzzOpensInMs,
+            /**
+             * Whether a participant's own device is shown the clue text at all.
+             * False only ever narrows {@link CurrentClue#question()} on this
+             * shared payload -- the host still gets the text, fetched
+             * separately with the host token (see {@code GameService.snapshot}).
+             */
+            boolean questionsVisibleToParticipants,
             long seq,
             String attribution) {
     }

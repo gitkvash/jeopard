@@ -130,9 +130,19 @@ def main(argv: list[str]) -> int:
     else:
         if not args.candidates:
             ap.error('give at least one package file, or pass --self')
-        corpus = clues(args.corpus, 'corpus')
         fresh = [c for path in args.candidates for c in clues(path, 'new')]
-        print(f'{len(fresh)} candidate clues vs {len(corpus)} already in the game\n')
+        # A candidate is usually already in the corpus by the time anyone
+        # re-runs this -- merge_packets.py folds it in -- and a clue compared
+        # against its own merged copy scores a perfect 1.00. Matched on the
+        # record rather than on the package number, because merging renumbers.
+        # The only thing this can hide is a byte-identical clue, which
+        # validate_packets.py already reports as an error.
+        same = {(c['question'], c['answer']) for c in fresh}
+        corpus = [c for c in clues(args.corpus, 'corpus')
+                  if (c['question'], c['answer']) not in same]
+        already = ' (candidates already merged into it)' if not corpus else ''
+        print(f'{len(fresh)} candidate clues vs {len(corpus)} already in the game'
+              f'{already}\n')
 
     reask, reworded = [], []
     for new in fresh:

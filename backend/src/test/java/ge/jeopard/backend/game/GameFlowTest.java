@@ -92,7 +92,7 @@ class GameFlowTest {
     @Test
     @DisplayName("wrong answer deducts, locks that team out, and reopens the buzzer for the rest")
     void wrongAnswerHandsTheBuzzerToTheNextTeam() throws Exception {
-        Game game = newGame();
+        Game game = newHostModeGame();
         String teamA = game.join("გუნდი ა");
         String teamB = game.join("გუნდი ბ");
 
@@ -140,7 +140,7 @@ class GameFlowTest {
     @Test
     @DisplayName("simultaneous buzzes produce exactly one winner")
     void concurrentBuzzesYieldOneWinner() throws Exception {
-        Game game = newGame();
+        Game game = newHostModeGame();
         List<String> tokens = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
             tokens.add(game.join("გუნდი " + i));
@@ -189,7 +189,9 @@ class GameFlowTest {
     @Test
     @DisplayName("host-only endpoints reject a bad token and never expose the answer publicly")
     void hostTokenGuardsTheAnswer() throws Exception {
-        Game game = newGame();
+        // Host mode, so open-buzzer below is a call that would otherwise work:
+        // what is on trial is the token, not the state.
+        Game game = newHostModeGame();
         game.join("გუნდი ა");
         JsonNode snap = game.host("start", null).body();
         long clueId = firstTileValued(snap, 20);
@@ -220,7 +222,8 @@ class GameFlowTest {
     @Test
     @DisplayName("a playing host who looks at the answer loses the buzzer for that clue")
     void peekingCostsAPlayingHostTheBuzzer() throws Exception {
-        Response created = post("/api/games", "{\"roundId\":1,\"hostPlays\":true}", null);
+        Response created = post("/api/games",
+                "{\"roundId\":1,\"hostPlays\":true,\"buzzMode\":\"HOST\"}", null);
         JsonNode body = created.body();
         Game game = new Game(body.path("gameId").asString(),
                 body.path("joinCode").asString(),
@@ -326,19 +329,34 @@ class GameFlowTest {
                 "{\"roundId\":1,\"hostPlays\":false,\"buzzMode\":\"TIMER\",\"buzzDelaySeconds\":600}",
                 null).status())
                 .isEqualTo(400);
+    }
 
-        // And a game that says nothing about it still waits for its host.
+    @Test
+    @DisplayName("a game that says nothing about its buzzer gets the instant one")
+    void defaultBuzzModeIsInstant() throws Exception {
         Game plain = newGame();
         assertThat(get("/api/games/" + plain.id).body().path("buzzMode").asString())
-                .isEqualTo("HOST");
+                .isEqualTo("INSTANT");
     }
 
     // ------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------
 
+    /** A game on the server's own defaults, which means an instant buzzer. */
     private Game newGame() throws Exception {
         return newGame("{\"roundId\":1,\"hostPlays\":false}");
+    }
+
+    /**
+     * A game whose buzzer waits for the host to press the button.
+     *
+     * <p>Asked for by name because the default is {@link BuzzMode#INSTANT} (see
+     * {@link #defaultBuzzModeIsInstant()}), and the tests that walk a clue
+     * through that button need it to still have something to do.
+     */
+    private Game newHostModeGame() throws Exception {
+        return newGame("{\"roundId\":1,\"hostPlays\":false,\"buzzMode\":\"HOST\"}");
     }
 
     private Game newGame(String json) throws Exception {

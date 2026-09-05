@@ -43,7 +43,8 @@ class TeamMembershipTest {
     @Test
     @DisplayName("two players share a team, either may buzz, and a wrong answer locks out both")
     void teammatesShareOneBuzzerAndOneLockout() throws Exception {
-        newGame(false);
+        // Host mode: this test opens the buzzer itself.
+        newGame(false, BuzzMode.HOST);
 
         // Nino starts a team; Gio joins her rather than creating his own.
         JsonNode nino = join("ნინო", null, "მთიები");
@@ -149,9 +150,17 @@ class TeamMembershipTest {
     // helpers
     // ------------------------------------------------------------------
 
+    /** A game on the server's own defaults, which means an instant buzzer. */
     private JsonNode newGame(boolean hostPlays) throws Exception {
+        return newGame(hostPlays, null);
+    }
+
+    /** A null {@code buzzMode} leaves the choice to the server. */
+    private JsonNode newGame(boolean hostPlays, BuzzMode buzzMode) throws Exception {
         JsonNode created = post("/api/games",
-                "{\"packageId\":1,\"hostPlays\":" + hostPlays + "}", null);
+                "{\"packageId\":1,\"hostPlays\":" + hostPlays
+                        + (buzzMode == null ? "" : ",\"buzzMode\":\"" + buzzMode + "\"")
+                        + "}", null);
         gameId = created.path("gameId").asString();
         hostToken = created.path("hostToken").asString();
         code = created.path("joinCode").asString();

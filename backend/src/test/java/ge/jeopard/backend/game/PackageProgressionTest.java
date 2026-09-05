@@ -41,7 +41,10 @@ class PackageProgressionTest {
     @Test
     @DisplayName("three boards then the final, scores carried across, wagers funded by real points")
     void playsAWholePackage() throws Exception {
-        JsonNode created = post("/api/games", "{\"packageId\":1,\"hostPlays\":false}", null);
+        // Host mode: clearBoard drives the buzzer open on every tile, which the
+        // instant default would have opened already.
+        JsonNode created = post("/api/games",
+                "{\"packageId\":1,\"hostPlays\":false,\"buzzMode\":\"HOST\"}", null);
         gameId = created.path("gameId").asString();
         hostToken = created.path("hostToken").asString();
         String code = created.path("joinCode").asString();
@@ -124,7 +127,8 @@ class PackageProgressionTest {
     @Test
     @DisplayName("a single-round game finishes at the end of that board")
     void singleRoundGameDoesNotProgress() throws Exception {
-        JsonNode created = post("/api/games", "{\"roundId\":1,\"hostPlays\":false}", null);
+        JsonNode created = post("/api/games",
+                "{\"roundId\":1,\"hostPlays\":false,\"buzzMode\":\"HOST\"}", null);
         gameId = created.path("gameId").asString();
         hostToken = created.path("hostToken").asString();
         String team = joinTeam(created.path("joinCode").asString(), "მარტო");
@@ -153,6 +157,8 @@ class PackageProgressionTest {
      * Wins every remaining tile on the current board for one team, then returns
      * the snapshot after the final `next` (which either rolls to the next round
      * or finishes).
+     *
+     * <p>Opens the buzzer by hand, so the games it is given are host-mode ones.
      */
     private JsonNode clearBoard(JsonNode snapshot, String teamToken) throws Exception {
         JsonNode snap = snapshot;

@@ -1,0 +1,16 @@
+-- A random packet took the next catalogue number (max + 1), which put it in the
+-- same number space as seeded content. That was harmless only for as long as
+-- the seeder was all-or-nothing: it refused to run against a database that had
+-- any content at all, so a seeded number and a generated one could never be
+-- inserted into the same table.
+--
+-- PilotSeeder now adds packages that are missing instead, which is what lets a
+-- new question set reach a deployment without dropping every game first. That
+-- makes the shared number space a real conflict: seeding package #31 fails on
+-- package.number's UNIQUE constraint if a random packet happens to be holding
+-- 31, and on a database where the feature has been used it will be.
+--
+-- Synthetic packages move below zero, where nothing seeded can reach -- package
+-- ids for generated content start at 1,000,000 (see V5), so this maps them to
+-- -1, -2, -3 ... in creation order, which is also the ordinal the app shows.
+UPDATE package SET number = 999999 - id WHERE synthetic;

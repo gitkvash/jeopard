@@ -13,14 +13,29 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Loads data/pilot.json (copied to the classpath) into Postgres on first start.
+ * Loads data/pilot.json (copied to the classpath) into Postgres, on first start
+ * and on any start that brings packages the database does not have yet.
  *
  * <p>The JSON is produced by {@code src/build_pilot_db.py}; this walks the same
  * package -&gt; round -&gt; topic -&gt; clue nesting and assigns ids in the same
- * order, so row ids line up with data/pilot.db. Idempotent: if any clue already
- * exists, seeding is skipped.
+ * order, so row ids line up with data/pilot.db.
+ *
+ * <p><b>Additive, not a sync.</b> A package the database already has is left
+ * exactly as it is, so shipping a corrected clue for an existing package still
+ * means emptying the content tables ({@code backend/reseed.ps1}). What this does
+ * buy is that <em>new</em> packages reach a running deployment without dropping
+ * every game that references the old ones -- which is the whole reason it is not
+ * simply "skip if the table is not empty" any more.
+ *
+ * <p>That works only because ids are positional rather than generated: the nth
+ * package in the file is always id n. Reordering the file, or inserting a
+ * package anywhere but the end, would renumber everything after it and silently
+ * repoint live games at different clues. {@code src/merge_packets.py} appends,
+ * which is what keeps that true.
  *
  * <p>Uses Jackson 3 ({@code tools.jackson.*}) as shipped with Spring Boot 4.
  */
@@ -50,12 +65,6 @@ public class PilotSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
-        long existing = clues.count();
-        if (existing > 0) {
-            log.info("content already seeded ({} clues) -- skipping", existing);
-            return;
-        }
-
         Resource resource = resourceLoader.getResource(seedLocation);
         if (!resource.exists()) {
             log.error("seed resource {} not found -- no content loaded", seedLocation);
@@ -67,6 +76,13 @@ public class PilotSeeder implements ApplicationRunner {
             root = objectMapper.readTree(in);
         }
 
+        // Ids are positional: the nth package in the file is always id n, and
+        // its rounds, topics and clues follow in file order. That is what makes
+        // adding a package to a database that already has some safe -- every
+        // package keeps the ids a seed-from-empty would have given it, so a
+        // game that points at clue 3,900 goes on meaning the same clue.
+        Set<Long> present = new HashSet<>(packages.findAllIds());
+
         long pid = 0;
         long rid = 0;
         long tid = 0;
@@ -74,6 +90,8 @@ public class PilotSeeder implements ApplicationRunner {
         long corrected = 0;
         long boards = 0;
         long finals = 0;
+        long added = 0;
+        long skipped = 0;
 
         for (JsonNode pkgNode : root.path("packages")) {
             QuizPackage pkg = new QuizPackage();
@@ -129,11 +147,33 @@ public class PilotSeeder implements ApplicationRunner {
                 }
                 pkg.getRounds().add(round);
             }
+
+            // Built and then dropped for a package that is already in the
+            // database. Building it is what advanced rid/tid/cid past its
+            // rows, and deriving those spans some other way would be a second
+            // description of this loop's shape, free to drift from it.
+            if (present.contains(pkg.getId())) {
+                skipped++;
+                continue;
+            }
             packages.save(pkg);
+            added++;
         }
 
-        log.info("seeded {} packages, {} rounds ({} playable boards, {} finals), {} topics, {} clues ({} corrected)",
-                pid, rid, boards, finals, tid, cid, corrected);
+        if (added == 0) {
+            log.info("content already seeded ({} packages, {} clues) -- nothing to add",
+                    skipped, clues.count());
+            return;
+        }
+        log.info("seeded {} package(s) ({} already present), {} rounds "
+                        + "({} playable boards, {} finals), {} topics, {} clues ({} corrected) in the file",
+                added, skipped, rid, boards, finals, tid, cid, corrected);
+        if (skipped > 0) {
+            // Worth saying out loud: this adds packages, it does not update
+            // them. A correction to a clue that is already in the database
+            // still needs the content tables emptied (backend/reseed.ps1).
+            log.info("existing packages were left untouched -- reseed to pick up edits to them");
+        }
     }
 
     private static String text(JsonNode node, String field) {

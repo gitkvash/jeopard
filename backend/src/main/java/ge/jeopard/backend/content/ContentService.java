@@ -36,6 +36,9 @@ public class ContentService {
     private static final int PLAYABLE_ROUNDS = 3;
     private static final int TOPICS_PER_ROUND = 6;
 
+    /** Where V5's id sequences for generated content start. */
+    private static final long SYNTHETIC_ID_BASE = 1_000_000L;
+
     private final SecureRandom random = new SecureRandom();
 
     private final PackageRepository packages;
@@ -187,8 +190,16 @@ public class ContentService {
         // --- assemble ---------------------------------------------------------
         QuizPackage pkg = new QuizPackage();
         pkg.setId(packages.nextSyntheticId());
-        pkg.setNumber(packages.maxNumber() + 1);
-        pkg.setTitle("შემთხვევითი პაკეტი #" + pkg.getNumber());
+        // Numbered below zero, where seeded content can never reach. This used
+        // to take the next catalogue number, which was safe only while the
+        // seeder refused to touch a database that had any content; now that it
+        // adds missing packages, a generated packet sitting on number 43 would
+        // make seeding the real package 43 fail on a UNIQUE violation. The
+        // ordinal -- first random packet, second, third -- is what the host
+        // sees, and the app shows the magnitude.
+        int ordinal = Math.toIntExact(pkg.getId() - SYNTHETIC_ID_BASE + 1);
+        pkg.setNumber(-ordinal);
+        pkg.setTitle("შემთხვევითი პაკეტი #" + ordinal);
         pkg.setSubtitle("თემები შემთხვევითობით აღებულია ყველა პაკეტიდან");
         pkg.setSynthetic(true);
 

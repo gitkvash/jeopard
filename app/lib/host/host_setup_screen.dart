@@ -845,7 +845,11 @@ class _PackageCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(JRadius.tile),
             ),
             child: Text(
-              '${package.number}',
+              // A generated packet is numbered below zero so it cannot collide
+              // with a catalogue number the seeder may still need (see
+              // ContentService.generateRandomPackage). The sign is bookkeeping;
+              // what the host is shown is which random packet this is.
+              '${package.number.abs()}',
               style: engraved(
                 21,
                 color: selected ? const Color(0xFF14120A) : JColors.gold,

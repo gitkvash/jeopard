@@ -27,9 +27,10 @@ Order matters; step 3 breaks linkup's Caddy if 1 has not happened.
    scp deploy/oracle/bootstrap.sh ubuntu@158.180.18.180:
    ssh ubuntu@158.180.18.180 'bash bootstrap.sh'
    ```
-2. **Write `/opt/jeopard/.env`** from [`env.example`](env.example), `chmod 600`. `JEOPARD_HOST` defaults
-   to `158-180-18-180.sslip.io`, which needs no registration. If Let's Encrypt rate-limits sslip.io
-   (its quota is shared by everyone using it), point a DuckDNS name at the VM instead.
+2. **Write `/opt/jeopard/.env`** from [`env.example`](env.example), `chmod 600`. `JEOPARD_HOST` is
+   `jeopard-kvasho.duckdns.org`, which must point at the VM before the first deploy (DuckDNS names
+   are added on duckdns.org while signed in). An sslip.io name needs no registration but shares a
+   Let's Encrypt quota with everyone who uses it.
 3. **Redeploy linkup** so its Caddy joins `edge` and mounts the two directories (push its `main`, or
    run its "Deploy (Oracle)" workflow). This restarts linkup's Caddy: a few seconds of downtime.
 4. **Deploy jeopard** from this machine (Flutter and ssh needed, no rsync):

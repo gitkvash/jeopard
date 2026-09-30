@@ -123,8 +123,8 @@ eseed.ps1
 docker compose up -d
 ```
 
-Published on **5433**, not 5432 — this machine already runs a native PostgreSQL 18 service that
-owns 5432. (Docker Desktop binds the port anyway without complaining, so the symptom is a
+Published on **5434**, not 5432 or 5433 — this machine already runs a native PostgreSQL 18 service that
+owns 5432, and the linkup project's Postgres owns 5433. (Docker Desktop binds the port anyway without complaining, so the symptom is a
 confusing `password authentication failed`.)
 
 ### 2. Backend

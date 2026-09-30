@@ -45,8 +45,8 @@ if ($Test) {
     return
 }
 
-# Postgres runs in Docker on 5433 (5432 is taken by the native PostgreSQL 18
-# service on this machine).
+# Postgres runs in Docker on 5434 (5432 is taken by the native PostgreSQL 18,
+# 5433 by the linkup project's Postgres).
 Push-Location (Split-Path $PSScriptRoot -Parent)
 try {
     $running = docker compose ps --status running --services 2>$null

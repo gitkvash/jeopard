@@ -27,11 +27,13 @@ if ($running -notcontains $container) {
     Write-Host "starting Postgres..." -ForegroundColor Cyan
     Push-Location (Split-Path $PSScriptRoot -Parent)
     try { docker compose up -d | Out-Null } finally { Pop-Location }
+    if ($LASTEXITCODE -ne 0) { throw "docker compose up failed (exit $LASTEXITCODE) -- is the published port already taken?" }
 }
 
 # Show what is there now, so the count that disappears is not a surprise.
 $before = docker exec $container psql -U jeopard -d jeopard -tAc `
     "SELECT (SELECT count(*) FROM package) || ' packages, ' || (SELECT count(*) FROM clue) || ' clues, ' || (SELECT count(*) FROM game) || ' games'"
+if ($LASTEXITCODE -ne 0) { throw "cannot query $container -- nothing was changed" }
 Write-Host "currently seeded: $before" -ForegroundColor DarkGray
 
 if (-not $Force) {
@@ -46,6 +48,7 @@ if (-not $Force) {
 # CASCADE takes the dependent game tables with it.
 docker exec $container psql -U jeopard -d jeopard -c `
     "TRUNCATE clue, topic, round, package, game RESTART IDENTITY CASCADE;" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "TRUNCATE failed (exit $LASTEXITCODE)" }
 
 $after = docker exec $container psql -U jeopard -d jeopard -tAc `
     "SELECT (SELECT count(*) FROM package) || ' packages, ' || (SELECT count(*) FROM clue) || ' clues'"

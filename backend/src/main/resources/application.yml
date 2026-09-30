@@ -3,8 +3,8 @@ spring:
     name: jeopard-backend
   datasource:
     # Overridden by SPRING_DATASOURCE_* in a deployment; the defaults are the
-    # local Docker Postgres on 5433 (5432 belongs to a native install here).
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/jeopard}
+    # local Docker Postgres on 5434 (5432: native install, 5433: linkup's Postgres).
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/jeopard}
     username: ${SPRING_DATASOURCE_USERNAME:jeopard}
     password: ${SPRING_DATASOURCE_PASSWORD:jeopard}
     hikari:

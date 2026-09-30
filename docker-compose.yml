@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: jeopard
       POSTGRES_PASSWORD: jeopard
     ports:
-      - "5433:5432"   # 5432 is taken by the native PostgreSQL 18 service
+      - "5434:5432"   # 5432: native PostgreSQL 18; 5433: the linkup project's Postgres
     volumes:
       - jeopard-pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -1,0 +1,65 @@
+# Jeopard on the shared Oracle VM: the backend and its database, nothing else.
+#
+# There is no proxy here. Ports 80 and 443 belong to linkup's Caddy, which serves
+# this game too, as a second site (see caddy-site.tmpl). It reaches the backend
+# over the external `edge` network and the Flutter build over a bind mount, so
+# jeopard never publishes a port of its own and Postgres is not reachable from
+# anywhere but the backend.
+#
+# On the VM this lives at /opt/jeopard/docker-compose.yml; deploy.sh overwrites it.
+# Secrets come from /opt/jeopard/.env (see env.example), which exists only there.
+name: jeopard
+
+services:
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jeopard}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-jeopard}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # Behind Caddy, so trust the forwarded protocol; otherwise Spring thinks
+      # every request arrived over http and the WebSocket handshake suffers.
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      JEOPARD_CORS_ORIGINS: https://${JEOPARD_HOST:?set JEOPARD_HOST in .env}
+      JEOPARD_WS_ORIGINS: https://${JEOPARD_HOST}
+      JEOPARD_GAMES_PER_HOUR: ${JEOPARD_GAMES_PER_HOUR:-30}
+      LOGGING_LEVEL_GE_JEOPARD: ${LOG_LEVEL:-INFO}
+    # The VM also runs linkup (its app is capped at 3g of ~12g). A game server
+    # for a quiz night does not need more than this, and the cap keeps a runaway
+    # from taking linkup down with it. The JVM sizes its heap from the cap.
+    mem_limit: 1g
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      default:
+      edge:
+        # An alias, not the service name: `backend` is too generic a name to
+        # claim on a network shared with another project.
+        aliases: [jeopard-backend]
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jeopard}
+      POSTGRES_USER: ${POSTGRES_USER:-jeopard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    mem_limit: 512m
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jeopard} -d ${POSTGRES_DB:-jeopard}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+networks:
+  # Created once by bootstrap.sh; linkup's Caddy joins it too.
+  edge:
+    external: true
+
+volumes:
+  pgdata:

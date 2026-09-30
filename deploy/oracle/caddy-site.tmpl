@@ -1,0 +1,43 @@
+# Jeopard's site block for the Caddy that linkup runs on the same VM.
+#
+# deploy.sh replaces __HOST__ and installs the result as
+# /opt/edge/conf.d/jeopard.caddy, which linkup's Caddyfile imports. It is the same
+# routing as deploy/Caddyfile: one origin for the Flutter build, the REST API and
+# the WebSocket, because a page served over https cannot open a plain ws:// socket
+# and a split deployment would lose the buzzer while REST kept working.
+__HOST__ {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy jeopard-backend:8080
+	}
+	handle /ws* {
+		reverse_proxy jeopard-backend:8080
+	}
+	handle /actuator/health {
+		reverse_proxy jeopard-backend:8080
+	}
+
+	handle {
+		# Bind-mounted from /opt/jeopard/web by linkup's compose file.
+		root * /srv/jeopard-web
+
+		# Flutter's entrypoint keeps its filename across builds, so these must
+		# revalidate; the hashed assets are safe to cache hard.
+		@revalidate path / /index.html /flutter_bootstrap.js /flutter_service_worker.js /version.json /manifest.json
+		header @revalidate Cache-Control "no-cache, must-revalidate"
+
+		@immutable path /assets/* /canvaskit/* /icons/* /main.dart.js /favicon.png
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

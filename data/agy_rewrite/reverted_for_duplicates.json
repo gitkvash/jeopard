@@ -1,0 +1,173 @@
+[
+  {
+    "packet": 16,
+    "round": 2,
+    "topic": 4,
+    "clue": 1,
+    "reverted_to_original": "მედისონ სკვერ გარდენი / Madison Square Garden",
+    "dropped_rewrite_answer": "სანტიაგო ბერნაბეუ",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 37,
+    "round": 2,
+    "topic": 0,
+    "clue": 3,
+    "reverted_to_original": "სტოკჰოლმი",
+    "dropped_rewrite_answer": "დიფტერია",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 43,
+    "round": 1,
+    "topic": 3,
+    "clue": 0,
+    "reverted_to_original": "ცხოველები (ან ნადირი)",
+    "dropped_rewrite_answer": "ლასკო",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 43,
+    "round": 1,
+    "topic": 1,
+    "clue": 4,
+    "reverted_to_original": "წმინდა პეტრე",
+    "dropped_rewrite_answer": "ტუტანხამონი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 7,
+    "round": 1,
+    "topic": 4,
+    "clue": 1,
+    "reverted_to_original": "შამათი",
+    "dropped_rewrite_answer": "დიპ ბლუ",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 43,
+    "round": 1,
+    "topic": 2,
+    "clue": 3,
+    "reverted_to_original": "დოლმენი",
+    "dropped_rewrite_answer": "უელსი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 19,
+    "round": 2,
+    "topic": 5,
+    "clue": 4,
+    "reverted_to_original": "წმინდა პატრიკი",
+    "dropped_rewrite_answer": "ბენედიქტე ნურსიელი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 43,
+    "round": 2,
+    "topic": 0,
+    "clue": 4,
+    "reverted_to_original": "აქემენიანთა დინასტია (ან აქემენიანები)",
+    "dropped_rewrite_answer": "ბეჰისთუნი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 29,
+    "round": 3,
+    "topic": 3,
+    "clue": 3,
+    "reverted_to_original": "ჭექა-ქუხილი (ქუხილი)",
+    "dropped_rewrite_answer": "ფრენსის ბოფორტი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 20,
+    "round": 3,
+    "topic": 1,
+    "clue": 4,
+    "reverted_to_original": "ცოცხალი",
+    "dropped_rewrite_answer": "სიტყვის კონა",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 37,
+    "round": 3,
+    "topic": 4,
+    "clue": 1,
+    "reverted_to_original": "გაფართოებას",
+    "dropped_rewrite_answer": "ედუინ ჰაბლი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 33,
+    "round": 1,
+    "topic": 1,
+    "clue": 2,
+    "reverted_to_original": "მეზოზოური",
+    "dropped_rewrite_answer": "იუკატანი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 11,
+    "round": 3,
+    "topic": 0,
+    "clue": 0,
+    "reverted_to_original": "წმინდა ნინოს",
+    "dropped_rewrite_answer": "სვეტიცხოველი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 17,
+    "round": 2,
+    "topic": 0,
+    "clue": 3,
+    "reverted_to_original": "ეთერი",
+    "dropped_rewrite_answer": "ეთერი",
+    "reason": "same fact already rewritten in another packet"
+  },
+  {
+    "packet": 39,
+    "round": 3,
+    "topic": 5,
+    "clue": 1,
+    "reverted_to_original": "ვიზა",
+    "dropped_rewrite_answer": "შენგენის შეთანხმება",
+    "reason": "same fact already present in another packet"
+  },
+  {
+    "packet": 37,
+    "round": 3,
+    "topic": 3,
+    "clue": 2,
+    "reverted_to_original": "პირველი მსოფლიო ომი",
+    "dropped_rewrite_answer": "გავრილო პრინციპი",
+    "reason": "same fact already present in another packet"
+  },
+  {
+    "packet": 41,
+    "round": 3,
+    "topic": 3,
+    "clue": 2,
+    "reverted_to_original": "ტეტრისი",
+    "dropped_rewrite_answer": "ტეტრისი",
+    "reason": "same fact already present in another packet"
+  },
+  {
+    "packet": 27,
+    "round": 2,
+    "topic": 2,
+    "clue": 1,
+    "reverted_to_original": "ერატოსთენე",
+    "dropped_rewrite_answer": "ერატოსთენე",
+    "reason": "same fact already present in another packet"
+  },
+  {
+    "packet": 36,
+    "round": 3,
+    "topic": 1,
+    "clue": 0,
+    "reverted_to_original": "თოვლის კაცი (ან თოვლის ბაბუა)",
+    "dropped_rewrite_answer": "შამონი",
+    "reason": "same fact already present in another packet"
+  }
+]

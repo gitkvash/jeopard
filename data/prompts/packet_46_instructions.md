@@ -93,3 +93,25 @@ if you know better material.
    second look). Re-run until it reports the package clean.
 4. Report back, briefly: the 20 topic names you used, and confirmation the
    validator is clean.
+
+## Clue quality bar (added by the owner -- this matters more than the topic list)
+
+The owner wants "very trivia questions, or very specific ones that are hard to change":
+every clue's answer is ONE unambiguous, verifiable fact that will still be true in
+twenty years and that two encyclopedias would agree on.
+
+- Anchor every clue with something concrete (a year, a full name, a number, a place, a
+  first/only/last event) and ask for one missing specific.
+- NO definition clues ("this term is used for a X that does Y").
+- NO time-sensitive facts: records, rankings, "largest/tallest/fastest/most", "current",
+  "latest", populations, prices -- anything a new record, election or census can overturn.
+- NO vague or hedged wording ("often", "usually", "one of the", "famous"); no "(or ...)"
+  alternatives in an answer; the answer is a name, date, number or title, not a common noun.
+- Nothing answerable from the topic name alone.
+- Difficulty must match the value: 10-20 = any well-read adult, 120-150 = real trivia-player
+  knowledge. No schoolchild question at 100+, no impossible one at 10-20.
+- Within this package: no answer may appear twice and no clue may give away or re-ask
+  another clue. Also do not re-ask a clue already in `data/packets_all.json`.
+- Sprinkle in some Georgian-world material only where you are certain of the fact.
+- Do not write a plan artifact and do not ask for approval -- write the file, run the
+  validator, fix it, and finish with the brief report.

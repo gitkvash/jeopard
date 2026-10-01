@@ -326,6 +326,23 @@ host reads against it, the players watch the button wake up.
 No buzzer, as in the real format: teams stake part of their score (clamped to what they hold), the
 host reveals the clue, then rules on each team in turn.
 
+### Sound
+
+Eleven short cues — tile pick, buzzer live, buzz-in, correct, wrong, nobody-got-it, a countdown tick
+for a timed buzzer, round start, final intro, finale, and the local tap. They are worked out from
+the difference between two snapshots (`core/game_sounds.dart`), so the server needed no change.
+
+The **host's screen plays the whole show** (it is the room's loudspeaker); **a team's phone plays
+only what concerns that team** — the buzzer going live, its own buzz, its own ruling — so six phones
+at one table are not six overlapping buzzers. A speaker icon in the app bar mutes the device, and
+the choice survives a reload.
+
+Sound plays on the **web build only** (Web Audio through `package:web`). Every Flutter audio plugin
+pulls in `path_provider` → `objective_c`, a native asset build that this project avoids on purpose,
+so Android and iOS builds are silent for now. The sounds are Kenney's CC0 *Music Jingles* and
+*Casino Audio* plus a few synthesised cues; `app/tool/build_sounds.py` rebuilds
+`app/assets/sounds/` from them and records which file is used for what.
+
 ---
 
 ## Layout

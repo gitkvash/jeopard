@@ -7,7 +7,9 @@ import '../core/game_feed.dart';
 import '../core/models.dart';
 import '../core/providers.dart';
 import '../core/rest_client.dart';
+import '../core/game_sounds.dart';
 import '../core/session.dart';
+import '../core/sfx.dart';
 import '../core/session_store.dart';
 import '../core/theme.dart';
 import '../role_screen.dart';
@@ -31,6 +33,7 @@ class HostGameScreen extends ConsumerStatefulWidget {
 
 class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   late final GameFeed _feed;
+  late final GameSounds _sounds;
   bool _busy = false;
 
   /// Answer fetched with the host token, held only while this clue is in play.
@@ -63,6 +66,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   void initState() {
     super.initState();
     _feed = GameFeed(gameId: _gameId, onResync: _refresh)..addListener(_onFeed);
+    _sounds = GameSounds(_feed, role: SoundRole.host);
     _feed.connect();
     // Renew the stored session: it is what a reload comes back through, and
     // the timestamp is what stops a days-old token being offered.
@@ -72,6 +76,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
 
   @override
   void dispose() {
+    _sounds.dispose();
     _feed.removeListener(_onFeed);
     _feed.dispose();
     super.dispose();
@@ -133,6 +138,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     }
 
     HapticFeedback.heavyImpact();
+    Sfx.instance.play(Cue.tap);
     setState(() {
       _buzzSent = true;
       _buzzSentForClue = snap.currentClue?.clueId;
@@ -251,6 +257,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         titleSpacing: 16,
         title: GameTitle(feed: _feed),
         actions: [
+          const SoundToggle(),
           ConnectionDot(feed: _feed, onTap: _refresh),
           IconButton(
             tooltip: L.leaveGame,
@@ -489,6 +496,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           // the banner they are already looking at.
           GameState.clueReading when opensIn != null => BuzzCountdown(
             remainingMs: opensIn,
+            tick: true,
             builder: (context, left) => CluePanelBanner(
               text: '${L.readAloud}  ·  $left',
               color: JColors.goldBright,

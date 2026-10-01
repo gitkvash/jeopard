@@ -6,7 +6,9 @@ import '../core/game_feed.dart';
 import '../core/models.dart';
 import '../core/providers.dart';
 import '../core/rest_client.dart';
+import '../core/game_sounds.dart';
 import '../core/session.dart';
+import '../core/sfx.dart';
 import '../core/session_store.dart';
 import '../core/theme.dart';
 import '../role_screen.dart';
@@ -30,6 +32,7 @@ class BuzzerScreen extends ConsumerStatefulWidget {
 
 class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   late final GameFeed _feed;
+  late final GameSounds _sounds;
 
   /// Set the instant we send a buzz so the button reacts without waiting for
   /// the round trip. Cleared when the next snapshot tells us the real outcome.
@@ -46,6 +49,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   void initState() {
     super.initState();
     _feed = GameFeed(gameId: _gameId, onResync: _refresh)..addListener(_onFeed);
+    _sounds = GameSounds(_feed, role: SoundRole.team, myTeamId: _teamId);
     _feed.connect();
     SessionStore.write(widget.session.renew());
     _refresh();
@@ -53,6 +57,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   @override
   void dispose() {
+    _sounds.dispose();
     _feed.removeListener(_onFeed);
     _feed.dispose();
     _wager.dispose();
@@ -83,6 +88,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     if (snap == null || snap.state != GameState.buzzOpen) return;
 
     HapticFeedback.heavyImpact();
+    Sfx.instance.play(Cue.tap);
     setState(() {
       _buzzSent = true;
       _buzzSentForClue = snap.currentClue?.clueId;
@@ -192,6 +198,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
                     ),
                   ),
           ),
+          const SoundToggle(),
           ConnectionDot(feed: _feed, onTap: _refresh),
           IconButton(
             tooltip: L.leaveGame,

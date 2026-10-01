@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/game_feed.dart';
 import '../core/models.dart';
+import '../core/sfx.dart';
 import '../core/theme.dart';
 
 /// Bits of furniture both consoles need: the connection indicator, the phase
@@ -28,6 +29,33 @@ class ConnectionDot extends StatelessWidget {
           up ? Icons.cloud_done_outlined : Icons.cloud_off,
           size: 20,
           color: up ? JColors.textMuted : JColors.wrong,
+        ),
+      ),
+    );
+  }
+}
+
+/// Sound on/off. Also the first tap many people make on this screen, which is
+/// what lets a browser start playing audio at all.
+class SoundToggle extends StatelessWidget {
+  const SoundToggle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final sfx = Sfx.instance;
+    return ValueListenableBuilder<bool>(
+      valueListenable: sfx.muted,
+      builder: (context, muted, _) => IconButton(
+        tooltip: muted ? L.unmuteSound : L.muteSound,
+        onPressed: () {
+          sfx.toggleMuted();
+          // Proof that it is on, and the audible half of the click.
+          if (!sfx.muted.value) sfx.play(Cue.tick);
+        },
+        icon: Icon(
+          muted ? Icons.volume_off : Icons.volume_up_outlined,
+          size: 20,
+          color: muted ? JColors.textFaint : JColors.textMuted,
         ),
       ),
     );
@@ -65,9 +93,14 @@ class BuzzCountdown extends StatefulWidget {
     super.key,
     required this.remainingMs,
     required this.builder,
+    this.tick = false,
   });
 
   final int remainingMs;
+
+  /// Beat out the last three seconds. Only the host's loudspeaker does: on every
+  /// phone at once it would be a room full of clocks.
+  final bool tick;
 
   /// Given whole seconds left, rounded up so it reads 5, 4, 3, 2, 1 rather
   /// than sitting on 0 for the last part of a second.
@@ -80,14 +113,28 @@ class BuzzCountdown extends StatefulWidget {
 class _BuzzCountdownState extends State<BuzzCountdown> {
   late DateTime _deadline;
   Timer? _tick;
+  int? _lastSecond;
 
   @override
   void initState() {
     super.initState();
     _arm();
     _tick = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      if (widget.tick) {
+        final second = _secondsLeft;
+        if (second != _lastSecond && second >= 1 && second <= 3) {
+          Sfx.instance.play(Cue.tick);
+        }
+        _lastSecond = second;
+      }
+      setState(() {});
     });
+  }
+
+  int get _secondsLeft {
+    final left = _deadline.difference(DateTime.now()).inMilliseconds;
+    return left <= 0 ? 0 : (left / 1000).ceil();
   }
 
   @override
@@ -109,10 +156,8 @@ class _BuzzCountdownState extends State<BuzzCountdown> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final left = _deadline.difference(DateTime.now()).inMilliseconds;
-    return widget.builder(context, left <= 0 ? 0 : (left / 1000).ceil());
-  }
+  Widget build(BuildContext context) =>
+      widget.builder(context, _secondsLeft);
 }
 
 /// Final standings, shared by the host console and the player devices.

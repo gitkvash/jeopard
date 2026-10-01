@@ -6,6 +6,7 @@ import 'core/providers.dart';
 import 'core/rest_client.dart';
 import 'core/session.dart';
 import 'core/session_store.dart';
+import 'core/sfx.dart';
 import 'core/theme.dart';
 import 'host/host_game_screen.dart';
 import 'role_screen.dart';
@@ -14,6 +15,10 @@ import 'team/join_screen.dart';
 import 'widgets/stage.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Not awaited: the first screen should not wait on audio, and a cue that is
+  // not decoded yet is simply silent.
+  Sfx.instance.preload();
   runApp(const ProviderScope(child: JeopardApp()));
 }
 

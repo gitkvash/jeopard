@@ -66,6 +66,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Sound effects: Kenney CC0 packs plus a few synthesised cues, built by
+  # tool/build_sounds.py. Played through Web Audio on the web only -- see
+  # core/sfx_backend.dart for why there is no audio plugin.
+  assets:
+    - assets/sounds/
+
   # Georgian is the only script this app renders, so the font is bundled rather
   # than fetched at runtime: identical output on Android, iOS and web, and it
   # works on first launch with no network. Noto Sans Georgian, OFL-1.1

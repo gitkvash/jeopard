@@ -479,6 +479,10 @@ class L {
   static const cancel = 'გაუქმება';
   static const ok = 'კარგი';
 
+  // sound
+  static const muteSound = 'ხმის გამორთვა';
+  static const unmuteSound = 'ხმის ჩართვა';
+
   // errors
   static const connectionError =
       'სერვერთან დაკავშირება ვერ მოხერხდა. დარწმუნდით, რომ იმავე Wi-Fi ქსელში ხართ.';

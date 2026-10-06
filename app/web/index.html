@@ -57,6 +57,18 @@
       overflow: hidden;
     }
 
+    /* Mid-game, a thumb drifting down the board must not be read by the browser
+       as a pull-to-refresh -- on Android Chrome that reloads the page and drops
+       the player out of the clue they were about to buzz on. Nor should a quick
+       second tap on the buzzer be taken for a double-tap zoom, or flash the
+       grey tap highlight iOS paints over anything clickable. */
+    html, body {
+      overscroll-behavior: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+    }
+
     #splash {
       position: fixed;
       inset: 0;

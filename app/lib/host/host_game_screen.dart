@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../core/game_feed.dart';
 import '../core/models.dart';
 import '../core/providers.dart';
+import '../core/responsive.dart';
 import '../core/rest_client.dart';
 import '../core/game_sounds.dart';
 import '../core/session.dart';
@@ -86,7 +89,8 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     final snap = _feed.snapshot;
     final clue = snap?.currentClue;
     // A new clue invalidates any answer we were holding.
-    final staleAnswer = clue?.clueId != _hostAnswerClueId && _hostAnswer != null;
+    final staleAnswer =
+        clue?.clueId != _hostAnswerClueId && _hostAnswer != null;
     // Same idea as BuzzerScreen: the latch only lasts until the snapshot
     // confirms it, or moves on without it.
     final staleBuzz =
@@ -254,6 +258,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: context.appBarHeight,
         titleSpacing: 16,
         title: GameTitle(feed: _feed),
         actions: [
@@ -272,63 +277,69 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: Column(
-        // Stretch, or the score strip shrink-wraps its content and floats in
-        // the middle of the screen instead of spanning it.
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Scores redraw on their own, without dragging the board along.
-          SnapshotBuilder<(GameState, List<TeamView>, String?)>(
-            feed: _feed,
-            select: (s) => (
-              s?.state ?? GameState.unknown,
-              s?.teams ?? const <TeamView>[],
-              s?.buzzedTeamId,
-            ),
-            equals: (a, b) =>
-                a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
-            builder: (context, value) {
-              if (value.$1 == GameState.lobby || value.$2.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
-                  ),
-                  border: Border(bottom: BorderSide(color: JColors.brass)),
-                ),
-                child: Scoreboard(
-                  teams: value.$2,
-                  buzzedTeamId: value.$3,
-                  myTeamId: widget.session.hostTeamId,
-                ),
-              );
-            },
-          ),
-          Expanded(
-            child: SnapshotBuilder<GameState?>(
+      // Sides only: in landscape a notch sits where the board starts. The top is
+      // the app bar's, and the bottom is the control shelf's own.
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Column(
+          // Stretch, or the score strip shrink-wraps its content and floats in
+          // the middle of the screen instead of spanning it.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Scores redraw on their own, without dragging the board along.
+            SnapshotBuilder<(GameState, List<TeamView>, String?)>(
               feed: _feed,
-              select: (s) => s?.state,
-              builder: (context, state) => switch (state) {
-                null || GameState.unknown => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                GameState.lobby => _lobby(),
-                GameState.board => _board(),
-                GameState.clueReading ||
-                GameState.buzzOpen ||
-                GameState.buzzed ||
-                GameState.resolved => _cluePhase(),
-                GameState.finalWager => _finalWager(),
-                GameState.finalClue || GameState.finalResult => _finalClue(),
-                GameState.finished => _finished(),
+              select: (s) => (
+                s?.state ?? GameState.unknown,
+                s?.teams ?? const <TeamView>[],
+                s?.buzzedTeamId,
+              ),
+              equals: (a, b) =>
+                  a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
+              builder: (context, value) {
+                if (value.$1 == GameState.lobby || value.$2.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
+                    ),
+                    border: Border(bottom: BorderSide(color: JColors.brass)),
+                  ),
+                  child: Scoreboard(
+                    teams: value.$2,
+                    buzzedTeamId: value.$3,
+                    myTeamId: widget.session.hostTeamId,
+                  ),
+                );
               },
             ),
-          ),
-        ],
+            Expanded(
+              child: SnapshotBuilder<GameState?>(
+                feed: _feed,
+                select: (s) => s?.state,
+                builder: (context, state) => switch (state) {
+                  null || GameState.unknown => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  GameState.lobby => _lobby(),
+                  GameState.board => _board(),
+                  GameState.clueReading ||
+                  GameState.buzzOpen ||
+                  GameState.buzzed ||
+                  GameState.resolved => _cluePhase(),
+                  GameState.finalWager => _finalWager(),
+                  GameState.finalClue || GameState.finalResult => _finalClue(),
+                  GameState.finished => _finished(),
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -452,7 +463,12 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(9, 0, 9, 12),
+            padding: EdgeInsets.fromLTRB(
+              9,
+              0,
+              9,
+              12 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: SnapshotBuilder<List<BoardColumn>>(
               feed: _feed,
               select: (s) => s?.board ?? const <BoardColumn>[],
@@ -521,36 +537,29 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           _ => null,
         };
 
-        return Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: CluePanel(
-                        clue: displayClue,
-                        showAnswer: snap.answerRevealed,
-                        banner: banner,
-                      ),
-                    ),
-                    if (_hostAnswer != null && !snap.answerRevealed) ...[
-                      const SizedBox(height: 10),
-                      _HostOnlyAnswer(answer: _hostAnswer!),
-                    ],
-                  ],
+        return ClueLayout(
+          panel: Column(
+            children: [
+              Expanded(
+                child: CluePanel(
+                  clue: displayClue,
+                  showAnswer: snap.answerRevealed,
+                  banner: banner,
                 ),
               ),
-            ),
-            _cluePhaseControls(snap),
-          ],
+              if (_hostAnswer != null && !snap.answerRevealed) ...[
+                const SizedBox(height: 10),
+                _HostOnlyAnswer(answer: _hostAnswer!),
+              ],
+            ],
+          ),
+          controls: (side) => _cluePhaseControls(snap, side: side),
         );
       },
     );
   }
 
-  Widget _cluePhaseControls(Snapshot snap) {
+  Widget _cluePhaseControls(Snapshot snap, {required bool side}) {
     final buttons = <Widget>[];
 
     switch (snap.state) {
@@ -645,6 +654,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     }
 
     return ControlShelf(
+      side: side,
       // The host needs the answer in hand to judge. In host-plays mode fetching
       // it costs them the buzzer, which the server enforces -- so it stays a
       // quiet action, off the main row.
@@ -671,7 +681,12 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           const PhaseHint(L.chooseTile),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(9, 0, 9, 12),
+              padding: EdgeInsets.fromLTRB(
+                9,
+                0,
+                9,
+                12 + MediaQuery.paddingOf(context).bottom,
+              ),
               child: SnapshotBuilder<List<BoardColumn>>(
                 feed: _feed,
                 select: (s) => s?.board ?? const <BoardColumn>[],
@@ -759,83 +774,77 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         final clue = snap?.currentClue;
         if (snap == null || clue == null) return const SizedBox.shrink();
 
-        return Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: CluePanel(
-                  clue: _withHostQuestion(clue),
-                  showAnswer: snap.answerRevealed,
-                ),
-              ),
-            ),
-            _FinalShelf(
-              child: snap.state == GameState.finalClue
-                  ? Column(
-                      children: [
-                        for (final t in snap.teams.where((t) => !t.lockedOut))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '${t.name}  ·  ${L.wager}: ${t.wager ?? 0}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+        return ClueLayout(
+          panel: CluePanel(
+            clue: _withHostQuestion(clue),
+            showAnswer: snap.answerRevealed,
+          ),
+          controls: (side) => _FinalShelf(
+            side: side,
+            child: snap.state == GameState.finalClue
+                ? Column(
+                    children: [
+                      for (final t in snap.teams.where((t) => !t.lockedOut))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${t.name}  ·  ${L.wager}: ${t.wager ?? 0}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(width: 10),
-                                IconButton.filled(
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: JColors.correct,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _act(
-                                          (c) => c.finalJudge(
-                                            _gameId,
-                                            _token,
-                                            t.id,
-                                            true,
-                                          ),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton.filled(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: JColors.correct,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: _busy
+                                    ? null
+                                    : () => _act(
+                                        (c) => c.finalJudge(
+                                          _gameId,
+                                          _token,
+                                          t.id,
+                                          true,
                                         ),
-                                  icon: const Icon(Icons.check, size: 18),
+                                      ),
+                                icon: const Icon(Icons.check, size: 18),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton.filled(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: JColors.wrong,
+                                  foregroundColor: Colors.white,
                                 ),
-                                const SizedBox(width: 8),
-                                IconButton.filled(
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: JColors.wrong,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _act(
-                                          (c) => c.finalJudge(
-                                            _gameId,
-                                            _token,
-                                            t.id,
-                                            false,
-                                          ),
+                                onPressed: _busy
+                                    ? null
+                                    : () => _act(
+                                        (c) => c.finalJudge(
+                                          _gameId,
+                                          _token,
+                                          t.id,
+                                          false,
                                         ),
-                                  icon: const Icon(Icons.close, size: 18),
-                                ),
-                              ],
-                            ),
+                                      ),
+                                icon: const Icon(Icons.close, size: 18),
+                              ),
+                            ],
                           ),
-                      ],
-                    )
-                  : FilledButton.icon(
-                      onPressed: _busy
-                          ? null
-                          : () => _act((c) => c.next(_gameId, _token)),
-                      icon: const Icon(Icons.flag, size: 20),
-                      label: const Text(L.finalResults),
-                    ),
-            ),
-          ],
+                        ),
+                    ],
+                  )
+                : FilledButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _act((c) => c.next(_gameId, _token)),
+                    icon: const Icon(Icons.flag, size: 20),
+                    label: const Text(L.finalResults),
+                  ),
+          ),
         );
       },
     );
@@ -891,6 +900,8 @@ class GameTitle extends StatelessWidget {
           Text(
             '${header.finalRound ? L.finalRound : '${L.roundLabel} ${header.roundIdx}'}'
             '  ·  ${L.remaining} ${header.tilesRemaining}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11, color: JColors.textFaint),
           ),
         ],
@@ -936,7 +947,9 @@ class _JoinCodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Generate link based on the current window URL (frontend), not the API backend.
-    final joinLink = Uri.base.replace(queryParameters: {'code': code}).toString();
+    final joinLink = Uri.base
+        .replace(queryParameters: {'code': code})
+        .toString();
 
     return Column(
       children: [
@@ -952,54 +965,62 @@ class _JoinCodeCard extends StatelessWidget {
             },
             child: Padding(
               padding: const EdgeInsets.all(4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final ch in code.characters) ...[
-                    Container(
-                      width: 46,
-                      height: 62,
-                      alignment: Alignment.center,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFF3A56F5),
-                            JColors.boardLit,
-                            JColors.board,
-                            JColors.boardDeep,
-                          ],
-                          stops: [0, 0.08, 0.45, 1],
-                        ),
-                        borderRadius: BorderRadius.circular(JRadius.tile),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                            spreadRadius: -4,
+              // Six 46-pixel tiles and a copy icon are 350 wide, which a 360
+              // phone does not have once the page's own padding is out. Scaled
+              // down rather than re-laid-out, so it stays one row of tiles.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (final ch in code.characters) ...[
+                      Container(
+                        width: 46,
+                        height: 62,
+                        alignment: Alignment.center,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0xFF3A56F5),
+                              JColors.boardLit,
+                              JColors.board,
+                              JColors.boardDeep,
+                            ],
+                            stops: [0, 0.08, 0.45, 1],
                           ),
-                        ],
+                          borderRadius: BorderRadius.circular(JRadius.tile),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                              spreadRadius: -4,
+                            ),
+                          ],
+                        ),
+                        child: Text(ch, style: engraved(34)),
                       ),
-                      child: Text(ch, style: engraved(34)),
+                    ],
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.copy_rounded,
+                      size: 17,
+                      color: JColors.brass,
                     ),
                   ],
-                  const SizedBox(width: 10),
-                  const Icon(
-                    Icons.copy_rounded,
-                    size: 17,
-                    color: JColors.brass,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
           children: [
             TextButton.icon(
               onPressed: () {
@@ -1007,13 +1028,19 @@ class _JoinCodeCard extends StatelessWidget {
                 showToast(context, L.linkCopied);
               },
               icon: const Icon(Icons.link, color: JColors.brass),
-              label: const Text(L.shareLink, style: TextStyle(color: JColors.brass)),
+              label: const Text(
+                L.shareLink,
+                style: TextStyle(color: JColors.brass),
+              ),
             ),
             const SizedBox(width: 12),
             TextButton.icon(
               onPressed: () => _showQrDialog(context, joinLink),
               icon: const Icon(Icons.qr_code, color: JColors.brass),
-              label: const Text(L.qrCode, style: TextStyle(color: JColors.brass)),
+              label: const Text(
+                L.qrCode,
+                style: TextStyle(color: JColors.brass),
+              ),
             ),
           ],
         ),
@@ -1024,32 +1051,44 @@ class _JoinCodeCard extends StatelessWidget {
   void _showQrDialog(BuildContext context, String link) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.all(24),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: 250,
-                height: 250,
-                child: QrImageView(
-                  data: link,
-                  version: 4,
-                  errorCorrectionLevel: QrErrorCorrectLevel.L,
+      builder: (context) {
+        // A dialog is inset 40 on each side and pads its content by 24 more, and
+        // the code sits in a 16-pixel quiet zone: 250 only fits where the screen
+        // is wider than 410. Sideways on a phone it is the height that runs out
+        // -- the button and the padding around the code are 210 of 360. Either
+        // way the code gets what is left, but never so little it cannot be read.
+        final room = MediaQuery.sizeOf(context);
+        final size = math
+            .min(250.0, math.min(room.width - 80 - 48 - 32, room.height - 210))
+            .clamp(120.0, 250.0);
+        return AlertDialog(
+          scrollable: true,
+          contentPadding: const EdgeInsets.all(24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: QrImageView(
+                    data: link,
+                    version: 4,
+                    errorCorrectionLevel: QrErrorCorrectLevel.L,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(L.ok),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(L.ok),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1111,13 +1150,31 @@ class _HostOnlyAnswer extends StatelessWidget {
 
 /// The final round judges several teams at once, so its controls are a column
 /// rather than a row -- but they belong on the same shelf as everything else.
+///
+/// A row per team is six rows with six teams, which on a phone is the whole
+/// screen. So the column scrolls inside a height cap instead of pushing the
+/// clue out of sight.
 class _FinalShelf extends StatelessWidget {
-  const _FinalShelf({required this.child});
+  const _FinalShelf({required this.child, this.side = false});
 
   final Widget child;
 
+  /// Beside the clue rather than under it (a phone held sideways).
+  final bool side;
+
   @override
   Widget build(BuildContext context) {
+    if (side) {
+      return SafeArea(
+        left: false,
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(0, 12, 12, 4),
+          child: child,
+        ),
+      );
+    }
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1131,11 +1188,14 @@ class _FinalShelf extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: child,
+              constraints: BoxConstraints(
+                maxWidth: 760,
+                maxHeight: MediaQuery.sizeOf(context).height * 0.38,
+              ),
+              child: SingleChildScrollView(child: child),
             ),
           ),
         ),

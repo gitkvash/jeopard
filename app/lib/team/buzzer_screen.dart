@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_feed.dart';
 import '../core/models.dart';
 import '../core/providers.dart';
+import '../core/responsive.dart';
 import '../core/rest_client.dart';
 import '../core/game_sounds.dart';
 import '../core/session.dart';
@@ -162,6 +163,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: context.appBarHeight,
         titleSpacing: 16,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,10 +171,14 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           children: [
             Text(
               widget.session.playerName ?? L.team,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             Text(
               widget.session.teamName ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: JColors.textFaint),
             ),
           ],
@@ -208,62 +214,68 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: Column(
-        // Stretch, or the score strip shrink-wraps its content and floats in
-        // the middle of the screen instead of spanning it.
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SnapshotBuilder<(GameState, List<TeamView>, String?)>(
-            feed: _feed,
-            select: (s) => (
-              s?.state ?? GameState.unknown,
-              s?.teams ?? const <TeamView>[],
-              s?.buzzedTeamId,
-            ),
-            equals: (a, b) =>
-                a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
-            builder: (context, value) {
-              if (value.$1 == GameState.lobby || value.$2.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
-                  ),
-                  border: Border(bottom: BorderSide(color: JColors.brass)),
-                ),
-                child: Scoreboard(
-                  teams: value.$2,
-                  buzzedTeamId: value.$3,
-                  myTeamId: _teamId,
-                ),
-              );
-            },
-          ),
-          Expanded(
-            child: SnapshotBuilder<GameState?>(
+      // Sides only: in landscape a notch sits where the board starts. The top is
+      // the app bar's, and the bottom is the control shelf's own.
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Column(
+          // Stretch, or the score strip shrink-wraps its content and floats in
+          // the middle of the screen instead of spanning it.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SnapshotBuilder<(GameState, List<TeamView>, String?)>(
               feed: _feed,
-              select: (s) => s?.state,
-              builder: (context, state) => switch (state) {
-                null || GameState.unknown => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                GameState.lobby => _waitingForHost(),
-                GameState.board => _watchBoard(),
-                GameState.clueReading ||
-                GameState.buzzOpen ||
-                GameState.buzzed ||
-                GameState.resolved => _cluePhase(),
-                GameState.finalWager => _wagerPhase(),
-                GameState.finalClue || GameState.finalResult => _finalPhase(),
-                GameState.finished => _finished(),
+              select: (s) => (
+                s?.state ?? GameState.unknown,
+                s?.teams ?? const <TeamView>[],
+                s?.buzzedTeamId,
+              ),
+              equals: (a, b) =>
+                  a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
+              builder: (context, value) {
+                if (value.$1 == GameState.lobby || value.$2.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
+                    ),
+                    border: Border(bottom: BorderSide(color: JColors.brass)),
+                  ),
+                  child: Scoreboard(
+                    teams: value.$2,
+                    buzzedTeamId: value.$3,
+                    myTeamId: _teamId,
+                  ),
+                );
               },
             ),
-          ),
-        ],
+            Expanded(
+              child: SnapshotBuilder<GameState?>(
+                feed: _feed,
+                select: (s) => s?.state,
+                builder: (context, state) => switch (state) {
+                  null || GameState.unknown => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  GameState.lobby => _waitingForHost(),
+                  GameState.board => _watchBoard(),
+                  GameState.clueReading ||
+                  GameState.buzzOpen ||
+                  GameState.buzzed ||
+                  GameState.resolved => _cluePhase(),
+                  GameState.finalWager => _wagerPhase(),
+                  GameState.finalClue || GameState.finalResult => _finalPhase(),
+                  GameState.finished => _finished(),
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -337,7 +349,12 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(9, 0, 9, 12),
+            padding: EdgeInsets.fromLTRB(
+              9,
+              0,
+              9,
+              12 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: SnapshotBuilder<List<BoardColumn>>(
               feed: _feed,
               select: (s) => s?.board ?? const <BoardColumn>[],
@@ -378,48 +395,44 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
         final someoneElse = snap.buzzedTeamId != null && !iBuzzed;
         final buzzedTeam = snap.teamById(snap.buzzedTeamId);
 
-        return Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: CluePanel(
-                  clue: _hideQuestionIfNeeded(clue, snap),
-                  showAnswer: snap.answerRevealed,
-                  banner: switch (snap.state) {
-                    // A closed buzzer that is about to open on its own is
-                    // worth counting: it is the difference between waiting and
-                    // getting ready.
-                    GameState.clueReading when snap.buzzOpensInMs != null =>
-                      BuzzCountdown(
-                        remainingMs: snap.buzzOpensInMs!,
-                        builder: (context, left) => CluePanelBanner(
-                          text: '${L.buzzOpensIn}  ·  $left',
-                          color: JColors.gold,
-                          icon: Icons.hourglass_bottom,
-                        ),
-                      ),
-                    GameState.clueReading => const CluePanelBanner(
-                      text: L.buzzerClosed,
-                      color: JColors.textMuted,
-                      icon: Icons.lock_outline,
-                    ),
-                    GameState.buzzed => CluePanelBanner(
-                      text: iBuzzed
-                          ? L.youBuzzed
-                          : '${buzzerLabel(snap, buzzedTeam)} ${L.buzzedIn}',
-                      color: iBuzzed ? JColors.correct : JColors.buzz,
-                      icon: Icons.touch_app,
-                    ),
-                    _ => null,
-                  },
+        return ClueLayout(
+          panel: CluePanel(
+            clue: _hideQuestionIfNeeded(clue, snap),
+            showAnswer: snap.answerRevealed,
+            banner: switch (snap.state) {
+              // A closed buzzer that is about to open on its own is
+              // worth counting: it is the difference between waiting and
+              // getting ready.
+              GameState.clueReading when snap.buzzOpensInMs != null =>
+                BuzzCountdown(
+                  remainingMs: snap.buzzOpensInMs!,
+                  builder: (context, left) => CluePanelBanner(
+                    text: '${L.buzzOpensIn}  ·  $left',
+                    color: JColors.gold,
+                    icon: Icons.hourglass_bottom,
+                  ),
                 ),
+              GameState.clueReading => const CluePanelBanner(
+                text: L.buzzerClosed,
+                color: JColors.textMuted,
+                icon: Icons.lock_outline,
               ),
-            ),
-            // The buzzer is a target: on a wide browser a metre-wide button is
-            // harder to hit accurately than a big one in the middle.
-            ControlShelf(children: [_buzzArea(snap, someoneElse)]),
-          ],
+              GameState.buzzed => CluePanelBanner(
+                text: iBuzzed
+                    ? L.youBuzzed
+                    : '${buzzerLabel(snap, buzzedTeam)} ${L.buzzedIn}',
+                color: iBuzzed ? JColors.correct : JColors.buzz,
+                icon: Icons.touch_app,
+              ),
+              _ => null,
+            },
+          ),
+          // The buzzer is a target: on a wide browser a metre-wide button is
+          // harder to hit accurately than a big one in the middle.
+          controls: (side) => ControlShelf(
+            side: side,
+            children: [_buzzArea(snap, someoneElse)],
+          ),
         );
       },
     );
@@ -593,7 +606,12 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
         final clue = snap?.currentClue;
         if (snap == null || clue == null) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.fromLTRB(
+            12,
+            12,
+            12,
+            12 + MediaQuery.paddingOf(context).bottom,
+          ),
           child: CluePanel(
             clue: _hideQuestionIfNeeded(clue, snap),
             showAnswer: snap.answerRevealed,

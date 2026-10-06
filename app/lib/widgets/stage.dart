@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/responsive.dart';
 import '../core/theme.dart';
 
 /// The room the game is played in.
@@ -180,7 +181,12 @@ class BrassRule extends StatelessWidget {
 /// the hand expects it. So: a shelf with its own surface and a brass edge, the
 /// controls centred inside it and capped at a comfortable reading width.
 class ControlShelf extends StatelessWidget {
-  const ControlShelf({super.key, required this.children, this.trailing});
+  const ControlShelf({
+    super.key,
+    required this.children,
+    this.trailing,
+    this.side = false,
+  });
 
   /// Laid out in a row, each taking an equal share, wrapping on narrow screens.
   final List<Widget> children;
@@ -188,10 +194,17 @@ class ControlShelf extends StatelessWidget {
   /// A quieter action (peeking at the answer), kept out of the main row.
   final Widget? trailing;
 
+  /// A column standing beside the clue instead of a shelf under it. For a phone
+  /// held sideways, where a shelf of buttons would take half the height.
+  final bool side;
+
   static const double _maxWidth = 760;
 
   @override
   Widget build(BuildContext context) {
+    if (side) return _buildSide();
+
+    final short = context.isCompactHeight;
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -205,15 +218,22 @@ class ControlShelf extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          padding: EdgeInsets.fromLTRB(16, short ? 10 : 14, 16, short ? 8 : 12),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: _maxWidth),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Below this, an icon-and-label button pair does not fit side by
-                  // side without truncating, so they stack instead.
-                  final tight = constraints.maxWidth < 420;
+                  // side without truncating, so they stack instead. It is a
+                  // narrow bar: a 360-pixel phone has 328 to share, which two
+                  // buttons still fit, and stacking them there cost the clue
+                  // above a hundred pixels it needed more.
+                  final tight = constraints.maxWidth < 300;
+                  // Two buttons in 328 pixels get 159 each. With the theme's 22
+                  // pixels of padding on both sides and an icon, a word like
+                  // "გამოტოვება" has 87 left and breaks mid-word.
+                  final snug = !tight && constraints.maxWidth < 420;
                   final row = tight
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -233,10 +253,15 @@ class ControlShelf extends StatelessWidget {
                           ],
                         );
 
-                  if (trailing == null) return row;
+                  final controls = snug ? _snug(context, row) : row;
+                  if (trailing == null) return controls;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [row, const SizedBox(height: 6), trailing!],
+                    children: [
+                      controls,
+                      SizedBox(height: short ? 2 : 6),
+                      trailing!,
+                    ],
                   );
                 },
               ),
@@ -244,6 +269,102 @@ class ControlShelf extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// The same buttons with less padding either side, for a bar too narrow to
+  /// give each of them room for its label at the theme's generous default.
+  static Widget _snug(BuildContext context, Widget child) {
+    final theme = Theme.of(context);
+    const padding = WidgetStatePropertyAll(
+      EdgeInsets.symmetric(horizontal: 12),
+    );
+    return Theme(
+      data: theme.copyWith(
+        filledButtonTheme: FilledButtonThemeData(
+          style: theme.filledButtonTheme.style?.copyWith(padding: padding),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: theme.outlinedButtonTheme.style?.copyWith(padding: padding),
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildSide() {
+    return SafeArea(
+      left: false,
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              children[i],
+            ],
+            if (trailing != null) ...[const SizedBox(height: 4), trailing!],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A clue with the controls that go with it.
+///
+/// Upright, the controls are a shelf under the clue. Sideways on a phone there is
+/// no height for a shelf, so the same controls stand in a column to its right and
+/// the clue gets the full height back. Callers say what the controls are; this
+/// decides where they go.
+class ClueLayout extends StatelessWidget {
+  const ClueLayout({
+    super.key,
+    required this.panel,
+    required this.controls,
+    this.sideWidth = 280,
+  });
+
+  /// The clue itself, with whatever sits under it (a host-only answer).
+  final Widget panel;
+
+  /// Builds the controls for the placement this layout chose.
+  final Widget Function(bool side) controls;
+
+  final double sideWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final side = context.isShort && size.width > size.height;
+
+    if (!side) {
+      return Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: panel,
+            ),
+          ),
+          controls(false),
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            child: panel,
+          ),
+        ),
+        SizedBox(width: sideWidth, child: controls(true)),
+      ],
     );
   }
 }

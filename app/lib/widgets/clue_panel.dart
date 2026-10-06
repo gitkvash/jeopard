@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
 
 /// The clue in play, given the whole screen.
@@ -29,6 +30,11 @@ class CluePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final answer = clue.answer;
+    // The panel gets whatever the screen has left after the app bar, the score
+    // strip and the controls. On a phone that is not much, and every pixel of
+    // padding is a line of the question that has to be scrolled to.
+    final compact = context.isCompactHeight;
+    final short = context.isShort;
 
     return Container(
       width: double.infinity,
@@ -67,7 +73,12 @@ class CluePanel extends StatelessWidget {
           // what the host just picked, and the host reads it out from here.
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 13, 18, 13),
+            padding: EdgeInsets.fromLTRB(
+              compact ? 16 : 20,
+              short ? 8 : (compact ? 10 : 13),
+              compact ? 14 : 18,
+              short ? 8 : (compact ? 10 : 13),
+            ),
             decoration: const BoxDecoration(
               color: Color(0x57000000),
               border: Border(bottom: BorderSide(color: Color(0x1AFFFFFF))),
@@ -100,22 +111,34 @@ class CluePanel extends StatelessWidget {
           ),
           if (banner != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 16,
+                short ? 8 : (compact ? 12 : 16),
+                compact ? 12 : 16,
+                0,
+              ),
               child: banner!,
             ),
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(26, 30, 26, 28),
+              padding: compact
+                  ? EdgeInsets.fromLTRB(
+                      18,
+                      short ? 12 : 20,
+                      18,
+                      short ? 12 : 20,
+                    )
+                  : const EdgeInsets.fromLTRB(26, 30, 26, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     clue.question ?? '...',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
-                      height: 1.5,
+                      fontSize: compact ? 20 : 22,
+                      height: compact ? 1.4 : 1.5,
                       shadows: [
                         Shadow(
                           color: Color(0x80000000),

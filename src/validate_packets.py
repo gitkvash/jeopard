@@ -23,6 +23,9 @@ import re
 import sys
 import unicodedata
 
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # R1 10..50, R2 20..100, R3 30..150 -- the ladders of the 2008 originals.
 LADDERS = {
     1: [10, 20, 30, 40, 50],

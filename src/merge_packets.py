@@ -27,6 +27,9 @@ import shutil
 import subprocess
 import sys
 
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # One scraped clue carries a stray glyph from the source page (U+F04A). No font
 # has a private-use codepoint, so on web it makes the engine go looking for a
 # fallback font mid-frame and paints a box when it fails. Stripped here rather
@@ -34,16 +37,19 @@ import sys
 PRIVATE_USE = re.compile(r'[-\U000f0000-\U000ffffd]')
 
 PILOT = os.path.join('data', 'pilot.json')
-GENERATED_GLOB = os.path.join('data', 'agy_packets', 'packet_*.json')
+GEMINI_GLOB = os.path.join('data', 'agy_packets', 'packet_*.json')
+ARGON_GLOB = os.path.join('data', 'argon_packets', 'packet_*.json')
 MERGED = os.path.join('data', 'packets_all.json')
 BACKEND_SEED = os.path.join('backend', 'src', 'main', 'resources', 'pilot.json')
 
-GENERATED_NOTE = 'გენერირებული პაკეტი (AI)'
+GENERATED_NOTE_GEMINI = 'გენერირებული პაკეტი (Gemini)'
+GENERATED_NOTE_ARGON = 'გენერირებული პაკეტი (Argon AI)'
 # The seeder already reads source_url and the API already returns it, so this is
 # how a client tells generated packages from archive ones without matching on
 # subtitle text.
-GENERATED_SOURCE = 'generated:gemini-3.1-pro'
-GENERATED_CREDIT = 'პაკეტები #7 და შემდეგ: AI-ით გენერირებული შეკითხვები.'
+GENERATED_SOURCE_GEMINI = 'generated:gemini-3.1-pro'
+GENERATED_SOURCE_ARGON = 'generated:argon'
+GENERATED_CREDIT = 'პაკეტები #7-50: Gemini AI-ით გენერირებული შეკითხვები. პაკეტები #51 და შემდეგ: Argon AI-ით გენერირებული შეკითხვები.'
 
 
 def load(path: str) -> dict:
@@ -57,12 +63,16 @@ def clue_count(pkg: dict) -> int:
                for t in r.get('topics', []))
 
 
-def label(pkg: dict) -> str:
+def label(pkg: dict, source_url: str) -> str:
     """Mark a generated package so a host picking one knows what it is."""
     subtitle = (pkg.get('subtitle') or '').strip()
-    if GENERATED_NOTE in subtitle:
+    prefix = GENERATED_NOTE_ARGON if 'argon' in source_url else GENERATED_NOTE_GEMINI
+    if prefix in subtitle:
         return subtitle
-    return f'{GENERATED_NOTE} · {subtitle}' if subtitle else GENERATED_NOTE
+    for old_prefix in ('გენერირებული პაკეტი (AI) · ', 'გენერირებული პაკეტი (AI)'):
+        if subtitle.startswith(old_prefix):
+            subtitle = subtitle[len(old_prefix):].strip()
+    return f'{prefix} · {subtitle}' if subtitle else prefix
 
 
 def scrub(pkg: dict) -> int:
@@ -88,21 +98,27 @@ def build() -> tuple[dict, list[str]]:
     notes = [f'{len(original)} original packages from {PILOT}']
 
     generated = []
-    for path in sorted(glob.glob(GENERATED_GLOB)):
+    for path in sorted(glob.glob(GEMINI_GLOB)):
         data = load(path)
         packages = data['packages'] if 'packages' in data else [data]
         for pkg in packages:
-            generated.append((path, pkg))
+            generated.append((path, pkg, GENERATED_SOURCE_GEMINI))
+
+    for path in sorted(glob.glob(ARGON_GLOB)):
+        data = load(path)
+        packages = data['packages'] if 'packages' in data else [data]
+        for pkg in packages:
+            generated.append((path, pkg, GENERATED_SOURCE_ARGON))
 
     number = len(original)
     merged = [*original]
-    for path, pkg in generated:
+    for path, pkg, source_url in generated:
         number += 1
         pkg = dict(pkg)
         pkg['number'] = number
         pkg['title'] = f'პაკეტი #{number}'
-        pkg['subtitle'] = label(pkg)
-        pkg['source_url'] = GENERATED_SOURCE
+        pkg['subtitle'] = label(pkg, source_url)
+        pkg['source_url'] = source_url
         merged.append(pkg)
         notes.append(f'#{number} <- {os.path.basename(path)} '
                      f'({clue_count(pkg)} clues) {pkg["subtitle"]}')

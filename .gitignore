@@ -9,3 +9,12 @@ __pycache__/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Scratch work from content generation and review
+review_batches/
+new argon packets/
+conflicts.json
+process_packet_41.py
+
+# Claude Code runtime state
+.claude/scheduled_tasks.lock

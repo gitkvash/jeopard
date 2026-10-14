@@ -278,6 +278,20 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
           ],
         ),
         const SizedBox(height: 20),
+        // Sitting with a team is a choice, not a requirement: a player who would
+        // rather play on their own is a scoring unit of one.
+        OutlinedButton.icon(
+          onPressed: _busy ? null : () => _join(),
+          icon: const Icon(Icons.person_outline, size: 20),
+          label: const Text(L.playSolo),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          L.playSoloHint,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: JColors.textFaint, fontSize: 12),
+        ),
+        const SizedBox(height: 22),
         if (lobby.teams.isNotEmpty) ...[
           Text(L.chooseTeam, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),

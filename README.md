@@ -210,7 +210,8 @@ is a shape that no longer exists in production. So mirror production instead:
 cd deploy && docker compose -f local.docker-compose.yml up -d   # http://localhost:5050
 ```
 
-That fronts the backend you are already running (`.ackendun.ps1`) with the same proxy layout,
+That fronts the backend you are already running (`.ackend
+un.ps1`) with the same proxy layout,
 one origin, sockets included.
 
 ### What exposing it changes
@@ -244,8 +245,17 @@ one team but nobody wants to pass a phone around.
 Joining is therefore two steps:
 
 1. enter the game code and **your own name**
-2. **join an existing team** (the screen lists each team with its current members) **or start a new
-   one**
+2. **join an existing team** (the screen lists each team with its current members), **start a new
+   one**, or **play without a team**
+
+A player without a team is a **solo player**: the server gives them a team of one, named after them
+and flagged `solo`, so scoring, lockout and wagering need no second code path. Solo teams are not
+offered on the join list (nobody can sit with one) and do not compete for team names.
+
+**Until the host starts the game a player can change their mind** — leave their team (and play
+alone), sit with another, or start a new one — from the waiting screen (`POST /games/{id}/team`).
+A team that loses its last member is deleted, along with its score. After the start, only the host
+moves people (below).
 
 Consequences land on the team, not the individual: the score, the final-round wager, and the
 per-clue lockout are all the team's. So if one member answers wrong, their teammates are locked out
@@ -278,8 +288,30 @@ LOBBY ──> BOARD ──> CLUE_READING ──> BUZZ_OPEN ──> BUZZED ──
 - **A wrong answer is not the end of the clue.** The team loses the value and is locked out of that
   clue; the buzzer reopens for the rest — including any team that has not tried yet. When no one is
   left, the answer is revealed.
+- **The host can set a buzz aside.** Beside *სწორი* and *არასწორი* there is *გამოტოვება*
+  (`POST /games/{id}/skip-buzz`): no points either way, no lockout, and the buzzer reopens for
+  everyone — the team that pressed included. For the accidental tap, or a team that cannot answer
+  after all. (Passing the whole clue is still the *გამოტოვება* on the open-buzzer screen.)
+- **The answer is pinned under the question.** It reaches every device the moment the clue resolves;
+  it is drawn outside the question's scroll area because a long question fills a phone by itself and
+  an answer set after it sits off-screen.
 - **Answers are not on the wire.** Nothing broadcast to players contains the answer until it is
   revealed. The host fetches it separately with the host token.
+
+### Host corrections
+
+The *გუნდები და ქულები* sheet (the people icon in the host's app bar) is for what a ruling cannot
+undo:
+
+- **Edit a score** — set outright (`POST /games/{id}/teams/{teamId}/score`), in any state. A wager
+  already placed is trimmed to the new score.
+- **Move a person** — to another team, to a new one, or out on their own
+  (`POST /games/{id}/players/{playerId}/move`). Only between clues: mid-clue the buzz, the lockouts
+  and the final round's judging marks all name teams. The host's own seat cannot be moved.
+
+Everybody is told. These are published once on `/topic/games/{id}/notices` as events (not state, so
+a phone that reconnects an hour later does not replay a score change nobody remembers) and shown as
+a toast — to the person who was moved, in the second person.
 
 ### Whole package or single round
 

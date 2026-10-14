@@ -416,6 +416,13 @@ class L {
   static const teamsJoined = 'შემოსული გუნდები';
   static const startGame = 'თამაშის დაწყება';
   static const noTeamsYet = 'ჯერ არავინ შემოსულა';
+  static const playSolo = 'მარტო ვთამაშობ';
+  static const playSoloHint = 'გუნდის გარეშე, თქვენი სახელით';
+  static const noTeam = 'გუნდის გარეშე';
+  static const yourTeam = 'თქვენი გუნდი';
+  static const leaveTeam = 'გუნდიდან გასვლა';
+  static const switchTeam = 'გუნდის შეცვლა';
+  static const otherTeams = 'სხვა გუნდები';
   static const shareCode = 'უთხარით მოთამაშეებს ეს კოდი';
   static const shareLink = 'ბმულის კოპირება';
   static const qrCode = 'QR კოდი';
@@ -441,6 +448,8 @@ class L {
   static const answer = 'პასუხი';
   static const next = 'შემდეგი';
   static const pass = 'გამოტოვება';
+  static const skipBuzz = 'გამოტოვება';
+  static const skipBuzzHint = 'დაჭერა არ ითვლება, ღილაკი ისევ იხსნება';
   static const lockedOut = 'დაბლოკილია';
   static const correctionNote = 'შესწორება';
   static const score = 'ქულა';
@@ -449,6 +458,29 @@ class L {
       'პასუხის ნახვა ამ შეკითხვაზე თქვენს ღილაკს გათიშავს';
   static const questionHiddenFromParticipants =
       'შეკითხვის ტექსტი დამალულია — მოუსმინეთ მასპინძელს';
+
+  // host corrections
+  static const manage = 'გუნდები და ქულები';
+  static const editScore = 'ქულის შეცვლა';
+  static const newScore = 'ახალი ქულა';
+  static const save = 'შენახვა';
+  static const moveTo = 'გადაყვანა';
+  static const moveAlone = 'მარტო (გუნდის გარეშე)';
+  static const moveToNewTeam = 'ახალ გუნდში';
+  static const movesBetweenClues =
+      'მოთამაშეების გადაყვანა მხოლოდ შეკითხვებს შორის შეიძლება';
+  static const hostSeat = 'მასპინძლის ადგილი';
+
+  static String scoreChanged(String team, int before, int after) =>
+      'მასპინძელმა შეცვალა ქულა — $team: $before → $after';
+
+  static String playerMoved(String player, String? to) => to == null
+      ? '$player ახლა მარტო თამაშობს'
+      : '$player გადავიდა გუნდში „$to“';
+
+  static String youWereMoved(String? to) => to == null
+      ? 'მასპინძელმა გადაგიყვანათ: ახლა მარტო თამაშობთ'
+      : 'მასპინძელმა გადაგიყვანათ გუნდში „$to“';
 
   // final round
   static const wager = 'ფსონი';

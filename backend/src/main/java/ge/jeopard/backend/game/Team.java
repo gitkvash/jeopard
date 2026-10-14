@@ -32,6 +32,14 @@ public class Team {
     /** Final round only. */
     private Integer wager;
 
+    /**
+     * A team of one, made for a player who chose not to sit with anyone. It is
+     * named after the player, is never offered on the join list, and goes away
+     * when the player leaves it.
+     */
+    @Column(nullable = false)
+    private boolean solo;
+
     @Column(name = "joined_at", nullable = false)
     private Instant joinedAt = Instant.now();
 
@@ -45,6 +53,8 @@ public class Team {
     public void setScore(int score) { this.score = score; }
     public int getSeat() { return seat; }
     public void setSeat(int seat) { this.seat = seat; }
+    public boolean isSolo() { return solo; }
+    public void setSolo(boolean solo) { this.solo = solo; }
     public Integer getWager() { return wager; }
     public void setWager(Integer wager) { this.wager = wager; }
     public Instant getJoinedAt() { return joinedAt; }

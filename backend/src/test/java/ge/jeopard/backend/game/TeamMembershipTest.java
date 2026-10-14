@@ -120,9 +120,10 @@ class TeamMembershipTest {
         assertThat(joinStatus("ანა", a.path("teamId").asString(), null)).isEqualTo(409);
         // ...as is a duplicate team name...
         assertThat(joinStatus("სხვა", null, "გუნდი")).isEqualTo(409);
-        // ...and joining must name exactly one of team id or new team.
-        assertThat(joinStatus("კიდევ", null, null)).isEqualTo(400);
+        // ...and a request cannot be for an existing team and a new one at once.
+        // (Naming neither is not an error: that player plays on their own.)
         assertThat(joinStatus("კიდევ", a.path("teamId").asString(), "მესამე")).isEqualTo(400);
+        assertThat(joinStatus("კიდევ", null, null)).isEqualTo(200);
     }
 
     @Test

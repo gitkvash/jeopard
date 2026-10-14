@@ -10,7 +10,8 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
 
     List<Team> findByGameIdOrderBySeatAsc(UUID gameId);
 
-    boolean existsByGameIdAndName(UUID gameId, String name);
+    /** Solo teams are named after their player and do not compete for names. */
+    boolean existsByGameIdAndNameAndSoloFalse(UUID gameId, String name);
 
     int countByGameId(UUID gameId);
 

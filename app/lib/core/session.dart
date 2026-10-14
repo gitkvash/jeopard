@@ -92,6 +92,24 @@ class GameSession {
     seat: seat,
   );
 
+  /// The same player on a different team. A player can be moved -- by choice in
+  /// the lobby, or by the host -- so what was stored at join time goes stale.
+  GameSession withTeam({required String teamId, required String teamName}) =>
+      GameSession(
+        gameId: gameId,
+        joinCode: joinCode,
+        isHost: isHost,
+        savedAt: DateTime.now(),
+        hostToken: hostToken,
+        hostTeamId: hostTeamId,
+        playerId: playerId,
+        playerToken: playerToken,
+        playerName: playerName,
+        teamId: teamId,
+        teamName: teamName,
+        seat: seat,
+      );
+
   /// A host session is only usable if we still hold the host token; a player
   /// session needs its player token. Anything else is a half-written record.
   bool get isUsable =>

@@ -17,13 +17,19 @@ class GameSocket {
   final String gameId;
 
   final _snapshots = StreamController<Snapshot>.broadcast();
+  final _notices = StreamController<Notice>.broadcast();
   final _connected = StreamController<bool>.broadcast();
 
   StompClient? _client;
   StompUnsubscribe? _unsubscribe;
+  StompUnsubscribe? _unsubscribeNotices;
   int _lastSeq = -1;
 
   Stream<Snapshot> get snapshots => _snapshots.stream;
+
+  /// What the host did that everyone should hear about. Events rather than
+  /// state: nothing replays these to a device that was not listening.
+  Stream<Notice> get notices => _notices.stream;
 
   Stream<bool> get connectionState => _connected.stream;
 
@@ -53,6 +59,21 @@ class GameSocket {
     // A reconnect brings a new subscription; drop the handle to the old one
     // rather than leaving it to be overwritten and never called.
     _unsubscribe?.call();
+    _unsubscribeNotices?.call();
+    _unsubscribeNotices = _client?.subscribe(
+      destination: '/topic/games/$gameId/notices',
+      callback: (StompFrame message) {
+        final body = message.body;
+        if (body == null || body.isEmpty) return;
+        try {
+          _notices.add(
+            Notice.fromJson(jsonDecode(body) as Map<String, dynamic>),
+          );
+        } catch (_) {
+          // A notice is a courtesy; the scores on screen are the truth.
+        }
+      },
+    );
     _unsubscribe = _client?.subscribe(
       destination: '/topic/games/$gameId',
       callback: (StompFrame message) {
@@ -99,8 +120,10 @@ class GameSocket {
 
   void dispose() {
     _unsubscribe?.call();
+    _unsubscribeNotices?.call();
     _client?.deactivate();
     _snapshots.close();
+    _notices.close();
     _connected.close();
   }
 }

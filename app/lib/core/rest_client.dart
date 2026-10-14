@@ -96,8 +96,8 @@ class RestClient {
     return LobbyView.fromJson(body as Map<String, dynamic>);
   }
 
-  /// Join as a person. Supply either [teamId] to sit with an existing team or
-  /// [newTeamName] to start one -- exactly one of the two.
+  /// Join as a person. Supply [teamId] to sit with an existing team or
+  /// [newTeamName] to start one; supply neither to play without a team.
   Future<JoinedPlayer> joinPlayer({
     required String joinCode,
     required String name,
@@ -105,14 +105,38 @@ class RestClient {
     String? newTeamName,
   }) async {
     assert(
-      (teamId == null) != (newTeamName == null),
-      'supply exactly one of teamId or newTeamName',
+      teamId == null || newTeamName == null,
+      'supply at most one of teamId or newTeamName',
     );
     final body = await _post(
       '/api/games/$joinCode/players',
       body: {'name': name, 'teamId': ?teamId, 'newTeamName': ?newTeamName},
     );
     return JoinedPlayer.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// A player moving themselves, before the game starts. Supply [teamId] for an
+  /// existing team or [newTeamName] for a new one; supply neither to leave the
+  /// team and play alone.
+  Future<Snapshot> changeTeam({
+    required String gameId,
+    required String playerToken,
+    String? teamId,
+    String? newTeamName,
+  }) async {
+    assert(
+      teamId == null || newTeamName == null,
+      'supply at most one of teamId or newTeamName',
+    );
+    final body = await _post(
+      '/api/games/$gameId/team',
+      body: {
+        'playerToken': playerToken,
+        'teamId': ?teamId,
+        'newTeamName': ?newTeamName,
+      },
+    );
+    return Snapshot.fromJson(body as Map<String, dynamic>);
   }
 
   /// Supply [hostToken] to get the clue question even when this game keeps it
@@ -146,6 +170,39 @@ class RestClient {
 
   Future<Snapshot> pass(String gameId, String hostToken) =>
       _hostAction(gameId, 'pass', hostToken);
+
+  /// Set the current buzz aside: no points, no lockout, and the buzzer reopens
+  /// for everyone -- for a press that was an accident.
+  Future<Snapshot> skipBuzz(String gameId, String hostToken) =>
+      _hostAction(gameId, 'skip-buzz', hostToken);
+
+  /// Sets a team's score outright. Everyone in the game is told.
+  Future<Snapshot> setScore(
+    String gameId,
+    String hostToken,
+    String teamId,
+    int score,
+  ) => _hostAction(
+    gameId,
+    'teams/$teamId/score',
+    hostToken,
+    body: {'score': score},
+  );
+
+  /// Moves a person to [teamId], to a new team named [newTeamName], or -- with
+  /// neither -- on their own. Only between clues.
+  Future<Snapshot> movePlayer(
+    String gameId,
+    String hostToken,
+    String playerId, {
+    String? teamId,
+    String? newTeamName,
+  }) => _hostAction(
+    gameId,
+    'players/$playerId/move',
+    hostToken,
+    body: {'teamId': ?teamId, 'newTeamName': ?newTeamName},
+  );
 
   Future<Snapshot> reveal(String gameId, String hostToken) =>
       _hostAction(gameId, 'reveal', hostToken);

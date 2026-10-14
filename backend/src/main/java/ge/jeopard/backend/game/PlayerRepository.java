@@ -14,6 +14,10 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
 
     List<Player> findByTeamIdOrderByJoinedAtAsc(UUID teamId);
 
+    Optional<Player> findByIdAndGameId(UUID id, UUID gameId);
+
+    int countByTeamId(UUID teamId);
+
     boolean existsByGameIdAndName(UUID gameId, String name);
 
     /** The host's own team, when the host is playing. */

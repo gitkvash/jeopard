@@ -252,6 +252,12 @@ void main() {
       expect(describeNotice(Notice(kind: 'SOMETHING_NEW')), isNull);
       expect(describeNotice(Notice(kind: 'SCORE_CHANGED')), isNull);
     });
+
+    test('a game terminated notice describes as gameEndedNotice', () {
+      final n = Notice.fromJson({'kind': 'GAME_TERMINATED'});
+      expect(n.isGameTerminated, isTrue);
+      expect(describeNotice(n), L.gameEndedNotice);
+    });
   });
 
   // ---------------- joining without a team ----------------

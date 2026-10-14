@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'session.dart';
 import 'session_store_stub.dart'
     if (dart.library.js_interop) 'session_store_web.dart';
@@ -20,9 +22,23 @@ class SessionStore {
   /// itself; short enough that a stale token is not offered up days later.
   static const maxAge = Duration(hours: 12);
 
+  @visibleForTesting
+  static bool debugKeepInMemory = false;
+
+  static GameSession? _debugMemorySession;
+
   /// Synchronous on purpose: the app decides which screen to build on the very
   /// first frame, so there is nothing to wait for.
   static GameSession? read() {
+    if (debugKeepInMemory) {
+      final s = _debugMemorySession;
+      if (s == null) return null;
+      if (DateTime.now().difference(s.savedAt) > maxAge) {
+        _debugMemorySession = null;
+        return null;
+      }
+      return s;
+    }
     final raw = readRaw(_key);
     if (raw == null || raw.isEmpty) return null;
     final session = GameSession.decode(raw);
@@ -37,7 +53,17 @@ class SessionStore {
     return session;
   }
 
-  static void write(GameSession session) => writeRaw(_key, session.encode());
+  static void write(GameSession session) {
+    if (debugKeepInMemory) {
+      _debugMemorySession = session;
+    }
+    writeRaw(_key, session.encode());
+  }
 
-  static void clear() => removeRaw(_key);
+  static void clear() {
+    if (debugKeepInMemory) {
+      _debugMemorySession = null;
+    }
+    removeRaw(_key);
+  }
 }

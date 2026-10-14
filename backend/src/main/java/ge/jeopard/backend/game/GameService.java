@@ -165,6 +165,29 @@ public class GameService {
                 hostTeamId, hostPlayerId, hostPlayerToken);
     }
 
+    /**
+     * Terminate and delete the game. Broadcasts a termination notice to all
+     * connected participants so their clients return to the home screen.
+     */
+    @Transactional
+    public void deleteGame(UUID gameId, String hostToken) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+
+        game.setBuzzedTeamId(null);
+        game.setBuzzedPlayerId(null);
+        game.setPickingTeamId(null);
+        game.setCurrentClue(null);
+        games.saveAndFlush(game);
+
+        sendAfterCommit(noticesTopic(gameId), Notice.gameTerminated());
+
+        lockouts.deleteByGameId(gameId);
+        gameClues.deleteByGameId(gameId);
+        players.deleteByGameId(gameId);
+        teams.deleteByGameId(gameId);
+        games.delete(game);
+    }
+
     /** What a joining player needs in order to choose a team. */
     @Transactional(readOnly = true)
     public LobbyView lobby(String joinCode) {
@@ -235,6 +258,58 @@ public class GameService {
         relocate(game, player, teamId, newTeamName);
         bump(game);
         return snapshotAndBroadcast(game);
+    }
+
+    /**
+     * A player voluntarily leaves the game. Their seat is freed, any buzz they
+     * held is cleared, and an empty team left behind them is removed. If the host
+     * leaves, the game is terminated.
+     */
+    @Transactional
+    public void leave(UUID gameId, String playerToken) {
+        Optional<Game> gameOpt = games.findByIdForUpdate(gameId);
+        if (gameOpt.isEmpty()) return;
+        Game game = gameOpt.get();
+
+        Optional<Player> playerOpt = players.findByGameIdAndToken(gameId, playerToken);
+        if (playerOpt.isEmpty()) return;
+        Player player = playerOpt.get();
+
+        if (player.isHost()) {
+            deleteGame(gameId, game.getHostToken());
+            return;
+        }
+
+        if (player.getId().equals(game.getBuzzedPlayerId())) {
+            clearBuzz(game);
+            if (game.getState() == GameState.BUZZED) {
+                game.setState(GameState.BUZZ_OPEN);
+            }
+        }
+
+        UUID teamId = player.getTeamId();
+        Team oldTeam = teams.findById(teamId).orElse(null);
+        players.delete(player);
+        players.flush();
+
+        if (oldTeam != null && players.countByTeamId(teamId) == 0) {
+            if (teamId.equals(game.getPickingTeamId())) {
+                game.setPickingTeamId(null);
+            }
+            if (teamId.equals(game.getBuzzedTeamId())) {
+                clearBuzz(game);
+                if (game.getState() == GameState.BUZZED) {
+                    game.setState(GameState.BUZZ_OPEN);
+                }
+            }
+            teams.delete(oldTeam);
+            teams.flush();
+        }
+
+        if (game.getState() != GameState.FINISHED) {
+            bump(game);
+            snapshotAndBroadcast(game);
+        }
     }
 
     /**

@@ -15,6 +15,7 @@ class ApiException implements Exception {
   final String message;
 
   bool get isConflict => status == 409;
+  bool get isNotFound => status == 404;
 
   @override
   String toString() => 'ApiException($status): $message';
@@ -50,6 +51,17 @@ class RestClient {
   /// same way as any other package.
   Future<PackageSummary> randomPackage() async {
     final body = await _post('/api/packages/random');
+    return PackageSummary.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// Swaps one category of a random package with another random category.
+  Future<TopicSummary> rerollTopic(int packageId, int topicId) async {
+    final body = await _post('/api/packages/$packageId/topics/$topicId/reroll');
+    return TopicSummary.fromJson(body as Map<String, dynamic>);
+  }
+
+  Future<PackageSummary> getPackage(int packageId) async {
+    final body = await _get('/api/packages/$packageId');
     return PackageSummary.fromJson(body as Map<String, dynamic>);
   }
 
@@ -137,6 +149,18 @@ class RestClient {
       },
     );
     return Snapshot.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// A player voluntarily leaving the game.
+  Future<void> leavePlayer(String gameId, String playerToken) async {
+    try {
+      await _post(
+        '/api/games/$gameId/leave',
+        body: {'playerToken': playerToken},
+      );
+    } catch (_) {
+      // Best-effort
+    }
   }
 
   /// Supply [hostToken] to get the clue question even when this game keeps it
@@ -254,6 +278,11 @@ class RestClient {
     body: {'teamId': teamId, 'correct': correct},
   );
 
+  /// Ends and deletes the game.
+  Future<void> deleteGame(String gameId, String hostToken) async {
+    await _delete('/api/games/$gameId', hostToken: hostToken);
+  }
+
   // ---------- plumbing ----------
 
   Future<Snapshot> _hostAction(
@@ -290,6 +319,14 @@ class RestClient {
         'X-Host-Token': ?hostToken,
       },
       body: jsonEncode(body ?? const {}),
+    );
+    return _decode(res);
+  }
+
+  Future<dynamic> _delete(String path, {String? hostToken}) async {
+    final res = await _client.delete(
+      Uri.parse('${ApiConfig.baseUrl}$path'),
+      headers: {'X-Host-Token': ?hostToken},
     );
     return _decode(res);
   }

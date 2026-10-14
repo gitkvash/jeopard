@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/api_config.dart';
+import 'core/models.dart';
+import 'core/providers.dart';
+import 'core/rest_client.dart';
+import 'core/session.dart';
+import 'core/session_store.dart';
 import 'core/theme.dart';
+import 'host/host_game_screen.dart';
 import 'host/host_setup_screen.dart';
+import 'main.dart' show routeObserver;
+import 'team/buzzer_screen.dart';
 import 'team/join_screen.dart';
 import 'widgets/stage.dart';
+import 'widgets/toast.dart';
 
 /// One binary, two roles: the host drives the board, everyone else buzzes.
 ///
 /// Lives in its own file because leaving a game has to come back here from any
 /// navigator state, and the game screens cannot reach into main.dart for it.
-class RoleScreen extends StatelessWidget {
+class RoleScreen extends ConsumerStatefulWidget {
   const RoleScreen({super.key});
 
   /// Returns to the start screen and throws the rest of the stack away.
@@ -26,7 +36,212 @@ class RoleScreen extends StatelessWidget {
   }
 
   @override
+  ConsumerState<RoleScreen> createState() => _RoleScreenState();
+}
+
+class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
+  GameSession? _session;
+  bool _resuming = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSession();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+    _refreshSession();
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _refreshSession();
+  }
+
+  void _refreshSession() {
+    final s = SessionStore.read();
+    if (mounted) {
+      setState(() => _session = s);
+    }
+  }
+
+  Future<void> _returnToGame(GameSession session) async {
+    setState(() => _resuming = true);
+    try {
+      final snapshot = await ref
+          .read(restClientProvider)
+          .snapshot(session.gameId, hostToken: session.hostToken);
+      if (!mounted) return;
+      if (snapshot.state == GameState.finished) {
+        SessionStore.clear();
+        showToast(context, L.sessionGone);
+        setState(() {
+          _resuming = false;
+          _session = null;
+        });
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => session.isHost
+              ? HostGameScreen(session: session)
+              : BuzzerScreen(session: session),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.sessionGone);
+          setState(() {
+            _resuming = false;
+            _session = null;
+          });
+        }
+        return;
+      }
+      if (mounted) {
+        showToast(context, describeError(e), error: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        showToast(context, describeError(e), error: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _resuming = false);
+      }
+    }
+  }
+
+  Future<void> _dismissSession(GameSession session) async {
+    SessionStore.clear();
+    setState(() => _session = null);
+    try {
+      if (session.isHost) {
+        if (session.hostToken != null) {
+          await ref
+              .read(restClientProvider)
+              .deleteGame(session.gameId, session.hostToken!);
+        }
+      } else {
+        if (session.playerToken != null) {
+          await ref
+              .read(restClientProvider)
+              .leavePlayer(session.gameId, session.playerToken!);
+        }
+      }
+    } catch (_) {}
+  }
+
+  Widget _buildReturnCard(BuildContext context, GameSession session) {
+    final isHost = session.isHost;
+    final roleTitle = isHost ? L.host : (session.playerName ?? L.iAmPlayer);
+    final subtitleParts = <String>[];
+    if (!isHost && session.teamName != null && session.teamName!.isNotEmpty) {
+      subtitleParts.add(session.teamName!);
+    }
+    subtitleParts.add('${L.joinCode}: ${session.joinCode}');
+    final subtitle = subtitleParts.join(' · ');
+
+    return Plate(
+      lit: true,
+      onTap: _resuming ? null : () => _returnToGame(session),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF56E39F),
+                  Color(0xFF2E9E67),
+                  Color(0xFF1B6B43),
+                ],
+                stops: [0, 0.4, 1],
+              ),
+              borderRadius: BorderRadius.circular(JRadius.tile),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x552E9E67),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: _resuming
+                ? const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  )
+                : const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 30,
+                    color: Colors.white,
+                  ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  L.returnToGame,
+                  style: TextStyle(
+                    color: JColors.goldBright,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$roleTitle · $subtitle',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: JColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: L.leaveGame,
+            icon: const Icon(Icons.close, size: 18, color: JColors.textFaint),
+            onPressed: _resuming ? null : () => _dismissSession(session),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final session = _session;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -72,7 +287,11 @@ class RoleScreen extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 32),
+                  if (session != null) ...[
+                    _buildReturnCard(context, session),
+                    const SizedBox(height: 16),
+                  ],
                   _RoleCard(
                     icon: Icons.co_present_outlined,
                     label: L.iAmHost,

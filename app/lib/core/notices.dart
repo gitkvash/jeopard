@@ -21,5 +21,8 @@ String? describeNotice(Notice n, {String? myPlayerId}) {
         ? L.youWereMoved(n.toTeamName)
         : L.playerMoved(player, n.toTeamName);
   }
+  if (n.isGameTerminated) {
+    return L.gameEndedNotice;
+  }
   return null;
 }

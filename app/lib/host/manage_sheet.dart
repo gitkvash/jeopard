@@ -33,6 +33,7 @@ Future<void> showManageSheet(
   required GameFeed feed,
   required Future<void> Function(String teamId, int score) onSetScore,
   required MovePlayer onMove,
+  VoidCallback? onEndGame,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -43,7 +44,7 @@ Future<void> showManageSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(JRadius.panel)),
     ),
     builder: (_) =>
-        ManagePanel(feed: feed, onSetScore: onSetScore, onMove: onMove),
+        ManagePanel(feed: feed, onSetScore: onSetScore, onMove: onMove, onEndGame: onEndGame),
   );
 }
 
@@ -53,11 +54,13 @@ class ManagePanel extends StatelessWidget {
     required this.feed,
     required this.onSetScore,
     required this.onMove,
+    this.onEndGame,
   });
 
   final GameFeed feed;
   final Future<void> Function(String teamId, int score) onSetScore;
   final MovePlayer onMove;
+  final VoidCallback? onEndGame;
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +128,25 @@ class ManagePanel extends StatelessWidget {
                       onMove: onMove,
                     ),
                   ),
+                if (onEndGame != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(color: JColors.line),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: JColors.wrongBright,
+                        side: const BorderSide(color: JColors.wrong),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onEndGame!();
+                      },
+                      icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                      label: const Text(L.endGame),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

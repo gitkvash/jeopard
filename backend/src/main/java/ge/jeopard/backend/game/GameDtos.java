@@ -77,6 +77,11 @@ public final class GameDtos {
             @Size(max = 40) String newTeamName) {
     }
 
+    /** A player voluntarily leaving the game. */
+    public record LeaveRequest(
+            @NotBlank String playerToken) {
+    }
+
     /** The host moving someone. Same three choices; the host needs no token of the player's. */
     public record MovePlayerRequest(
             UUID teamId,
@@ -182,7 +187,7 @@ public final class GameDtos {
      * score change that nobody remembers. Fields that do not apply are null.
      */
     public record Notice(
-            /* SCORE_CHANGED or PLAYER_MOVED. */
+            /* SCORE_CHANGED, PLAYER_MOVED, or GAME_TERMINATED. */
             String kind,
             /* The team whose score changed. */
             String teamName,
@@ -193,6 +198,10 @@ public final class GameDtos {
             String playerName,
             String fromTeamName,
             String toTeamName) {
+
+        public static Notice gameTerminated() {
+            return new Notice("GAME_TERMINATED", null, null, null, null, null, null, null);
+        }
     }
 
     public record TileView(

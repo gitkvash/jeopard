@@ -147,6 +147,37 @@ class TeamMembershipTest {
         assertThat(hostTeam.path("players").get(0).path("host").asBoolean()).isTrue();
     }
 
+    @Test
+    @DisplayName("a player can voluntarily leave, which removes them and deletes an empty team")
+    void playerLeavesGame() throws Exception {
+        newGame(false);
+        JsonNode nino = join("ნინო", null, "მთიები");
+        JsonNode gio = join("გიორგი", nino.path("teamId").asString(), null);
+        JsonNode solo = join("ლევანი", null, null);
+
+        // Leave gio from mtiebi: team still exists with nino
+        HttpResponse<byte[]> res = rawPost("/api/games/" + gameId + "/leave",
+                mapper.writeValueAsString(Map.of("playerToken", gio.path("playerToken").asString())), null);
+        assertThat(res.statusCode()).isEqualTo(204);
+
+        JsonNode lobby = get("/api/games/" + code + "/lobby");
+        assertThat(lobby.path("teams")).hasSize(1);
+        assertThat(lobby.path("teams").get(0).path("memberNames").get(0).asString()).isEqualTo("ნინო");
+
+        // Leave solo player: their solo team is removed completely
+        res = rawPost("/api/games/" + gameId + "/leave",
+                mapper.writeValueAsString(Map.of("playerToken", solo.path("playerToken").asString())), null);
+        assertThat(res.statusCode()).isEqualTo(204);
+
+        // Leave nino: mtiebi is now empty, so it is removed as well
+        res = rawPost("/api/games/" + gameId + "/leave",
+                mapper.writeValueAsString(Map.of("playerToken", nino.path("playerToken").asString())), null);
+        assertThat(res.statusCode()).isEqualTo(204);
+
+        lobby = get("/api/games/" + code + "/lobby");
+        assertThat(lobby.path("teams")).isEmpty();
+    }
+
     // ------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------

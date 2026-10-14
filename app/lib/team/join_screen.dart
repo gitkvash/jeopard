@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,6 +82,22 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
       _error = null;
     });
     try {
+      final prev = SessionStore.read();
+      if (prev != null) {
+        if (prev.isHost && prev.hostToken != null) {
+          unawaited(ref
+              .read(restClientProvider)
+              .deleteGame(prev.gameId, prev.hostToken!)
+              .catchError((_) {}));
+        } else if (!prev.isHost && prev.playerToken != null) {
+          unawaited(ref
+              .read(restClientProvider)
+              .leavePlayer(prev.gameId, prev.playerToken!)
+              .catchError((_) {}));
+        }
+        SessionStore.clear();
+      }
+
       final joined = await ref
           .read(restClientProvider)
           .joinPlayer(

@@ -22,7 +22,7 @@ public class Topic {
     @Column(nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("value ASC")
     private List<Clue> clues = new ArrayList<>();
 

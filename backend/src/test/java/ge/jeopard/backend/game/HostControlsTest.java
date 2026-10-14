@@ -368,6 +368,55 @@ class HostControlsTest {
     }
 
     // ------------------------------------------------------------------
+    // Ending / deleting game
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("host can delete the game, removing it and preventing further access")
+    void hostCanDeleteGame() throws Exception {
+        newGame(false);
+        join("ნინო", null, "მთიები");
+
+        HttpResponse<byte[]> wrongToken = http.send(
+                HttpRequest.newBuilder(uri("/api/games/" + gameId))
+                        .header("X-Host-Token", "wrong-token")
+                        .DELETE().build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(wrongToken.statusCode()).isEqualTo(403);
+
+        HttpResponse<byte[]> deleted = http.send(
+                HttpRequest.newBuilder(uri("/api/games/" + gameId))
+                        .header("X-Host-Token", hostToken)
+                        .DELETE().build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(deleted.statusCode()).isEqualTo(204);
+
+        HttpResponse<byte[]> snapshot = http.send(
+                HttpRequest.newBuilder(uri("/api/games/" + gameId)).GET().build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(snapshot.statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("host can end the game via POST /end endpoint")
+    void hostCanEndGameViaPost() throws Exception {
+        newGame(false);
+        join("გიორგი", null, "დინამო");
+
+        HttpResponse<byte[]> ended = http.send(
+                HttpRequest.newBuilder(uri("/api/games/" + gameId + "/end"))
+                        .header("X-Host-Token", hostToken)
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(ended.statusCode()).isEqualTo(204);
+
+        HttpResponse<byte[]> snapshot = http.send(
+                HttpRequest.newBuilder(uri("/api/games/" + gameId)).GET().build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(snapshot.statusCode()).isEqualTo(404);
+    }
+
+    // ------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------
 

@@ -359,7 +359,8 @@ class L {
   static const newGame = 'ახალი თამაში';
   static const packageLabel = 'პაკეტი';
   static const originalPackages = 'ორიგინალური პაკეტები (2008)';
-  static const generatedPackages = 'გენერირებული პაკეტები';
+  static const generatedPackages = 'გენერირებული პაკეტები (Gemini)';
+  static const argonPackages = 'გენერირებული პაკეტები (Argon AI)';
   static const randomPackage = 'შემთხვევითი პაკეტი';
   static const randomPackageHint = 'თემები შემთხვევითობით აირჩევა ყველა პაკეტიდან';
   static const randomPackageError = 'ვერ მოხერხდა შემთხვევითი პაკეტის შექმნა';
@@ -370,6 +371,11 @@ class L {
   static const gameOptions = 'პარამეტრები';
   static const roundLabel = 'ტური';
   static const finalRound = 'ფინალი';
+  static const categories = 'კატეგორიები';
+  static const replaceCategory = 'კატეგორიის შეცვლა';
+  static const rerollCategoryTooltip = 'შემთხვევითი კატეგორიით შეცვლა';
+  static const categoryReplaced = 'კატეგორია შეიცვალა';
+  static const rerollError = 'კატეგორიის შეცვლა ვერ მოხერხდა';
   static const wholePackage = 'სრული პაკეტი';
   static const wholePackageHint = 'სამი ტური და ფინალი, ქულები გროვდება';
   static const hostPlaysToo = 'მასპინძელიც თამაშობს';
@@ -504,9 +510,17 @@ class L {
   static const restoring = 'თამაშს ვაბრუნებთ...';
   static const resume = 'თამაშის გაგრძელება';
   static const resumeHint = 'დაწყებული თამაში გაქვთ';
+  static const returnToGame = 'თამაშში დაბრუნება';
+  static const returnToGameHint = 'მიმდინარე თამაშში დაბრუნება';
   static const leaveGame = 'თამაშიდან გასვლა';
   static const leaveGameHint =
       'ამ მოწყობილობაზე შენახული სესია წაიშლება. თამაში სხვებისთვის გაგრძელდება.';
+  static const endGame = 'თამაშის დასრულება';
+  static const endGameConfirmTitle = 'თამაშის დასრულება';
+  static const endGameConfirmMessage =
+      'დარწმუნებული ხართ, რომ გსურთ თამაშის დასრულება? თამაში წაიშლება და ყველა მოთამაშე დაბრუნდება მთავარ გვერდზე.';
+  static const endGameAction = 'დასრულება';
+  static const gameEndedNotice = 'მასპინძელმა დაასრულა თამაში';
   static const sessionGone = 'შენახული თამაში ვერ მოიძებნა';
   static const cancel = 'გაუქმება';
   static const ok = 'კარგი';

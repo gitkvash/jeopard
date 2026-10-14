@@ -51,6 +51,13 @@ public class GameController {
         return gameService.changeOwnTeam(gameId, req.playerToken(), req.teamId(), req.newTeamName());
     }
 
+    /** A player voluntarily leaving the game. */
+    @PostMapping("/{gameId}/leave")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void leave(@PathVariable UUID gameId, @Valid @RequestBody LeaveRequest req) {
+        gameService.leave(gameId, req.playerToken());
+    }
+
     /** The teams available to join, so a player can choose one. */
     @GetMapping("/{joinCode}/lobby")
     public LobbyView lobby(@PathVariable String joinCode) {
@@ -178,5 +185,17 @@ public class GameController {
                                @RequestHeader(HOST_TOKEN) String token,
                                @Valid @RequestBody FinalJudgeRequest req) {
         return gameService.finalJudge(gameId, token, req.teamId(), req.correct());
+    }
+
+    @DeleteMapping("/{gameId}")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
+        gameService.deleteGame(gameId, token);
+    }
+
+    @PostMapping("/{gameId}/end")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void end(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
+        gameService.deleteGame(gameId, token);
     }
 }

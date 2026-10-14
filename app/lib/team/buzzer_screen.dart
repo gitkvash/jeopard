@@ -102,8 +102,15 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   }
 
   /// The host edited a score or moved someone: say so, to the person it
-  /// happened to in the second person.
+  /// happened to in the second person. If the host ended the game, return to home.
   void _onNotice(Notice n) {
+    if (n.isGameTerminated) {
+      SessionStore.clear();
+      if (!mounted) return;
+      showToast(context, L.gameEndedNotice);
+      RoleScreen.replaceAll(context);
+      return;
+    }
     final text = describeNotice(n, myPlayerId: widget.session.playerId);
     if (text != null && mounted) showToast(context, text);
   }
@@ -128,6 +135,16 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           widget.session.withTeam(teamId: mine.id, teamName: mine.name),
         );
       }
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) showToast(context, describeError(e), error: true);
     } catch (e) {
       if (mounted) showToast(context, describeError(e), error: true);
     }
@@ -137,6 +154,14 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     try {
       final s = await ref.read(restClientProvider).snapshot(_gameId);
       _feed.push(s);
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+      }
     } catch (_) {
       // Next broadcast will resync.
     }
@@ -162,7 +187,15 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           .read(restClientProvider)
           .buzz(_gameId, _playerToken)
           .then(_feed.push)
-          .catchError((_) {
+          .catchError((Object e) {
+            if (e is ApiException && e.isNotFound) {
+              SessionStore.clear();
+              if (mounted) {
+                showToast(context, L.gameEndedNotice);
+                RoleScreen.replaceAll(context);
+              }
+              return Future<void>.value();
+            }
             if (mounted) setState(() => _buzzSent = false);
             return Future<void>.value();
           });
@@ -175,6 +208,18 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           .read(restClientProvider)
           .wager(_gameId, _playerToken, amount);
       _feed.push(s);
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) {
+        showToast(context, describeError(e), error: true);
+      }
     } catch (e) {
       if (mounted) {
         showToast(context, describeError(e), error: true);
@@ -202,6 +247,10 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     );
     if (go != true || !mounted) return;
     SessionStore.clear();
+    unawaited(ref
+        .read(restClientProvider)
+        .leavePlayer(_gameId, _playerToken)
+        .catchError((_) {}));
     if (!mounted) return;
     RoleScreen.replaceAll(context);
   }
@@ -219,7 +268,13 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        RoleScreen.replaceAll(context);
+      },
+      child: Scaffold(
       appBar: AppBar(
         toolbarHeight: context.appBarHeight,
         titleSpacing: 16,
@@ -343,6 +398,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

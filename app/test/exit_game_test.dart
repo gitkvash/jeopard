@@ -115,4 +115,128 @@ void main() {
     expect(find.byType(HostGameScreen), findsOneWidget);
     expect(find.byType(RoleScreen), findsNothing);
   });
+
+  testWidgets('the host can end the game from the app bar', (tester) async {
+    var deleted = false;
+    final client = MockClient((request) async {
+      if (request.method == 'DELETE' && request.url.path == '/api/games/g-1') {
+        deleted = true;
+        return http.Response('', 204);
+      }
+      return http.Response(
+        jsonEncode(lobbySnapshot()),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          restClientProvider.overrideWithValue(RestClient(client: client)),
+        ],
+        child: MaterialApp(
+          theme: buildTheme(),
+          home: HostGameScreen(session: hostSession()),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 20));
+
+    // Tap the stop/end game button in the AppBar
+    await tester.tap(find.byIcon(Icons.stop_circle_outlined).first);
+    await settle(tester);
+
+    expect(find.text(L.endGameConfirmMessage), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, L.endGameAction));
+    await settle(tester);
+
+    expect(deleted, isTrue);
+    expect(find.byType(RoleScreen), findsOneWidget);
+    expect(find.byType(HostGameScreen), findsNothing);
+  });
+
+  testWidgets('the host can cancel ending the game', (tester) async {
+    await tester.pumpWidget(app(HostGameScreen(session: hostSession())));
+    await tester.pump(const Duration(milliseconds: 20));
+
+    await tester.tap(find.byIcon(Icons.stop_circle_outlined).first);
+    await settle(tester);
+
+    expect(find.text(L.endGameConfirmMessage), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, L.cancel));
+    await settle(tester);
+
+    expect(find.byType(HostGameScreen), findsOneWidget);
+    expect(find.byType(RoleScreen), findsNothing);
+  });
+
+  testWidgets('the host can end the game from the lobby button',
+      (tester) async {
+    var deleted = false;
+    final client = MockClient((request) async {
+      if (request.method == 'DELETE' && request.url.path == '/api/games/g-1') {
+        deleted = true;
+        return http.Response('', 204);
+      }
+      return http.Response(
+        jsonEncode(lobbySnapshot()),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          restClientProvider.overrideWithValue(RestClient(client: client)),
+        ],
+        child: MaterialApp(
+          theme: buildTheme(),
+          home: HostGameScreen(session: hostSession()),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 20));
+
+    // Tap the end game text button in the lobby
+    await tester.tap(find.widgetWithText(TextButton, L.endGame));
+    await settle(tester);
+
+    expect(find.text(L.endGameConfirmMessage), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, L.endGameAction));
+    await settle(tester);
+
+    expect(deleted, isTrue);
+    expect(find.byType(RoleScreen), findsOneWidget);
+  });
+
+  testWidgets(
+      'a player is kicked to RoleScreen when game is not found on refresh',
+      (tester) async {
+    final client = MockClient((request) async {
+      return http.Response(
+        jsonEncode({'detail': 'no such game'}),
+        404,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          restClientProvider.overrideWithValue(RestClient(client: client)),
+        ],
+        child: MaterialApp(
+          theme: buildTheme(),
+          home: BuzzerScreen(session: playerSession()),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 20));
+    await settle(tester);
+
+    expect(find.byType(RoleScreen), findsOneWidget);
+    expect(find.byType(BuzzerScreen), findsNothing);
+  });
 }

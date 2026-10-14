@@ -140,6 +140,12 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   /// The host hears what they changed too: it is the confirmation that the
   /// number they typed is the one everybody now sees.
   void _onNotice(Notice n) {
+    if (n.isGameTerminated) {
+      SessionStore.clear();
+      if (!mounted) return;
+      RoleScreen.replaceAll(context);
+      return;
+    }
     final text = describeNotice(n, myPlayerId: widget.session.playerId);
     if (text != null) _toast(text);
   }
@@ -169,6 +175,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           newTeamName: newTeamName,
         ),
       ),
+      onEndGame: () => _endGame(),
     );
   }
 
@@ -220,6 +227,11 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         _hostQuestion = question;
         _hostQuestionClueId = s.currentClue!.clueId;
       });
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) RoleScreen.replaceAll(context);
+      }
     } catch (_) {
       // The socket will deliver the next broadcast anyway.
     }
@@ -295,9 +307,52 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     RoleScreen.replaceAll(context);
   }
 
+  Future<void> _endGame() async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text(L.endGameConfirmTitle),
+        content: const Text(L.endGameConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(L.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: JColors.wrong,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(L.endGameAction),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(restClientProvider).deleteGame(_gameId, _token);
+      SessionStore.clear();
+      if (!mounted) return;
+      RoleScreen.replaceAll(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast(describeError(e), error: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        RoleScreen.replaceAll(context);
+      },
+      child: Scaffold(
       appBar: AppBar(
         toolbarHeight: context.appBarHeight,
         titleSpacing: 16,
@@ -310,6 +365,15 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           ),
           const SoundToggle(),
           ConnectionDot(feed: _feed, onTap: _refresh),
+          IconButton(
+            tooltip: L.endGame,
+            onPressed: _endGame,
+            icon: const Icon(
+              Icons.stop_circle_outlined,
+              size: 20,
+              color: JColors.wrongBright,
+            ),
+          ),
           IconButton(
             tooltip: L.leaveGame,
             onPressed: _leave,
@@ -387,6 +451,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -488,6 +553,21 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                       : () => _act((c) => c.start(_gameId, _token)),
                   icon: const Icon(Icons.play_arrow, size: 20),
                   label: const Text(L.startGame),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton.icon(
+                onPressed: _busy ? null : _endGame,
+                icon: const Icon(
+                  Icons.stop_circle_outlined,
+                  size: 18,
+                  color: JColors.wrongBright,
+                ),
+                label: const Text(
+                  L.endGame,
+                  style: TextStyle(color: JColors.wrongBright),
                 ),
               ),
             ),

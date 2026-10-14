@@ -1,6 +1,7 @@
 package ge.jeopard.backend.game;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -22,4 +23,8 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     @Query("select coalesce(max(t.seat), 0) from Team t where t.gameId = ?1")
     int maxSeat(UUID gameId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Team t where t.gameId = ?1")
+    void deleteByGameId(UUID gameId);
 }

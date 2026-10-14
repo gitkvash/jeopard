@@ -22,6 +22,9 @@ void main() {
   runApp(const ProviderScope(child: JeopardApp()));
 }
 
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
+
 class JeopardApp extends StatelessWidget {
   const JeopardApp({super.key});
 
@@ -31,6 +34,7 @@ class JeopardApp extends StatelessWidget {
       title: L.appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      navigatorObservers: [routeObserver],
       // Every screen is drawn on the stage: pooled light above, vignette at the
       // edges. Doing it here rather than per-screen means nothing can forget.
       builder: (context, child) =>
@@ -40,11 +44,8 @@ class JeopardApp extends StatelessWidget {
   }
 }
 
-/// First decision of the run: are we already in a game?
-///
-/// [SessionStore.read] is synchronous, so this costs nothing and happens before
-/// the first frame -- a reloaded browser tab never flashes the role picker on
-/// its way back into the game.
+/// First screen of the run: opens on the role picker, which displays a resume
+/// button if an active session is saved.
 class _Entry extends ConsumerStatefulWidget {
   const _Entry();
 
@@ -53,46 +54,28 @@ class _Entry extends ConsumerStatefulWidget {
 }
 
 class _EntryState extends ConsumerState<_Entry> {
-  GameSession? _saved;
-
   @override
   void initState() {
     super.initState();
-    _saved = SessionStore.read();
-
-    if (_saved == null) {
-      final code = Uri.base.queryParameters['code'];
-      if (code == null || code.length != 6) {
-        // Nothing to resume and no game to join, so this run opens on the role
-        // picker -- and the next thing a host does there is ask for the package
-        // list. Start fetching it now, while they are still reading the two
-        // cards, instead of at the top of the setup screen where the wait is a
-        // spinner they have to watch. The provider caches, so the setup screen
-        // finds it done rather than fetching a second time.
-        ref.read(packagesProvider);
-      } else {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Pushed, not pushReplacement: a player who arrived by scanning the
-          // host's QR code lands straight on the join form, and replacing this
-          // route left them with a one-route stack -- no back arrow, no way to
-          // reach the role picker, and nothing to do but reopen the app
-          // without the ?code. The picker stays underneath instead.
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const JoinScreen()),
-          );
-        });
-      }
+    final code = Uri.base.queryParameters['code'];
+    if (code == null || code.length != 6) {
+      // Start fetching packages now, while they are reading the cards.
+      ref.read(packagesProvider);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Pushed, not pushReplacement: a player who arrived by scanning the
+        // host's QR code lands straight on the join form, with the picker
+        // underneath.
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const JoinScreen()),
+        );
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final saved = _saved;
-    if (saved == null) return const RoleScreen();
-    return ResumeScreen(
-      session: saved,
-      onGiveUp: () => setState(() => _saved = null),
-    );
+    return const RoleScreen();
   }
 }
 
@@ -150,6 +133,11 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      if (e is ApiException && e.isNotFound) {
+        SessionStore.clear();
+        widget.onGiveUp();
+        return;
+      }
       // A failed resume leaves the player staring at a retry button with no way
       // to tell a dropped backend from a bug, so say what happened where it can
       // be read: the browser console.

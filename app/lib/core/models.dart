@@ -71,6 +71,36 @@ enum TileStatus {
   };
 }
 
+class TopicSummary {
+  TopicSummary({
+    required this.id,
+    required this.idx,
+    required this.name,
+  });
+
+  final int id;
+  final int idx;
+  final String name;
+
+  TopicSummary copyWith({int? id, int? idx, String? name}) => TopicSummary(
+    id: id ?? this.id,
+    idx: idx ?? this.idx,
+    name: name ?? this.name,
+  );
+
+  factory TopicSummary.fromJson(Map<String, dynamic> j) => TopicSummary(
+    id: j['id'] as int,
+    idx: j['idx'] as int? ?? 0,
+    name: j['name'] as String,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'idx': idx,
+    'name': name,
+  };
+}
+
 class RoundSummary {
   RoundSummary({
     required this.id,
@@ -78,6 +108,7 @@ class RoundSummary {
     required this.finalRound,
     required this.playable,
     required this.topicCount,
+    this.topics = const [],
   });
 
   final int id;
@@ -85,6 +116,23 @@ class RoundSummary {
   final bool finalRound;
   final bool playable;
   final int topicCount;
+  final List<TopicSummary> topics;
+
+  RoundSummary copyWith({
+    int? id,
+    int? idx,
+    bool? finalRound,
+    bool? playable,
+    int? topicCount,
+    List<TopicSummary>? topics,
+  }) => RoundSummary(
+    id: id ?? this.id,
+    idx: idx ?? this.idx,
+    finalRound: finalRound ?? this.finalRound,
+    playable: playable ?? this.playable,
+    topicCount: topicCount ?? this.topicCount,
+    topics: topics ?? this.topics,
+  );
 
   factory RoundSummary.fromJson(Map<String, dynamic> j) => RoundSummary(
     id: j['id'] as int,
@@ -92,6 +140,9 @@ class RoundSummary {
     finalRound: j['finalRound'] as bool? ?? false,
     playable: j['playable'] as bool? ?? false,
     topicCount: j['topicCount'] as int? ?? 0,
+    topics: (j['topics'] as List<dynamic>? ?? const [])
+        .map((t) => TopicSummary.fromJson(t as Map<String, dynamic>))
+        .toList(),
   );
 }
 
@@ -102,6 +153,7 @@ class PackageSummary {
     required this.title,
     required this.subtitle,
     required this.sourceUrl,
+    this.synthetic = false,
     required this.rounds,
   });
 
@@ -114,9 +166,31 @@ class PackageSummary {
   /// `generated:<model>` marker, set when the set is merged, so the picker can
   /// separate them from the 2008 archive without matching on subtitle text.
   final String? sourceUrl;
+  final bool synthetic;
   final List<RoundSummary> rounds;
 
   bool get generated => sourceUrl?.startsWith('generated') ?? false;
+  bool get isArgon => sourceUrl?.startsWith('generated:argon') ?? false;
+  bool get isGemini => sourceUrl?.startsWith('generated:gemini') ?? false;
+  bool get isRandom => synthetic || number < 0;
+
+  PackageSummary copyWith({
+    int? id,
+    int? number,
+    String? title,
+    String? subtitle,
+    String? sourceUrl,
+    bool? synthetic,
+    List<RoundSummary>? rounds,
+  }) => PackageSummary(
+    id: id ?? this.id,
+    number: number ?? this.number,
+    title: title ?? this.title,
+    subtitle: subtitle ?? this.subtitle,
+    sourceUrl: sourceUrl ?? this.sourceUrl,
+    synthetic: synthetic ?? this.synthetic,
+    rounds: rounds ?? this.rounds,
+  );
 
   factory PackageSummary.fromJson(Map<String, dynamic> j) => PackageSummary(
     id: j['id'] as int,
@@ -124,6 +198,7 @@ class PackageSummary {
     title: j['title'] as String,
     subtitle: j['subtitle'] as String?,
     sourceUrl: j['sourceUrl'] as String?,
+    synthetic: j['synthetic'] as bool? ?? false,
     rounds: (j['rounds'] as List<dynamic>? ?? const [])
         .map((r) => RoundSummary.fromJson(r as Map<String, dynamic>))
         .toList(),
@@ -546,6 +621,7 @@ class Notice {
 
   bool get isScore => kind == 'SCORE_CHANGED';
   bool get isMove => kind == 'PLAYER_MOVED';
+  bool get isGameTerminated => kind == 'GAME_TERMINATED';
 
   factory Notice.fromJson(Map<String, dynamic> j) => Notice(
     kind: j['kind'] as String? ?? '',

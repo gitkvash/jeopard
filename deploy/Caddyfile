@@ -32,13 +32,13 @@
 	handle {
 		root * /srv/web
 
-		# Flutter's entrypoint keeps the same filename across builds, so a
-		# cached index.html or service worker can go on pointing at a stale
-		# bundle. These must revalidate; everything else is safe to cache hard.
-		@revalidate path / /index.html /flutter_bootstrap.js /flutter_service_worker.js /version.json /manifest.json
+		# Flutter names nothing by content hash -- main.dart.js, fonts and the
+		# asset manifest keep their names across builds -- so all of it must
+		# revalidate. Only the icons are safe to cache hard.
+		@revalidate path / /index.html /flutter_bootstrap.js /flutter_service_worker.js /version.json /manifest.json /main.dart.js /assets/* /canvaskit/*
 		header @revalidate Cache-Control "no-cache, must-revalidate"
 
-		@immutable path /assets/* /canvaskit/* /icons/* /main.dart.js /favicon.png
+		@immutable path /icons/* /favicon.png
 		header @immutable Cache-Control "public, max-age=31536000, immutable"
 
 		# The app has no client-side routes, but a stray path should still land

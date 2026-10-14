@@ -57,6 +57,14 @@ public class Game {
     @Column(name = "questions_visible_to_participants", nullable = false)
     private boolean questionsVisibleToParticipants = true;
 
+    /**
+     * True when the players choose the tile, in turn, instead of the host. The
+     * host may still choose at any time; this only gives the team named by
+     * {@link #pickingTeamId} the same power while the board is up.
+     */
+    @Column(name = "players_pick_clues", nullable = false)
+    private boolean playersPickClues;
+
     /** Who or what opens the buzzer once a clue is up. */
     @Enumerated(EnumType.STRING)
     @Column(name = "buzz_mode", nullable = false)
@@ -126,6 +134,8 @@ public class Game {
     public void setQuestionsVisibleToParticipants(boolean questionsVisibleToParticipants) {
         this.questionsVisibleToParticipants = questionsVisibleToParticipants;
     }
+    public boolean isPlayersPickClues() { return playersPickClues; }
+    public void setPlayersPickClues(boolean playersPickClues) { this.playersPickClues = playersPickClues; }
     public BuzzMode getBuzzMode() { return buzzMode; }
     public void setBuzzMode(BuzzMode buzzMode) { this.buzzMode = buzzMode; }
     public int getBuzzDelaySeconds() { return buzzDelaySeconds; }

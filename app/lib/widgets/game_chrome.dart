@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/game_feed.dart';
 import '../core/models.dart';
+import '../core/responsive.dart';
 import '../core/sfx.dart';
 import '../core/theme.dart';
 
@@ -77,6 +78,61 @@ class PhaseHint extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(color: JColors.textFaint, fontSize: 12),
+      ),
+    );
+  }
+}
+
+/// Shown on the device of whoever's turn it is to choose the tile, where the
+/// quiet [PhaseHint] would be missed: a player holding a phone that has just
+/// been put down needs to see, from across the table, that it is theirs to pick.
+class YourTurnBanner extends StatelessWidget {
+  const YourTurnBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Sideways on a phone the board needs every pixel of height: one line.
+    final short = context.isShort;
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.fromLTRB(9, short ? 4 : 8, 9, short ? 4 : 8),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: short ? 4 : 10),
+      decoration: BoxDecoration(
+        color: JColors.gold.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(JRadius.card),
+        border: Border.all(color: JColors.gold, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.touch_app, color: JColors.goldBright, size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  L.yourTurnToPick,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: JColors.goldBright,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (!short) const SizedBox(height: 2),
+                if (!short)
+                  const Text(
+                    L.yourTurnToPickHint,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: JColors.textMuted, fontSize: 12),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

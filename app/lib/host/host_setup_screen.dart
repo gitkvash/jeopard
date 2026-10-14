@@ -233,8 +233,13 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
   final _hostTeamName = TextEditingController();
 
   /// Off makes a team listen rather than read: the host still gets the clue
-  /// text regardless, just not on a participant's own device.
-  bool _questionsVisibleToParticipants = true;
+  /// text regardless, just not on a participant's own device. Off unless the
+  /// host asks otherwise -- most rooms play by ear.
+  bool _questionsVisibleToParticipants = false;
+
+  /// On hands the choice of tile to the players, a team (or a solo player) at a
+  /// time. The host can still choose at any moment.
+  bool _playersPickClues = false;
 
   /// Who opens the buzzer, and after how long when that is a timer.
   BuzzMode _buzzMode = BuzzMode.instant;
@@ -349,6 +354,7 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
             buzzMode: _buzzMode,
             buzzDelaySeconds: _delay,
             questionsVisibleToParticipants: _questionsVisibleToParticipants,
+            playersPickClues: _playersPickClues,
           );
       if (!mounted) return;
       // Remembered before the screen even opens, so a reload during the lobby
@@ -539,6 +545,19 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                       setState(() => _questionsVisibleToParticipants = v),
                   title: const Text(L.participantsSeeQuestions),
                   subtitle: const Text(L.participantsSeeQuestionsHint),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: SwitchListTile(
+                  value: _playersPickClues,
+                  onChanged: (v) => setState(() => _playersPickClues = v),
+                  title: const Text(L.playersPickClues),
+                  subtitle: const Text(L.playersPickCluesHint),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 4,

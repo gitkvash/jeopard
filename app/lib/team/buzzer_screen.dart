@@ -45,7 +45,15 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   bool _buzzSent = false;
   int? _buzzSentForClue;
 
+  /// Whether the last snapshot made it this team's turn to choose, so the phone
+  /// buzzes once when the turn arrives rather than on every broadcast.
+  bool _wasMyTurn = false;
+
   final _wager = TextEditingController();
+
+  /// Set while a tile this player tapped is on its way to the server, so a
+  /// second tap cannot send a second pick.
+  bool _picking = false;
 
   String get _gameId => widget.session.gameId;
   String get _playerToken => widget.session.playerToken ?? '';
@@ -93,6 +101,9 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   void _onFeed() {
     final snap = _feed.snapshot;
+    final myTurn = _isMyTurnToPick(snap);
+    if (myTurn && !_wasMyTurn) HapticFeedback.mediumImpact();
+    _wasMyTurn = myTurn;
     if (_buzzSent &&
         (snap?.currentClue?.clueId != _buzzSentForClue ||
             snap?.state != GameState.buzzOpen)) {
@@ -257,6 +268,50 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   /// My team -- the thing that holds my score.
   TeamView? get _me => _feed.snapshot?.teamById(_teamId);
+
+  /// True when this game lets the players pick and the turn is my team's.
+  bool _isMyTurnToPick(Snapshot? snap) =>
+      snap != null &&
+      snap.playersPickClues &&
+      snap.state == GameState.board &&
+      snap.pickingTeamId != null &&
+      snap.pickingTeamId == _teamId;
+
+  /// Put a tile in play on my team's turn. The server decides whether the turn
+  /// really is ours -- a tap that lost the race to a teammate, or to the host
+  /// choosing for us, is refused there and explained here.
+  Future<void> _pickTile(TileView tile) async {
+    if (_picking) return;
+    setState(() => _picking = true);
+    try {
+      final s = await ref
+          .read(restClientProvider)
+          .pickClue(_gameId, _playerToken, tile.clueId);
+      _feed.push(s);
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) {
+        showToast(
+          context,
+          e.isConflict ? L.pickNotYourTurn : describeError(e),
+          error: true,
+        );
+      }
+      // Whatever beat us to it is already on the wire; make sure we have it.
+      unawaited(_refresh());
+    } catch (e) {
+      if (mounted) showToast(context, describeError(e), error: true);
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
 
   /// The server already omits [CurrentClue.question] on this game -- this just
   /// turns that gap into something a player understands instead of a blank
@@ -478,12 +533,27 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   Widget _watchBoard() {
     return Column(
       children: [
-        SnapshotBuilder<String?>(
+        SnapshotBuilder<(String?, String?, bool)>(
           feed: _feed,
-          select: (s) => s?.teamById(s.pickingTeamId)?.name,
-          builder: (context, picking) => PhaseHint(
-            picking == null ? L.hostIsChoosing : '${L.chooseTile} — $picking',
+          select: (s) => (
+            s?.pickingTeamId,
+            s?.teamById(s.pickingTeamId)?.name,
+            s?.playersPickClues ?? false,
           ),
+          builder: (context, value) {
+            final (pickingId, picking, playersPick) = value;
+            if (playersPick) {
+              if (pickingId != null && pickingId == _teamId) {
+                return const YourTurnBanner();
+              }
+              return PhaseHint(
+                picking == null ? L.hostIsChoosing : L.isChoosing(picking),
+              );
+            }
+            return PhaseHint(
+              picking == null ? L.hostIsChoosing : '${L.chooseTile} — $picking',
+            );
+          },
         ),
         Expanded(
           child: Padding(
@@ -493,14 +563,19 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
               9,
               12 + MediaQuery.paddingOf(context).bottom,
             ),
-            child: SnapshotBuilder<List<BoardColumn>>(
+            // Rebuilt when the turn changes too: the same board is read-only
+            // for everyone but whoever holds the pick.
+            child: SnapshotBuilder<(List<BoardColumn>, bool)>(
               feed: _feed,
-              select: (s) => s?.board ?? const <BoardColumn>[],
-              equals: boardsEqual,
-              builder: (context, board) => BoardGrid(
-                board: board,
-                interactive: false,
-                onTapTile: (_) {},
+              select: (s) => (
+                s?.board ?? const <BoardColumn>[],
+                _isMyTurnToPick(s),
+              ),
+              equals: (a, b) => a.$2 == b.$2 && boardsEqual(a.$1, b.$1),
+              builder: (context, value) => BoardGrid(
+                board: value.$1,
+                interactive: value.$2,
+                onTapTile: _pickTile,
               ),
             ),
           ),

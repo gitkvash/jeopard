@@ -177,10 +177,14 @@ void main() {
     expect(find.text('პაკეტი #1'), findsOneWidget);
     expect(find.text('პაკეტი #2'), findsNothing);
     expect(find.text(L.wholePackage), findsOneWidget);
+    // The options run past the fold of a phone; the last of them is a scroll away.
+    await tester.scrollUntilVisible(find.text(L.hostPlaysToo), 200);
     expect(find.text(L.hostPlaysToo), findsOneWidget);
     final create = find.widgetWithText(FilledButton, L.create);
     expect(tester.widget<FilledButton>(create).onPressed, isNotNull);
 
+    await tester.drag(find.byType(ListView).first, const Offset(0, 800));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(L.changePackage));
     await tester.pumpAndSettle();
 
@@ -443,5 +447,29 @@ void main() {
     // Let any toast dismiss timer run out
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'questions are hidden from players by default, and players picking is opt-in',
+      (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(setupScreen([package(1, generated: false)]));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('პაკეტი #1'));
+    await tester.pumpAndSettle();
+
+    SwitchListTile row(String title) => tester.widget<SwitchListTile>(
+        find.widgetWithText(SwitchListTile, title, skipOffstage: false));
+
+    // Off both: a room plays by ear unless the host asks for more, and the host
+    // chooses the tiles unless they hand that to the players.
+    expect(row(L.participantsSeeQuestions).value, isFalse);
+    expect(row(L.playersPickClues).value, isFalse);
+
+    await tester.ensureVisible(find.text(L.playersPickClues));
+    await tester.tap(find.text(L.playersPickClues));
+    await tester.pumpAndSettle();
+    expect(row(L.playersPickClues).value, isTrue);
+    expect(row(L.participantsSeeQuestions).value, isFalse);
   });
 }

@@ -383,6 +383,9 @@ class L {
   static const participantsSeeQuestions = 'მონაწილეები ხედავენ შეკითხვას';
   static const participantsSeeQuestionsHint =
       'გამორთეთ, თუ მონაწილეებმა შეკითხვა მხოლოდ ხმამაღლა უნდა მოისმინონ და არ წაიკითხონ — მასპინძელი მას მაინც ხედავს';
+  static const playersPickClues = 'მოთამაშეები ირჩევენ შეკითხვას';
+  static const playersPickCluesHint =
+      'კატეგორიასა და ქულას რიგრიგობით ირჩევენ გუნდები, ხოლო გუნდების გარეშე — მოთამაშეები. მასპინძელს ნებისმიერ დროს შეუძლია თავად აირჩიოს';
 
   // how the buzzer opens
   static const buzzModeLabel = 'ღილაკის გახსნა';
@@ -438,6 +441,14 @@ class L {
   // board / clue
   static const chooseTile = 'აირჩიეთ შეკითხვა';
   static const hostIsChoosing = 'მასპინძელი ირჩევს შეკითხვას';
+  static const yourTurnToPick = 'თქვენი რიგია!';
+  static const yourTurnToPickHint =
+      'აირჩიეთ კატეგორია და ქულა — გუნდიდან ნებისმიერს შეუძლია';
+  static const pickNotYourTurn =
+      'ახლა თქვენი რიგი არ არის, ან შეკითხვა უკვე არჩეულია';
+  static String isChoosing(String who) => 'ირჩევს: $who';
+  static String turnToChoose(String who) =>
+      'ახლა ირჩევს: $who — ან თავად აირჩიეთ შეკითხვა';
   static const points = 'ქულა';
   static const nowPlaying = 'თამაშში';
   static const remaining = 'დარჩენილია';

@@ -15,6 +15,8 @@ Snapshot snap({
   bool aLocked = false,
   String? buzzed,
   int roundId = 1,
+  bool playersPick = false,
+  String? picking,
 }) {
   Map<String, dynamic> team(String id, int score, bool locked) => {
     'id': id,
@@ -31,6 +33,8 @@ Snapshot snap({
     'roundId': roundId,
     'seq': seq,
     'buzzedTeamId': buzzed,
+    'playersPickClues': playersPick,
+    'pickingTeamId': picking,
     'teams': [team('a', a, aLocked), team('b', b, false)],
   });
 }
@@ -43,6 +47,43 @@ List<Cue> cues(
 }) => [for (final c in cuesFor(prev, next, role: role, myTeamId: me)) c.cue];
 
 void main() {
+  group('players choosing the tile', () {
+    test('a team is pinged when the turn becomes theirs, and only them', () {
+      final resolved = snap(
+        seq: 1,
+        state: 'RESOLVED',
+        playersPick: true,
+        picking: 'b',
+      );
+      final board = snap(
+        seq: 2,
+        state: 'BOARD',
+        playersPick: true,
+        picking: 'b',
+      );
+
+      expect(
+        cuesFor(resolved, board, role: SoundRole.team, myTeamId: 'b'),
+        const [TimedCue(Cue.buzzOpen, 250)],
+      );
+      expect(
+        cuesFor(resolved, board, role: SoundRole.team, myTeamId: 'a'),
+        isEmpty,
+      );
+      // The host's loudspeaker is not a player: it has no turn to announce.
+      expect(cuesFor(resolved, board, role: SoundRole.host), isEmpty);
+    });
+
+    test('a game where the host chooses has no turn to announce', () {
+      final resolved = snap(seq: 1, state: 'RESOLVED', picking: 'b');
+      final board = snap(seq: 2, state: 'BOARD', picking: 'b');
+      expect(
+        cuesFor(resolved, board, role: SoundRole.team, myTeamId: 'b'),
+        isEmpty,
+      );
+    });
+  });
+
   group('host: the whole show', () {
     test('picking a tile and the buzzer opening on a timer', () {
       final board = snap(seq: 1, state: 'BOARD');

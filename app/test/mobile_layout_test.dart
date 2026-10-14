@@ -198,6 +198,15 @@ void main() {
     'host-finished': (host: true, snap: snapshot('FINISHED')),
     'team-lobby': (host: false, snap: snapshot('LOBBY')),
     'team-board': (host: false, snap: snapshot('BOARD')),
+    // The players choose the tile and it is this team's turn (pickingTeamId t-1).
+    'team-your-turn': (
+      host: false,
+      snap: snapshot('BOARD', extra: {'playersPickClues': true}),
+    ),
+    'host-board-players-pick': (
+      host: true,
+      snap: snapshot('BOARD', extra: {'playersPickClues': true}),
+    ),
     'team-reading': (host: false, snap: snapshot('CLUE_READING', clue: clue())),
     'team-buzz-open': (host: false, snap: snapshot('BUZZ_OPEN', clue: clue())),
     'team-buzzed': (

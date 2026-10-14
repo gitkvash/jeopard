@@ -77,6 +77,7 @@ class RestClient {
     BuzzMode buzzMode = BuzzMode.host,
     int? buzzDelaySeconds,
     bool questionsVisibleToParticipants = true,
+    bool playersPickClues = false,
   }) async {
     assert(
       (packageId == null) != (roundId == null),
@@ -97,6 +98,7 @@ class RestClient {
         'buzzMode': buzzMode.wire,
         if (buzzMode == BuzzMode.timer) 'buzzDelaySeconds': buzzDelaySeconds,
         'questionsVisibleToParticipants': questionsVisibleToParticipants,
+        'playersPickClues': playersPickClues,
       },
     );
     return CreatedGame.fromJson(body as Map<String, dynamic>);
@@ -185,6 +187,20 @@ class RestClient {
 
   Future<Snapshot> selectClue(String gameId, String hostToken, int clueId) =>
       _hostAction(gameId, 'select-clue', hostToken, body: {'clueId': clueId});
+
+  /// A player putting a tile in play on their team's turn, in a game that lets
+  /// the players pick. Refused (409) when it is not their team's turn.
+  Future<Snapshot> pickClue(
+    String gameId,
+    String playerToken,
+    int clueId,
+  ) async {
+    final body = await _post(
+      '/api/games/$gameId/pick-clue',
+      body: {'playerToken': playerToken, 'clueId': clueId},
+    );
+    return Snapshot.fromJson(body as Map<String, dynamic>);
+  }
 
   /// Swaps a category nobody has played from for another random one.
   Future<Snapshot> rerollGameTopic(

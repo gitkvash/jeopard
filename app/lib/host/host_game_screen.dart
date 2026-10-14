@@ -591,12 +591,23 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   Widget _board() {
     return Column(
       children: [
-        SnapshotBuilder<String?>(
+        SnapshotBuilder<(String?, bool)>(
           feed: _feed,
-          select: (s) => s?.teamById(s.pickingTeamId)?.name,
-          builder: (context, picking) => PhaseHint(
-            picking == null ? L.chooseTile : '${L.chooseTile} — $picking',
+          select: (s) => (
+            s?.teamById(s.pickingTeamId)?.name,
+            s?.playersPickClues ?? false,
           ),
+          builder: (context, value) {
+            final (picking, playersPick) = value;
+            // With the players choosing, the host still can: say whose turn it
+            // is, and that the board is theirs to override.
+            if (playersPick && picking != null) {
+              return PhaseHint(L.turnToChoose(picking));
+            }
+            return PhaseHint(
+              picking == null ? L.chooseTile : '${L.chooseTile} — $picking',
+            );
+          },
         ),
         Expanded(
           child: Padding(

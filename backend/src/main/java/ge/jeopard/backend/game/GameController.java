@@ -97,6 +97,16 @@ public class GameController {
         return gameService.selectClue(gameId, token, req.clueId());
     }
 
+    /**
+     * A player choosing the tile on their team's turn, in a game that lets the
+     * players pick. The same outcome as the host's {@code select-clue}, but
+     * authorised by a player token and refused out of turn.
+     */
+    @PostMapping("/{gameId}/pick-clue")
+    public Snapshot pickClue(@PathVariable UUID gameId, @Valid @RequestBody PickClueRequest req) {
+        return gameService.pickClue(gameId, req.playerToken(), req.clueId());
+    }
+
     @PostMapping("/{gameId}/open-buzzer")
     public Snapshot openBuzzer(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
         return gameService.openBuzzer(gameId, token);

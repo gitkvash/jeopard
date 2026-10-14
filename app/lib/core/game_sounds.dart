@@ -93,6 +93,14 @@ List<TimedCue> cuesFor(
       if (host && (from == GameState.lobby || next.roundId != prev.roundId)) {
         out.add(const TimedCue(Cue.roundStart));
       }
+      // The players are choosing the tile and it just became this team's turn:
+      // the one thing on a team's phone that is waiting for them to act.
+      if (!host &&
+          next.playersPickClues &&
+          myTeamId != null &&
+          next.pickingTeamId == myTeamId) {
+        out.add(const TimedCue(Cue.buzzOpen, 250));
+      }
     case GameState.clueReading:
       if (host) out.add(const TimedCue(Cue.cluePick));
     case GameState.buzzOpen:

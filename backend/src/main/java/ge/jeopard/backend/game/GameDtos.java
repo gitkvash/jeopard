@@ -51,7 +51,13 @@ public final class GameDtos {
              * Defaults to true (visible) when absent. The host sees the clue
              * text regardless of this -- it only ever narrows what a team sees.
              */
-            Boolean questionsVisibleToParticipants) {
+            Boolean questionsVisibleToParticipants,
+            /*
+             * True to let the players choose the tile in turn, a team (or a solo
+             * player) at a time. Defaults to false: the host chooses. The host
+             * may choose at any time either way.
+             */
+            Boolean playersPickClues) {
     }
 
     /**
@@ -98,6 +104,10 @@ public final class GameDtos {
     }
 
     public record SelectClueRequest(@NotNull Long clueId) {
+    }
+
+    /** A player choosing the tile on their team's turn. */
+    public record PickClueRequest(@NotBlank String playerToken, @NotNull Long clueId) {
     }
 
     public record JudgeRequest(boolean correct) {
@@ -265,6 +275,12 @@ public final class GameDtos {
              * separately with the host token (see {@code GameService.snapshot}).
              */
             boolean questionsVisibleToParticipants,
+            /**
+             * True when the players choose the tile in turn. Then
+             * {@link #pickingTeamId()} is the team whose turn it is, and any
+             * member of it may pick; the host may pick regardless.
+             */
+            boolean playersPickClues,
             long seq,
             String attribution) {
     }

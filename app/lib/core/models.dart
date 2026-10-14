@@ -383,6 +383,7 @@ class Snapshot {
     required this.buzzDelaySeconds,
     required this.buzzOpensInMs,
     required this.questionsVisibleToParticipants,
+    this.playersPickClues = false,
     required this.seq,
     required this.attribution,
   });
@@ -428,6 +429,11 @@ class Snapshot {
   /// never affects the host's own screen.
   final bool questionsVisibleToParticipants;
 
+  /// True when the players choose the tile in turn instead of the host. Then
+  /// [pickingTeamId] is the team whose turn it is, any member of which may pick;
+  /// the host may pick at any time regardless.
+  final bool playersPickClues;
+
   final int seq;
   final String? attribution;
 
@@ -470,6 +476,7 @@ class Snapshot {
     buzzOpensInMs: (j['buzzOpensInMs'] as num?)?.toInt(),
     questionsVisibleToParticipants:
         j['questionsVisibleToParticipants'] as bool? ?? true,
+    playersPickClues: j['playersPickClues'] as bool? ?? false,
     seq: (j['seq'] as num?)?.toInt() ?? 0,
     attribution: j['attribution'] as String?,
   );

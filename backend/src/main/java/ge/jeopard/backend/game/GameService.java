@@ -142,6 +142,7 @@ public class GameService {
         game.setQuestionsVisibleToParticipants(req.questionsVisibleToParticipants() == null
                 ? true
                 : req.questionsVisibleToParticipants());
+        game.setPlayersPickClues(Boolean.TRUE.equals(req.playersPickClues()));
         game.setState(GameState.LOBBY);
         games.save(game);
 
@@ -288,6 +289,11 @@ public class GameService {
 
         Team team = destinationTeam(game, playerName, req.teamId(), req.newTeamName());
         Player player = addPlayer(game.getId(), team.getId(), playerName, false);
+        if (game.getState() == GameState.BOARD && game.isPlayersPickClues()
+                && game.getPickingTeamId() == null) {
+            // Everyone had left, so nobody held the turn; the newcomer takes it.
+            game.setPickingTeamId(team.getId());
+        }
         broadcastAfterCommit(game.getId());
         return new JoinedPlayer(game.getId(), player.getId(), player.getToken(),
                 player.getName(), team.getId(), team.getName(), team.getSeat(), team.isSolo());
@@ -350,7 +356,7 @@ public class GameService {
 
         if (oldTeam != null && players.countByTeamId(teamId) == 0) {
             if (teamId.equals(game.getPickingTeamId())) {
-                game.setPickingTeamId(null);
+                game.setPickingTeamId(pickerAfterRemoving(game, teamId));
             }
             if (teamId.equals(game.getBuzzedTeamId())) {
                 clearBuzz(game);
@@ -430,7 +436,7 @@ public class GameService {
 
         if (players.countByTeamId(old.getId()) == 0) {
             if (old.getId().equals(game.getPickingTeamId())) {
-                game.setPickingTeamId(null);
+                game.setPickingTeamId(pickerAfterRemoving(game, old.getId()));
             }
             if (old.getId().equals(game.getBuzzedTeamId())) {
                 clearBuzz(game);
@@ -511,6 +517,10 @@ public class GameService {
             throw new ResponseStatusException(CONFLICT, "no teams have joined yet");
         }
         game.setState(game.getRound().isFinalRound() ? GameState.FINAL_WAGER : GameState.BOARD);
+        if (game.isPlayersPickClues()) {
+            // The first turn is the first seat's -- whoever sat down first.
+            game.setPickingTeamId(teamAfter(game, null, null));
+        }
         bump(game);
         return snapshotAndBroadcast(game);
     }
@@ -519,9 +529,40 @@ public class GameService {
     // Board flow
     // ------------------------------------------------------------------
 
+    /** The host puts a tile in play -- at any time the board is up, whoever's turn it is. */
     @Transactional
     public Snapshot selectClue(UUID gameId, String hostToken, Long clueId) {
         Game game = lockAndAuthorise(gameId, hostToken);
+        return putClueInPlay(game, clueId);
+    }
+
+    /**
+     * A player puts a tile in play, which only the team whose turn it is may do,
+     * and only in a game that lets the players pick. Any member of that team may:
+     * a team has one turn, not one picker, so the first of them to tap wins it.
+     * The host is unaffected -- {@link #selectClue} never looks at whose turn it is.
+     */
+    @Transactional
+    public Snapshot pickClue(UUID gameId, String playerToken, Long clueId) {
+        Game game = games.findByIdForUpdate(gameId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
+        Player player = players.findByGameIdAndToken(gameId, playerToken)
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN,
+                        "not a player in this game"));
+        if (!game.isPlayersPickClues()) {
+            throw new ResponseStatusException(FORBIDDEN, "the host chooses the clues in this game");
+        }
+        // Checked against the locked row, so two members of the team tapping at
+        // once cannot both get through: the second finds the board already gone.
+        expect(game, GameState.BOARD);
+        if (!player.getTeamId().equals(game.getPickingTeamId())) {
+            throw new ResponseStatusException(CONFLICT, "it is not your team's turn to choose");
+        }
+        return putClueInPlay(game, clueId);
+    }
+
+    private Snapshot putClueInPlay(Game game, Long clueId) {
+        UUID gameId = game.getId();
         boolean finalRound = game.getRound().isFinalRound();
         expect(game, finalRound ? GameState.FINAL_WAGER : GameState.BOARD);
 
@@ -543,6 +584,11 @@ public class GameService {
         // stays hidden, so the state does not advance here.
         if (!finalRound) {
             game.setState(GameState.CLUE_READING);
+            if (game.isPlayersPickClues()) {
+                // The turn is spent by the tile going up, not by who tapped it:
+                // a host who picks for a team that is dithering has used it.
+                game.setPickingTeamId(teamAfter(game, game.getPickingTeamId(), null));
+            }
             armBuzzer(game);
         }
         bump(game);
@@ -699,7 +745,11 @@ public class GameService {
 
         if (correct) {
             team.setScore(team.getScore() + value);
-            game.setPickingTeamId(team.getId());
+            if (!game.isPlayersPickClues()) {
+                // Winning a clue earns the next pick -- unless the players are
+                // taking turns, in which case the turn is not the winner's to keep.
+                game.setPickingTeamId(team.getId());
+            }
             resolve(game, clue, team.getId());
         } else {
             team.setScore(team.getScore() - value);
@@ -970,6 +1020,7 @@ public class GameService {
                 gameClues.countByGameIdAndStatus(gameId, ClueStatus.AVAILABLE),
                 game.getBuzzMode(), game.getBuzzDelaySeconds(), buzzOpensInMs(game),
                 game.isQuestionsVisibleToParticipants(),
+                game.isPlayersPickClues(),
                 game.getEventSeq(), attribution.text());
     }
 
@@ -994,6 +1045,42 @@ public class GameService {
                             + MAX_BUZZ_DELAY_SECONDS + " when buzzMode is TIMER");
         }
         return requested;
+    }
+
+    /**
+     * The team that follows {@code after} in seat order, wrapping round to the
+     * first, and never {@code exclude}. A null {@code after} (or one no longer
+     * seated) starts from the first seat. Null when there is nobody else.
+     *
+     * <p>A solo player is a team of one, so rotating over teams already rotates
+     * over individuals when nobody is on a team.
+     */
+    private UUID teamAfter(Game game, UUID after, UUID exclude) {
+        List<Team> seated = teams.findByGameIdOrderBySeatAsc(game.getId()).stream()
+                .filter(t -> !t.getId().equals(exclude))
+                .toList();
+        if (seated.isEmpty()) {
+            return null;
+        }
+        Team from = after == null ? null : teams.findById(after).orElse(null);
+        if (from != null) {
+            // By seat rather than by position: the team we are moving on from
+            // may itself be the one filtered out above.
+            for (Team t : seated) {
+                if (t.getSeat() > from.getSeat()) {
+                    return t.getId();
+                }
+            }
+        }
+        return seated.get(0).getId();
+    }
+
+    /**
+     * Who holds the pick once {@code leaving} is gone and had it. In a game where
+     * the host chooses nobody holds it, as before.
+     */
+    private UUID pickerAfterRemoving(Game game, UUID leaving) {
+        return game.isPlayersPickClues() ? teamAfter(game, leaving, leaving) : null;
     }
 
     /** Put every clue of a round onto this game's board. */

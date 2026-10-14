@@ -71,6 +71,36 @@ enum TileStatus {
   };
 }
 
+class TopicSummary {
+  TopicSummary({
+    required this.id,
+    required this.idx,
+    required this.name,
+  });
+
+  final int id;
+  final int idx;
+  final String name;
+
+  TopicSummary copyWith({int? id, int? idx, String? name}) => TopicSummary(
+    id: id ?? this.id,
+    idx: idx ?? this.idx,
+    name: name ?? this.name,
+  );
+
+  factory TopicSummary.fromJson(Map<String, dynamic> j) => TopicSummary(
+    id: j['id'] as int,
+    idx: j['idx'] as int? ?? 0,
+    name: j['name'] as String,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'idx': idx,
+    'name': name,
+  };
+}
+
 class RoundSummary {
   RoundSummary({
     required this.id,
@@ -78,6 +108,7 @@ class RoundSummary {
     required this.finalRound,
     required this.playable,
     required this.topicCount,
+    this.topics = const [],
   });
 
   final int id;
@@ -85,6 +116,23 @@ class RoundSummary {
   final bool finalRound;
   final bool playable;
   final int topicCount;
+  final List<TopicSummary> topics;
+
+  RoundSummary copyWith({
+    int? id,
+    int? idx,
+    bool? finalRound,
+    bool? playable,
+    int? topicCount,
+    List<TopicSummary>? topics,
+  }) => RoundSummary(
+    id: id ?? this.id,
+    idx: idx ?? this.idx,
+    finalRound: finalRound ?? this.finalRound,
+    playable: playable ?? this.playable,
+    topicCount: topicCount ?? this.topicCount,
+    topics: topics ?? this.topics,
+  );
 
   factory RoundSummary.fromJson(Map<String, dynamic> j) => RoundSummary(
     id: j['id'] as int,
@@ -92,6 +140,9 @@ class RoundSummary {
     finalRound: j['finalRound'] as bool? ?? false,
     playable: j['playable'] as bool? ?? false,
     topicCount: j['topicCount'] as int? ?? 0,
+    topics: (j['topics'] as List<dynamic>? ?? const [])
+        .map((t) => TopicSummary.fromJson(t as Map<String, dynamic>))
+        .toList(),
   );
 }
 
@@ -102,6 +153,7 @@ class PackageSummary {
     required this.title,
     required this.subtitle,
     required this.sourceUrl,
+    this.synthetic = false,
     required this.rounds,
   });
 
@@ -114,9 +166,31 @@ class PackageSummary {
   /// `generated:<model>` marker, set when the set is merged, so the picker can
   /// separate them from the 2008 archive without matching on subtitle text.
   final String? sourceUrl;
+  final bool synthetic;
   final List<RoundSummary> rounds;
 
   bool get generated => sourceUrl?.startsWith('generated') ?? false;
+  bool get isArgon => sourceUrl?.startsWith('generated:argon') ?? false;
+  bool get isGemini => sourceUrl?.startsWith('generated:gemini') ?? false;
+  bool get isRandom => synthetic || number < 0;
+
+  PackageSummary copyWith({
+    int? id,
+    int? number,
+    String? title,
+    String? subtitle,
+    String? sourceUrl,
+    bool? synthetic,
+    List<RoundSummary>? rounds,
+  }) => PackageSummary(
+    id: id ?? this.id,
+    number: number ?? this.number,
+    title: title ?? this.title,
+    subtitle: subtitle ?? this.subtitle,
+    sourceUrl: sourceUrl ?? this.sourceUrl,
+    synthetic: synthetic ?? this.synthetic,
+    rounds: rounds ?? this.rounds,
+  );
 
   factory PackageSummary.fromJson(Map<String, dynamic> j) => PackageSummary(
     id: j['id'] as int,
@@ -124,6 +198,7 @@ class PackageSummary {
     title: j['title'] as String,
     subtitle: j['subtitle'] as String?,
     sourceUrl: j['sourceUrl'] as String?,
+    synthetic: j['synthetic'] as bool? ?? false,
     rounds: (j['rounds'] as List<dynamic>? ?? const [])
         .map((r) => RoundSummary.fromJson(r as Map<String, dynamic>))
         .toList(),
@@ -157,6 +232,7 @@ class TeamView {
     required this.wager,
     required this.lockedOut,
     this.players = const [],
+    this.solo = false,
   });
 
   final String id;
@@ -167,6 +243,11 @@ class TeamView {
   final int? wager;
   final bool lockedOut;
   final List<PlayerView> players;
+
+  /// A player who chose to play without a team. The "team" is that one person,
+  /// named after them -- it scores and buzzes like any other, but nobody can
+  /// sit with it and it goes away when they leave it.
+  final bool solo;
 
   factory TeamView.fromJson(Map<String, dynamic> j) => TeamView(
     id: j['id'] as String,
@@ -179,6 +260,7 @@ class TeamView {
     players: (j['players'] as List<dynamic>? ?? const [])
         .map((p) => PlayerView.fromJson(p as Map<String, dynamic>))
         .toList(),
+    solo: j['solo'] as bool? ?? false,
   );
 }
 
@@ -484,6 +566,7 @@ class JoinedPlayer {
     required this.teamId,
     required this.teamName,
     required this.seat,
+    this.solo = false,
   });
 
   final String gameId;
@@ -493,6 +576,7 @@ class JoinedPlayer {
   final String teamId;
   final String teamName;
   final int seat;
+  final bool solo;
 
   factory JoinedPlayer.fromJson(Map<String, dynamic> j) => JoinedPlayer(
     gameId: j['gameId'] as String,
@@ -502,6 +586,52 @@ class JoinedPlayer {
     teamId: j['teamId'] as String,
     teamName: j['teamName'] as String,
     seat: j['seat'] as int? ?? 0,
+    solo: j['solo'] as bool? ?? false,
+  );
+}
+
+/// Something the host did that everybody should hear about: a score they
+/// edited, or a person they moved. Delivered once, on its own topic -- it is an
+/// event, not state, so a device that reconnects later does not replay it.
+class Notice {
+  Notice({
+    required this.kind,
+    this.teamName,
+    this.scoreBefore,
+    this.scoreAfter,
+    this.playerId,
+    this.playerName,
+    this.fromTeamName,
+    this.toTeamName,
+  });
+
+  /// `SCORE_CHANGED` or `PLAYER_MOVED`.
+  final String kind;
+
+  final String? teamName;
+  final int? scoreBefore;
+  final int? scoreAfter;
+
+  final String? playerId;
+  final String? playerName;
+
+  /// Where the player was and now is. Null means "on their own".
+  final String? fromTeamName;
+  final String? toTeamName;
+
+  bool get isScore => kind == 'SCORE_CHANGED';
+  bool get isMove => kind == 'PLAYER_MOVED';
+  bool get isGameTerminated => kind == 'GAME_TERMINATED';
+
+  factory Notice.fromJson(Map<String, dynamic> j) => Notice(
+    kind: j['kind'] as String? ?? '',
+    teamName: j['teamName'] as String?,
+    scoreBefore: j['scoreBefore'] as int?,
+    scoreAfter: j['scoreAfter'] as int?,
+    playerId: j['playerId'] as String?,
+    playerName: j['playerName'] as String?,
+    fromTeamName: j['fromTeamName'] as String?,
+    toTeamName: j['toTeamName'] as String?,
   );
 }
 

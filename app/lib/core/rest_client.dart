@@ -15,6 +15,7 @@ class ApiException implements Exception {
   final String message;
 
   bool get isConflict => status == 409;
+  bool get isNotFound => status == 404;
 
   @override
   String toString() => 'ApiException($status): $message';
@@ -50,6 +51,17 @@ class RestClient {
   /// same way as any other package.
   Future<PackageSummary> randomPackage() async {
     final body = await _post('/api/packages/random');
+    return PackageSummary.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// Swaps one category of a random package with another random category.
+  Future<TopicSummary> rerollTopic(int packageId, int topicId) async {
+    final body = await _post('/api/packages/$packageId/topics/$topicId/reroll');
+    return TopicSummary.fromJson(body as Map<String, dynamic>);
+  }
+
+  Future<PackageSummary> getPackage(int packageId) async {
+    final body = await _get('/api/packages/$packageId');
     return PackageSummary.fromJson(body as Map<String, dynamic>);
   }
 
@@ -96,8 +108,8 @@ class RestClient {
     return LobbyView.fromJson(body as Map<String, dynamic>);
   }
 
-  /// Join as a person. Supply either [teamId] to sit with an existing team or
-  /// [newTeamName] to start one -- exactly one of the two.
+  /// Join as a person. Supply [teamId] to sit with an existing team or
+  /// [newTeamName] to start one; supply neither to play without a team.
   Future<JoinedPlayer> joinPlayer({
     required String joinCode,
     required String name,
@@ -105,14 +117,50 @@ class RestClient {
     String? newTeamName,
   }) async {
     assert(
-      (teamId == null) != (newTeamName == null),
-      'supply exactly one of teamId or newTeamName',
+      teamId == null || newTeamName == null,
+      'supply at most one of teamId or newTeamName',
     );
     final body = await _post(
       '/api/games/$joinCode/players',
       body: {'name': name, 'teamId': ?teamId, 'newTeamName': ?newTeamName},
     );
     return JoinedPlayer.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// A player moving themselves, before the game starts. Supply [teamId] for an
+  /// existing team or [newTeamName] for a new one; supply neither to leave the
+  /// team and play alone.
+  Future<Snapshot> changeTeam({
+    required String gameId,
+    required String playerToken,
+    String? teamId,
+    String? newTeamName,
+  }) async {
+    assert(
+      teamId == null || newTeamName == null,
+      'supply at most one of teamId or newTeamName',
+    );
+    final body = await _post(
+      '/api/games/$gameId/team',
+      body: {
+        'playerToken': playerToken,
+        'teamId': ?teamId,
+        'newTeamName': ?newTeamName,
+      },
+    );
+    return Snapshot.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// A player voluntarily leaving the game.
+  Future<void> leavePlayer(String gameId, String playerToken) async {
+    try {
+      await _post(
+        '/api/games/$gameId/leave',
+        body: {'playerToken': playerToken},
+      );
+    } catch (_) {
+      // Best-effort
+    }
   }
 
   /// Supply [hostToken] to get the clue question even when this game keeps it
@@ -138,6 +186,13 @@ class RestClient {
   Future<Snapshot> selectClue(String gameId, String hostToken, int clueId) =>
       _hostAction(gameId, 'select-clue', hostToken, body: {'clueId': clueId});
 
+  /// Swaps a category nobody has played from for another random one.
+  Future<Snapshot> rerollGameTopic(
+    String gameId,
+    String hostToken,
+    int topicId,
+  ) => _hostAction(gameId, 'topics/$topicId/reroll', hostToken);
+
   Future<Snapshot> openBuzzer(String gameId, String hostToken) =>
       _hostAction(gameId, 'open-buzzer', hostToken);
 
@@ -146,6 +201,39 @@ class RestClient {
 
   Future<Snapshot> pass(String gameId, String hostToken) =>
       _hostAction(gameId, 'pass', hostToken);
+
+  /// Set the current buzz aside: no points, no lockout, and the buzzer reopens
+  /// for everyone -- for a press that was an accident.
+  Future<Snapshot> skipBuzz(String gameId, String hostToken) =>
+      _hostAction(gameId, 'skip-buzz', hostToken);
+
+  /// Sets a team's score outright. Everyone in the game is told.
+  Future<Snapshot> setScore(
+    String gameId,
+    String hostToken,
+    String teamId,
+    int score,
+  ) => _hostAction(
+    gameId,
+    'teams/$teamId/score',
+    hostToken,
+    body: {'score': score},
+  );
+
+  /// Moves a person to [teamId], to a new team named [newTeamName], or -- with
+  /// neither -- on their own. Only between clues.
+  Future<Snapshot> movePlayer(
+    String gameId,
+    String hostToken,
+    String playerId, {
+    String? teamId,
+    String? newTeamName,
+  }) => _hostAction(
+    gameId,
+    'players/$playerId/move',
+    hostToken,
+    body: {'teamId': ?teamId, 'newTeamName': ?newTeamName},
+  );
 
   Future<Snapshot> reveal(String gameId, String hostToken) =>
       _hostAction(gameId, 'reveal', hostToken);
@@ -197,6 +285,11 @@ class RestClient {
     body: {'teamId': teamId, 'correct': correct},
   );
 
+  /// Ends and deletes the game.
+  Future<void> deleteGame(String gameId, String hostToken) async {
+    await _delete('/api/games/$gameId', hostToken: hostToken);
+  }
+
   // ---------- plumbing ----------
 
   Future<Snapshot> _hostAction(
@@ -233,6 +326,14 @@ class RestClient {
         'X-Host-Token': ?hostToken,
       },
       body: jsonEncode(body ?? const {}),
+    );
+    return _decode(res);
+  }
+
+  Future<dynamic> _delete(String path, {String? hostToken}) async {
+    final res = await _client.delete(
+      Uri.parse('${ApiConfig.baseUrl}$path'),
+      headers: {'X-Host-Token': ?hostToken},
     );
     return _decode(res);
   }

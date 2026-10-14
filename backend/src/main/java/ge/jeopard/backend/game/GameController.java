@@ -42,6 +42,22 @@ public class GameController {
         return gameService.join(joinCode, req);
     }
 
+    /**
+     * A player moving themselves before the game starts: onto another team, onto
+     * a new one, or -- supplying neither -- out of their team and on their own.
+     */
+    @PostMapping("/{gameId}/team")
+    public Snapshot changeTeam(@PathVariable UUID gameId, @Valid @RequestBody ChangeTeamRequest req) {
+        return gameService.changeOwnTeam(gameId, req.playerToken(), req.teamId(), req.newTeamName());
+    }
+
+    /** A player voluntarily leaving the game. */
+    @PostMapping("/{gameId}/leave")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void leave(@PathVariable UUID gameId, @Valid @RequestBody LeaveRequest req) {
+        gameService.leave(gameId, req.playerToken());
+    }
+
     /** The teams available to join, so a player can choose one. */
     @GetMapping("/{joinCode}/lobby")
     public LobbyView lobby(@PathVariable String joinCode) {
@@ -91,6 +107,29 @@ public class GameController {
                           @RequestHeader(HOST_TOKEN) String token,
                           @RequestBody JudgeRequest req) {
         return gameService.judge(gameId, token, req.correct());
+    }
+
+    /** Set a buzz aside unjudged: the buzzer reopens for everyone, no points move. */
+    @PostMapping("/{gameId}/skip-buzz")
+    public Snapshot skipBuzz(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
+        return gameService.skipBuzz(gameId, token);
+    }
+
+    @PostMapping("/{gameId}/teams/{teamId}/score")
+    public Snapshot setScore(@PathVariable UUID gameId,
+                             @PathVariable UUID teamId,
+                             @RequestHeader(HOST_TOKEN) String token,
+                             @Valid @RequestBody SetScoreRequest req) {
+        return gameService.setScore(gameId, token, teamId, req.score());
+    }
+
+    /** Move a person to a team, a new team, or on their own -- supply neither field for that. */
+    @PostMapping("/{gameId}/players/{playerId}/move")
+    public Snapshot movePlayer(@PathVariable UUID gameId,
+                               @PathVariable UUID playerId,
+                               @RequestHeader(HOST_TOKEN) String token,
+                               @Valid @RequestBody MovePlayerRequest req) {
+        return gameService.movePlayer(gameId, token, playerId, req.teamId(), req.newTeamName());
     }
 
     @PostMapping("/{gameId}/pass")
@@ -146,5 +185,24 @@ public class GameController {
                                @RequestHeader(HOST_TOKEN) String token,
                                @Valid @RequestBody FinalJudgeRequest req) {
         return gameService.finalJudge(gameId, token, req.teamId(), req.correct());
+    }
+
+    @PostMapping("/{gameId}/topics/{topicId}/reroll")
+    public Snapshot rerollTopic(@PathVariable UUID gameId,
+                                @PathVariable Long topicId,
+                                @RequestHeader(HOST_TOKEN) String token) {
+        return gameService.rerollTopic(gameId, token, topicId);
+    }
+
+    @DeleteMapping("/{gameId}")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
+        gameService.deleteGame(gameId, token);
+    }
+
+    @PostMapping("/{gameId}/end")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void end(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
+        gameService.deleteGame(gameId, token);
     }
 }

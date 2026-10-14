@@ -1,7 +1,9 @@
 package ge.jeopard.backend.content;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -16,4 +18,8 @@ public interface PackageRepository extends JpaRepository<QuizPackage, Long> {
 
     @Query(value = "select nextval('package_synthetic_id_seq')", nativeQuery = true)
     Long nextSyntheticId();
+
+    @Modifying
+    @Query("update QuizPackage p set p.title = :title, p.subtitle = :subtitle, p.sourceUrl = :sourceUrl where p.id = :id")
+    int updateMetadata(@Param("id") Long id, @Param("title") String title, @Param("subtitle") String subtitle, @Param("sourceUrl") String sourceUrl);
 }

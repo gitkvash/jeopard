@@ -148,17 +148,37 @@ class CluePanel extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (showAnswer && answer != null) ...[
-                    const SizedBox(height: 26),
-                    _AnswerBlock(
-                      answer: answer,
-                      correctionNote: clue.correctionNote,
-                    ),
-                  ],
                 ],
               ),
             ),
           ),
+          // The answer is pinned under the question rather than set at the end of
+          // it. Questions run to ~800 characters, so on a phone the text alone
+          // fills the panel and an answer below it sits off-screen behind a
+          // scroll nobody knows to make -- the room's answer to "so what was it?"
+          // has to be on screen the moment the host reveals it. It keeps a
+          // ceiling of its own, so a long answer scrolls instead of squeezing
+          // the question to nothing.
+          if (showAnswer && answer != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 20,
+                0,
+                compact ? 12 : 20,
+                compact ? 12 : 20,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * (short ? 0.5 : 0.34),
+                ),
+                child: SingleChildScrollView(
+                  child: _AnswerBlock(
+                    answer: answer,
+                    correctionNote: clue.correctionNote,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

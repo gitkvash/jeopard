@@ -13,12 +13,14 @@ import 'package:jeopard_app/host/host_setup_screen.dart';
 /// A [RestClient] standing in for the real one, so a test can drive what
 /// "generating a random packet" returns without a server.
 class _FakeRestClient extends RestClient {
-  _FakeRestClient(this.randomResult);
+  _FakeRestClient(this.randomResult, {this.rerollResult});
 
   /// A package to return from [randomPackage], or null to make it throw --
   /// exercising the error path without a real network failure.
   final PackageSummary? randomResult;
+  final TopicSummary? rerollResult;
   int randomCalls = 0;
+  int rerollCalls = 0;
 
   @override
   Future<PackageSummary> randomPackage() async {
@@ -27,6 +29,13 @@ class _FakeRestClient extends RestClient {
       throw ApiException(500, 'server exploded');
     }
     return randomResult!;
+  }
+
+  @override
+  Future<TopicSummary> rerollTopic(int packageId, int topicId) async {
+    rerollCalls++;
+    if (rerollResult != null) return rerollResult!;
+    return TopicSummary(id: topicId, idx: 1, name: 'ევროპის დედაქალაქები');
   }
 }
 
@@ -37,13 +46,14 @@ class _FakeRestClient extends RestClient {
 /// page away on a phone and a panel away on a desktop, so that picking a
 /// package is never followed by a scroll past the twenty that come after it.
 void main() {
-  PackageSummary package(int number, {required bool generated}) =>
+  PackageSummary package(int number,
+          {required bool generated, String? sourceUrl}) =>
       PackageSummary(
         id: number,
         number: number,
         title: 'პაკეტი #$number',
         subtitle: generated ? 'გენერირებული პაკეტი (AI) · მუსიკა' : '2008 წელი',
-        sourceUrl: generated ? 'generated:gemini-3.1-pro' : null,
+        sourceUrl: sourceUrl ?? (generated ? 'generated:gemini-3.1-pro' : null),
         rounds: [
           for (var i = 1; i <= 3; i++)
             RoundSummary(
@@ -103,7 +113,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining(L.originalPackages), findsOneWidget);
-    expect(find.textContaining(L.generatedPackages), findsOneWidget);
+    expect(find.textContaining(L.generatedPackages.toUpperCase()), findsOneWidget);
     // The heading carries the count, so a host can see at a glance how much of
     // the set is archive material.
     expect(find.text('${L.originalPackages.toUpperCase()}  ·  2'), findsOneWidget);
@@ -116,7 +126,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining(L.originalPackages), findsOneWidget);
-    expect(find.textContaining(L.generatedPackages), findsNothing);
+    expect(find.textContaining(L.generatedPackages.toUpperCase()), findsNothing);
+    expect(find.textContaining(L.argonPackages.toUpperCase()), findsNothing);
+  });
+
+  testWidgets('shows argon generated packages in their own section',
+      (tester) async {
+    await tester.pumpWidget(setupScreen([
+      package(1, generated: false),
+      package(7, generated: true),
+      package(51, generated: true, sourceUrl: 'generated:argon'),
+      package(52, generated: true, sourceUrl: 'generated:argon'),
+    ]));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(L.originalPackages), findsOneWidget);
+    expect(find.textContaining(L.generatedPackages.toUpperCase()), findsOneWidget);
+    expect(find.textContaining(L.argonPackages.toUpperCase()), findsOneWidget);
+    expect(
+        find.text('${L.originalPackages.toUpperCase()}  ·  1'), findsOneWidget);
+    expect(
+        find.text('${L.generatedPackages.toUpperCase()}  ·  1'), findsOneWidget);
+    expect(
+        find.text('${L.argonPackages.toUpperCase()}  ·  2'), findsOneWidget);
   });
 
   testWidgets('on a narrow screen the list is only a list', (tester) async {
@@ -334,6 +366,81 @@ void main() {
     expect(find.text(L.choosePackage), findsOneWidget);
 
     // Let the toast's own dismiss timer run out so the test ends clean.
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('random package shows categories and allows host to reroll a category',
+      (tester) async {
+    usePhoneScreen(tester);
+    final generated = PackageSummary(
+      id: 1000001,
+      number: -1,
+      title: 'შემთხვევითი პაკეტი #1',
+      subtitle: 'თემები შემთხვევითობით აღებულია ყველა პაკეტიდან',
+      sourceUrl: null,
+      synthetic: true,
+      rounds: [
+        RoundSummary(
+          id: 101,
+          idx: 1,
+          finalRound: false,
+          playable: true,
+          topicCount: 6,
+          topics: [
+            TopicSummary(id: 1001, idx: 1, name: 'ქართული კინო'),
+            TopicSummary(id: 1002, idx: 2, name: 'ისტორია'),
+          ],
+        ),
+        RoundSummary(
+          id: 102,
+          idx: 2,
+          finalRound: false,
+          playable: true,
+          topicCount: 6,
+          topics: [
+            TopicSummary(id: 2001, idx: 1, name: 'სპორტი'),
+          ],
+        ),
+      ],
+    );
+    final client = _FakeRestClient(
+      generated,
+      rerollResult: TopicSummary(id: 1001, idx: 1, name: 'ევროპის დედაქალაქები'),
+    );
+
+    await tester.pumpWidget(setupScreen(
+      [package(1, generated: false)],
+      restClient: client,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(L.randomPackage));
+    await tester.pumpAndSettle();
+
+    // Verify categories section is present and shows Round 1 topics
+    expect(find.text(L.categories), findsOneWidget);
+    expect(find.text('ქართული კინო'), findsOneWidget);
+    expect(find.text('ისტორია'), findsOneWidget);
+
+    // Tap refresh icon on 'ქართული კინო'
+    final refreshIcons = find.byIcon(Icons.refresh);
+    await tester.tap(refreshIcons.first);
+    await tester.pumpAndSettle();
+
+    expect(client.rerollCalls, 1);
+    // Old category replaced by new category
+    expect(find.text('ქართული კინო'), findsNothing);
+    expect(find.text('ევროპის დედაქალაქები'), findsOneWidget);
+
+    // Switch to Round 2 tab
+    await tester.tap(find.widgetWithText(ChoiceChip, '${L.roundLabel} 2'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('სპორტი'), findsOneWidget);
+    expect(find.text('ევროპის დედაქალაქები'), findsNothing);
+
+    // Let any toast dismiss timer run out
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
   });

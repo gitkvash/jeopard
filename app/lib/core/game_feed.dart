@@ -46,6 +46,9 @@ class GameFeed extends ChangeNotifier {
 
   Snapshot? get snapshot => _snapshot;
 
+  /// Host actions everybody should hear about; see [Notice].
+  Stream<Notice> get notices => _socket.notices;
+
   bool get connected => _connected;
 
   bool get isSocketConnected => _socket.isConnected;
@@ -203,6 +206,19 @@ bool teamsEqual(List<TeamView> a, List<TeamView> b) {
         a[i].lockedOut != b[i].lockedOut ||
         a[i].players.length != b[i].players.length) {
       return false;
+    }
+  }
+  return true;
+}
+
+/// [teamsEqual] only counts members. This also notices who they are, so a person
+/// moving between two teams of the same size still redraws whatever lists them.
+bool rosterEqual(List<TeamView> a, List<TeamView> b) {
+  if (!teamsEqual(a, b)) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i].solo != b[i].solo) return false;
+    for (var j = 0; j < a[i].players.length; j++) {
+      if (a[i].players[j].id != b[i].players[j].id) return false;
     }
   }
   return true;

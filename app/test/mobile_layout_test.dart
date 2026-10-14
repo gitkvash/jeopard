@@ -200,6 +200,19 @@ void main() {
     'team-board': (host: false, snap: snapshot('BOARD')),
     'team-reading': (host: false, snap: snapshot('CLUE_READING', clue: clue())),
     'team-buzz-open': (host: false, snap: snapshot('BUZZ_OPEN', clue: clue())),
+    'team-buzzed': (
+      host: false,
+      snap: snapshot('BUZZED', clue: clue(), buzzedTeamId: 't-2'),
+    ),
+    // The answer has to be on screen, not merely somewhere down the scroll.
+    'team-resolved': (
+      host: false,
+      snap: snapshot(
+        'RESOLVED',
+        clue: clue(answer: 'დავით აღმაშენებელი'),
+        answerRevealed: true,
+      ),
+    ),
     'team-wager': (
       host: false,
       snap: snapshot('FINAL_WAGER', extra: {'currentClue': clue()}),

@@ -129,8 +129,13 @@ const _maxSeqJump = 3;
 /// Plays [cuesFor] as a [GameFeed] changes. Owned by a screen, created next to
 /// its feed and disposed with it.
 class GameSounds {
-  GameSounds(this._feed, {required this.role, this.myTeamId, Sfx? sfx})
-    : _sfx = sfx ?? Sfx.instance {
+  GameSounds(
+    this._feed, {
+    required this.role,
+    this.myTeamId,
+    this.teamIdOf,
+    Sfx? sfx,
+  }) : _sfx = sfx ?? Sfx.instance {
     _last = _feed.snapshot;
     _feed.addListener(_onFeed);
   }
@@ -138,6 +143,10 @@ class GameSounds {
   final GameFeed _feed;
   final SoundRole role;
   final String? myTeamId;
+
+  /// Asked each time instead of [myTeamId] when given: a player can change
+  /// teams, and the sounds are for whichever one they are on now.
+  final String? Function()? teamIdOf;
   final Sfx _sfx;
 
   Snapshot? _last;
@@ -152,7 +161,8 @@ class GameSounds {
     // in the middle of a game must not replay its last event.
     if (prev == null) return;
 
-    for (final c in cuesFor(prev, next, role: role, myTeamId: myTeamId)) {
+    final team = teamIdOf?.call() ?? myTeamId;
+    for (final c in cuesFor(prev, next, role: role, myTeamId: team)) {
       _sfx.play(c.cue, delay: Duration(milliseconds: c.delayMs));
     }
   }

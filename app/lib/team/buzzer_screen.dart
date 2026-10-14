@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/game_feed.dart';
 import '../core/models.dart';
+import '../core/notices.dart';
 import '../core/providers.dart';
 import '../core/responsive.dart';
 import '../core/rest_client.dart';
@@ -19,6 +22,7 @@ import '../widgets/game_chrome.dart';
 import '../widgets/scoreboard.dart';
 import '../widgets/stage.dart';
 import '../widgets/toast.dart';
+import 'lobby_team_picker.dart';
 
 /// A player's device: mostly one very large button. Teammates each get their
 /// own, but score and lockout land on the team they share.
@@ -34,6 +38,7 @@ class BuzzerScreen extends ConsumerStatefulWidget {
 class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   late final GameFeed _feed;
   late final GameSounds _sounds;
+  StreamSubscription<Notice>? _noticeSub;
 
   /// Set the instant we send a buzz so the button reacts without waiting for
   /// the round trip. Cleared when the next snapshot tells us the real outcome.
@@ -44,13 +49,33 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   String get _gameId => widget.session.gameId;
   String get _playerToken => widget.session.playerToken ?? '';
-  String? get _teamId => widget.session.teamId;
+  /// The team this player is on *now*. Read off the game rather than off what was
+  /// stored at join time, because a player can be moved -- by choice in the lobby
+  /// or by the host mid-game -- and everything here (score, lockout, the buzz)
+  /// belongs to whichever team that is.
+  String? get _teamId => _myTeam?.id ?? widget.session.teamId;
+
+  TeamView? get _myTeam {
+    final id = widget.session.playerId;
+    final snap = _feed.snapshot;
+    if (id == null || snap == null) return null;
+    for (final t in snap.teams) {
+      if (t.players.any((p) => p.id == id)) return t;
+    }
+    return null;
+  }
 
   @override
   void initState() {
     super.initState();
     _feed = GameFeed(gameId: _gameId, onResync: _refresh)..addListener(_onFeed);
-    _sounds = GameSounds(_feed, role: SoundRole.team, myTeamId: _teamId);
+    _sounds = GameSounds(
+      _feed,
+      role: SoundRole.team,
+      myTeamId: widget.session.teamId,
+      teamIdOf: () => _teamId,
+    );
+    _noticeSub = _feed.notices.listen(_onNotice);
     _feed.connect();
     SessionStore.write(widget.session.renew());
     _refresh();
@@ -58,6 +83,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   @override
   void dispose() {
+    _noticeSub?.cancel();
     _sounds.dispose();
     _feed.removeListener(_onFeed);
     _feed.dispose();
@@ -75,10 +101,67 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     if (snap?.state == GameState.finished) SessionStore.clear();
   }
 
+  /// The host edited a score or moved someone: say so, to the person it
+  /// happened to in the second person. If the host ended the game, return to home.
+  void _onNotice(Notice n) {
+    if (n.isGameTerminated) {
+      SessionStore.clear();
+      if (!mounted) return;
+      showToast(context, L.gameEndedNotice);
+      RoleScreen.replaceAll(context);
+      return;
+    }
+    final text = describeNotice(n, myPlayerId: widget.session.playerId);
+    if (text != null && mounted) showToast(context, text);
+  }
+
+  /// Before the game starts: sit with another team, start one, or go solo.
+  Future<void> _changeTeam({String? teamId, String? newTeamName}) async {
+    try {
+      final s = await ref
+          .read(restClientProvider)
+          .changeTeam(
+            gameId: _gameId,
+            playerToken: _playerToken,
+            teamId: teamId,
+            newTeamName: newTeamName,
+          );
+      _feed.push(s);
+      // What was stored at join time is now stale; a reload should come back
+      // onto the team this player actually chose.
+      final mine = _myTeam;
+      if (mine != null) {
+        SessionStore.write(
+          widget.session.withTeam(teamId: mine.id, teamName: mine.name),
+        );
+      }
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) showToast(context, describeError(e), error: true);
+    } catch (e) {
+      if (mounted) showToast(context, describeError(e), error: true);
+    }
+  }
+
   Future<void> _refresh() async {
     try {
       final s = await ref.read(restClientProvider).snapshot(_gameId);
       _feed.push(s);
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+      }
     } catch (_) {
       // Next broadcast will resync.
     }
@@ -104,7 +187,15 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           .read(restClientProvider)
           .buzz(_gameId, _playerToken)
           .then(_feed.push)
-          .catchError((_) {
+          .catchError((Object e) {
+            if (e is ApiException && e.isNotFound) {
+              SessionStore.clear();
+              if (mounted) {
+                showToast(context, L.gameEndedNotice);
+                RoleScreen.replaceAll(context);
+              }
+              return Future<void>.value();
+            }
             if (mounted) setState(() => _buzzSent = false);
             return Future<void>.value();
           });
@@ -117,6 +208,18 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           .read(restClientProvider)
           .wager(_gameId, _playerToken, amount);
       _feed.push(s);
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) {
+        showToast(context, describeError(e), error: true);
+      }
     } catch (e) {
       if (mounted) {
         showToast(context, describeError(e), error: true);
@@ -144,6 +247,10 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     );
     if (go != true || !mounted) return;
     SessionStore.clear();
+    unawaited(ref
+        .read(restClientProvider)
+        .leavePlayer(_gameId, _playerToken)
+        .catchError((_) {}));
     if (!mounted) return;
     RoleScreen.replaceAll(context);
   }
@@ -161,7 +268,13 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        RoleScreen.replaceAll(context);
+      },
+      child: Scaffold(
       appBar: AppBar(
         toolbarHeight: context.appBarHeight,
         titleSpacing: 16,
@@ -175,11 +288,19 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
-            Text(
-              widget.session.teamName ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: JColors.textFaint),
+            SnapshotBuilder<String>(
+              feed: _feed,
+              select: (s) {
+                final mine = _myTeam;
+                if (mine == null) return widget.session.teamName ?? '';
+                return mine.solo ? L.noTeam : mine.name;
+              },
+              builder: (context, name) => Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, color: JColors.textFaint),
+              ),
             ),
           ],
         ),
@@ -277,60 +398,77 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
   // ---------------- lobby ----------------
 
   Widget _waitingForHost() {
-    return SnapshotBuilder<(String, int)>(
+    return SnapshotBuilder<String>(
       feed: _feed,
-      select: (s) => (s?.joinCode ?? '', s?.teams.length ?? 0),
-      builder: (context, value) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: JColors.surface,
-                  borderRadius: BorderRadius.circular(JRadius.card),
-                  border: Border.all(color: JColors.line),
-                ),
-                child: Text(
-                  value.$1,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    letterSpacing: 6,
-                    fontWeight: FontWeight.w700,
-                    color: JColors.goldBright,
+      select: (s) => s?.joinCode ?? '',
+      builder: (context, code) => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: JColors.surface,
+                        borderRadius: BorderRadius.circular(JRadius.card),
+                        border: Border.all(color: JColors.line),
+                      ),
+                      child: Text(
+                        code,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          letterSpacing: 6,
+                          fontWeight: FontWeight.w700,
+                          color: JColors.goldBright,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 22),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        L.waitingForHost,
+                        style: TextStyle(
+                          color: JColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 26),
+                  LobbyTeamPicker(
+                    feed: _feed,
+                    myTeamId: () => _teamId,
+                    onChange: _changeTeam,
+                  ),
+                ],
               ),
-              const SizedBox(height: 26),
-              const SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                L.waitingForHost,
-                style: TextStyle(color: JColors.textMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${value.$2} ${L.teamsJoined.toLowerCase()}',
-                style: const TextStyle(color: JColors.textFaint, fontSize: 12),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -450,6 +588,9 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
         '${buzzerLabel(snap, snap.teamById(snap.buzzedTeamId))} ${L.buzzedIn}',
         Icons.hourglass_bottom,
       );
+    }
+    if (snap.state == GameState.resolved) {
+      return _statusBar(L.waitingForHost, Icons.hourglass_bottom);
     }
     if (!open) {
       return _statusBar(L.buzzerClosed, Icons.lock_outline);

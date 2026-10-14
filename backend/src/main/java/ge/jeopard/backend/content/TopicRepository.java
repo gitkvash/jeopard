@@ -26,6 +26,14 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
             + "and t.round.quizPackage.synthetic = false")
     List<TopicRef> findPlayableTopicRefs(Integer maxRoundIdx);
 
+    @Query("select t.round.idx as roundIdx, t.id as id, t.name as name from Topic t "
+            + "where t.round.finalRound = true "
+            + "and t.round.quizPackage.synthetic = false")
+    List<TopicRef> findFinalTopicRefs();
+
+    @Query("select t.name from Topic t where t.round.quizPackage.id = ?1")
+    List<String> findNamesByPackageId(Long packageId);
+
     /** The topics of one round, id only -- the final round's sampling step. */
     @Query("select t.id from Topic t where t.round.id = ?1 order by t.idx")
     List<Long> findIdsByRoundId(Long roundId);

@@ -145,11 +145,11 @@ class _TeamPlate extends StatelessWidget {
     final name = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (team.host)
+        if (team.host || team.solo)
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: Icon(
-              Icons.co_present_outlined,
+              team.host ? Icons.co_present_outlined : Icons.person_outline,
               size: 12,
               color: buzzed ? const Color(0xFF3A2A00) : JColors.textFaint,
             ),

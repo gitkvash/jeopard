@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,6 +82,22 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
       _error = null;
     });
     try {
+      final prev = SessionStore.read();
+      if (prev != null) {
+        if (prev.isHost && prev.hostToken != null) {
+          unawaited(ref
+              .read(restClientProvider)
+              .deleteGame(prev.gameId, prev.hostToken!)
+              .catchError((_) {}));
+        } else if (!prev.isHost && prev.playerToken != null) {
+          unawaited(ref
+              .read(restClientProvider)
+              .leavePlayer(prev.gameId, prev.playerToken!)
+              .catchError((_) {}));
+        }
+        SessionStore.clear();
+      }
+
       final joined = await ref
           .read(restClientProvider)
           .joinPlayer(
@@ -278,6 +296,20 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
           ],
         ),
         const SizedBox(height: 20),
+        // Sitting with a team is a choice, not a requirement: a player who would
+        // rather play on their own is a scoring unit of one.
+        OutlinedButton.icon(
+          onPressed: _busy ? null : () => _join(),
+          icon: const Icon(Icons.person_outline, size: 20),
+          label: const Text(L.playSolo),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          L.playSoloHint,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: JColors.textFaint, fontSize: 12),
+        ),
+        const SizedBox(height: 22),
         if (lobby.teams.isNotEmpty) ...[
           Text(L.chooseTeam, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),

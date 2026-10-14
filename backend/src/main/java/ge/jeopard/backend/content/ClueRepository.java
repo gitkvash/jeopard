@@ -10,6 +10,10 @@ public interface ClueRepository extends JpaRepository<Clue, Long> {
     @Query("select c from Clue c where c.topic.round.id = ?1")
     List<Clue> findByRoundId(Long roundId);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("delete from Clue c where c.topic.id = ?1")
+    void deleteByTopicId(Long topicId);
+
     @Query("select count(c) from Clue c")
     long countAll();
 

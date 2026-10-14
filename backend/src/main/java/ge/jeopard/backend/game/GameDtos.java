@@ -1,5 +1,7 @@
 package ge.jeopard.backend.game;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -54,13 +56,45 @@ public final class GameDtos {
 
     /**
      * A person joining. They name themselves, then either pick an existing team
-     * by id or create one by giving {@code newTeamName}. Exactly one of the two
-     * is required -- several players may share a team.
+     * by id, create one by giving {@code newTeamName}, or give neither and play
+     * on their own. Supplying both is refused -- several players may share a
+     * team, but a request cannot be for two of them.
      */
     public record JoinRequest(
             @NotBlank @Size(min = 1, max = 40) String name,
             UUID teamId,
             @Size(max = 40) String newTeamName) {
+    }
+
+    /**
+     * A player moving themselves, before the game starts. Same three choices as
+     * {@link JoinRequest}: an existing team, a new one, or neither -- which
+     * leaves them on their own.
+     */
+    public record ChangeTeamRequest(
+            @NotBlank String playerToken,
+            UUID teamId,
+            @Size(max = 40) String newTeamName) {
+    }
+
+    /** A player voluntarily leaving the game. */
+    public record LeaveRequest(
+            @NotBlank String playerToken) {
+    }
+
+    /** The host moving someone. Same three choices; the host needs no token of the player's. */
+    public record MovePlayerRequest(
+            UUID teamId,
+            @Size(max = 40) String newTeamName) {
+    }
+
+    /**
+     * The score a team should now have. Set outright rather than adjusted by an
+     * amount, so a host who mistyped sees exactly what they typed and fixing it is
+     * typing the right number. The bound is only there to refuse a slipped key.
+     */
+    public record SetScoreRequest(
+            @NotNull @Min(-1_000_000) @Max(1_000_000) Integer score) {
     }
 
     public record SelectClueRequest(@NotNull Long clueId) {
@@ -97,7 +131,9 @@ public final class GameDtos {
             String playerName,
             UUID teamId,
             String teamName,
-            int seat) {
+            int seat,
+            /* True when the player chose to play without a team. */
+            boolean solo) {
     }
 
     /** A team as offered on the join screen, so a player can pick one. */
@@ -139,7 +175,33 @@ public final class GameDtos {
             int seat,
             Integer wager,
             boolean lockedOutOnCurrentClue,
-            List<PlayerView> players) {
+            List<PlayerView> players,
+            /* A player who chose to play alone; named after them. */
+            boolean solo) {
+    }
+
+    /**
+     * Something the host did that everybody should hear about. Sent once on its
+     * own topic rather than carried in the snapshot: a snapshot is state, and
+     * replaying this to a phone that reconnects an hour later would announce a
+     * score change that nobody remembers. Fields that do not apply are null.
+     */
+    public record Notice(
+            /* SCORE_CHANGED, PLAYER_MOVED, or GAME_TERMINATED. */
+            String kind,
+            /* The team whose score changed. */
+            String teamName,
+            Integer scoreBefore,
+            Integer scoreAfter,
+            /* The player who was moved, and where from / to. A null team name is "on their own". */
+            UUID playerId,
+            String playerName,
+            String fromTeamName,
+            String toTeamName) {
+
+        public static Notice gameTerminated() {
+            return new Notice("GAME_TERMINATED", null, null, null, null, null, null, null);
+        }
     }
 
     public record TileView(

@@ -20,6 +20,7 @@ public final class ContentDtos {
             String title,
             String subtitle,
             String sourceUrl,
+            boolean synthetic,
             List<RoundSummary> rounds) {
     }
 
@@ -29,7 +30,14 @@ public final class ContentDtos {
             String header,
             boolean finalRound,
             boolean playable,
-            Integer topicCount) {
+            Integer topicCount,
+            List<TopicSummary> topics) {
+    }
+
+    public record TopicSummary(
+            Long id,
+            Integer idx,
+            String name) {
     }
 
     /** The 6x5 grid the host sees: topic names and tile values, nothing more. */

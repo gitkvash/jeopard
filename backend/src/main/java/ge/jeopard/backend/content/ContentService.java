@@ -5,6 +5,7 @@ import ge.jeopard.backend.content.ContentDtos.BoardTopic;
 import ge.jeopard.backend.content.ContentDtos.BoardView;
 import ge.jeopard.backend.content.ContentDtos.PackageSummary;
 import ge.jeopard.backend.content.ContentDtos.RoundSummary;
+import ge.jeopard.backend.content.ContentDtos.TopicSummary;
 import ge.jeopard.backend.content.TopicRepository.TopicRef;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,13 +16,18 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -100,7 +106,7 @@ public class ContentService {
 
         List<PackageSummary> fresh = packages.findAllWithRounds().stream()
                 .sorted(Comparator.comparing(QuizPackage::getNumber))
-                .map(ContentService::toSummary)
+                .map(p -> toSummary(p, false))
                 .toList();
         // Tomcat is serving before the seeder has finished its first run, so an
         // empty answer here is "not ready yet", not "no packages" -- caching it
@@ -137,6 +143,12 @@ public class ContentService {
                 .orElse(null);
     }
 
+    public PackageSummary getPackage(Long packageId) {
+        QuizPackage pkg = packages.findById(packageId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "package " + packageId + " not found"));
+        return toSummary(pkg, true);
+    }
+
     /** Topic names and tile values only -- deliberately no question/answer text. */
     public BoardView board(Long roundId) {
         BoardView cached = boardCache.get(roundId);
@@ -169,14 +181,20 @@ public class ContentService {
                 pkg.getNumber(), pkg.getTitle(), boardTopics);
     }
 
-    private static PackageSummary toSummary(QuizPackage p) {
+    private static PackageSummary toSummary(QuizPackage p, boolean includeTopics) {
         List<RoundSummary> roundSummaries = p.getRounds().stream()
                 .sorted(Comparator.comparing(GameRound::getIdx))
                 .map(r -> new RoundSummary(r.getId(), r.getIdx(), r.getHeader(),
-                        r.isFinalRound(), r.isPlayable(), r.getTopicCount()))
+                        r.isFinalRound(), r.isPlayable(), r.getTopicCount(),
+                        includeTopics && r.getTopics() != null
+                                ? r.getTopics().stream()
+                                        .sorted(Comparator.comparing(Topic::getIdx))
+                                        .map(t -> new TopicSummary(t.getId(), t.getIdx(), t.getName()))
+                                        .toList()
+                                : List.of()))
                 .toList();
         return new PackageSummary(p.getId(), p.getNumber(), p.getTitle(), p.getSubtitle(),
-                p.getSourceUrl(), roundSummaries);
+                p.getSourceUrl(), p.isSynthetic(), roundSummaries);
     }
 
     /**
@@ -252,7 +270,85 @@ public class ContentService {
         }
 
         packages.save(pkg);
-        return toSummary(pkg);
+        return toSummary(pkg, true);
+    }
+
+    /**
+     * Swaps one category of a synthetic (random) package with another random category
+     * appropriate for that round (e.g. from the pool for that round index, or final round),
+     * avoiding duplicate categories within the package.
+     */
+    @Transactional
+    public TopicSummary rerollTopic(Long packageId, Long topicId) {
+        Topic topic = topics.findById(topicId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "topic " + topicId + " not found"));
+
+        GameRound round = topic.getRound();
+        QuizPackage pkg = round.getQuizPackage();
+        if (!pkg.getId().equals(packageId)) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "topic " + topicId + " does not belong to package " + packageId);
+        }
+        if (!pkg.isSynthetic()) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "only random package categories can be changed");
+        }
+
+        Set<String> existingNames = new HashSet<>(topics.findNamesByPackageId(packageId));
+
+        List<TopicRef> candidates;
+        if (round.isFinalRound()) {
+            candidates = topics.findFinalTopicRefs();
+        } else {
+            int roundIdx = round.getIdx();
+            candidates = topics.findPlayableTopicRefs(roundIdx).stream()
+                    .filter(t -> Objects.equals(t.getRoundIdx(), roundIdx))
+                    .toList();
+        }
+
+        List<TopicRef> available = candidates.stream()
+                .filter(t -> !existingNames.contains(t.getName()))
+                .toList();
+
+        if (available.isEmpty()) {
+            available = candidates.stream()
+                    .filter(t -> !Objects.equals(t.getName(), topic.getName()))
+                    .toList();
+        }
+
+        if (available.isEmpty()) {
+            throw new ResponseStatusException(CONFLICT, "no alternative topic available");
+        }
+
+        TopicRef chosen = available.get(random.nextInt(available.size()));
+        Topic source = topics.findAllWithCluesByIdIn(List.of(chosen.getId())).stream()
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(INTERNAL_SERVER_ERROR,
+                        "failed to load chosen topic " + chosen.getId()));
+
+        clues.deleteByTopicId(topic.getId());
+        topic.getClues().clear();
+        topic.setName(source.getName());
+
+        Ids clueIds = new Ids(clues.nextSyntheticIds(source.getClues().size()));
+        for (Clue sourceClue : source.getClues()) {
+            Clue clue = new Clue();
+            clue.setId(clueIds.take());
+            clue.setTopic(topic);
+            clue.setValue(sourceClue.getValue());
+            clue.setQuestion(sourceClue.getQuestion());
+            clue.setAnswer(sourceClue.getAnswer());
+            clue.setQuestionOriginal(sourceClue.getQuestionOriginal());
+            clue.setAnswerOriginal(sourceClue.getAnswerOriginal());
+            clue.setCorrectionNote(sourceClue.getCorrectionNote());
+            topic.getClues().add(clue);
+        }
+
+        // Flushed here: a game re-seeding its tiles next needs these rows to exist.
+        topics.saveAndFlush(topic);
+        boardCache.remove(round.getId());
+
+        return new TopicSummary(topic.getId(), topic.getIdx(), topic.getName());
     }
 
     private GameRound cloneRound(QuizPackage pkg, Long id, int idx, boolean finalRound,

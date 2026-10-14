@@ -56,9 +56,21 @@ public class ContentController {
                 .body(list);
     }
 
+    @GetMapping("/packages/{packageId}")
+    public PackageSummary getPackage(@PathVariable Long packageId) {
+        return content.getPackage(packageId);
+    }
+
     @PostMapping("/packages/random")
     public PackageSummary randomPackage() {
         return content.generateRandomPackage();
+    }
+
+    @PostMapping("/packages/{packageId}/topics/{topicId}/reroll")
+    public ContentDtos.TopicSummary rerollTopic(
+            @PathVariable Long packageId,
+            @PathVariable Long topicId) {
+        return content.rerollTopic(packageId, topicId);
     }
 
     @GetMapping("/rounds/{roundId}/board")

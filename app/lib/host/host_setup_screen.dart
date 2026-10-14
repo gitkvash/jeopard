@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -73,7 +75,18 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
     // scroll position underneath, and the browser's own back button walks back
     // to it like any other page.
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => HostOptionsScreen(package: package)),
+      MaterialPageRoute(
+        builder: (_) => HostOptionsScreen(
+          package: package,
+          onPackageChanged: (updated) {
+            setState(() {
+              if (_extraPackage?.id == updated.id) {
+                _extraPackage = updated;
+              }
+            });
+          },
+        ),
+      ),
     );
   }
 
@@ -141,7 +154,16 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
               width: _optionsWidth,
               child: selected == null
                   ? const _NoPackageChosen()
-                  : _OptionsPane(package: selected),
+                  : _OptionsPane(
+                      package: selected,
+                      onPackageChanged: (updated) {
+                        setState(() {
+                          if (_extraPackage?.id == updated.id) {
+                            _extraPackage = updated;
+                          }
+                        });
+                      },
+                    ),
             ),
           ],
         );
@@ -153,9 +175,14 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
 /// Step two on a narrow screen: everything about the chosen package, and
 /// nothing else.
 class HostOptionsScreen extends StatelessWidget {
-  const HostOptionsScreen({super.key, required this.package});
+  const HostOptionsScreen({
+    super.key,
+    required this.package,
+    this.onPackageChanged,
+  });
 
   final PackageSummary package;
+  final ValueChanged<PackageSummary>? onPackageChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +191,7 @@ class HostOptionsScreen extends StatelessWidget {
       body: _OptionsPane(
         package: package,
         onChangePackage: () => Navigator.of(context).pop(),
+        onPackageChanged: onPackageChanged,
       ),
     );
   }
@@ -175,23 +203,31 @@ class HostOptionsScreen extends StatelessWidget {
 /// One widget for both layouts -- a page of its own on a phone, a panel beside
 /// the list on a desktop -- so the two can never drift apart.
 class _OptionsPane extends ConsumerStatefulWidget {
-  const _OptionsPane({required this.package, this.onChangePackage});
+  const _OptionsPane({
+    required this.package,
+    this.onChangePackage,
+    this.onPackageChanged,
+  });
 
   final PackageSummary package;
 
   /// Offered only where the list is not on screen: a way back to it that is not
   /// the app bar's arrow.
   final VoidCallback? onChangePackage;
+  final ValueChanged<PackageSummary>? onPackageChanged;
 
   @override
   ConsumerState<_OptionsPane> createState() => _OptionsPaneState();
 }
 
 class _OptionsPaneState extends ConsumerState<_OptionsPane> {
+  late PackageSummary _package;
   /// True to play the package end to end (boards 1-3 then the final, scores
   /// carried across) rather than a single round.
   bool _wholePackage = true;
   int? _roundId;
+  int _previewRoundIdx = 1;
+  int? _rerollingTopicId;
   bool _hostPlays = false;
   bool _creating = false;
   final _hostTeamName = TextEditingController();
@@ -209,8 +245,6 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
   /// Reading times worth a chip. Five is a one-line clue, fifteen a long one.
   static const List<int> _delayPresets = [5, 10, 15];
 
-  PackageSummary get _package => widget.package;
-
   /// Null when the host typed something that is not a usable number of seconds,
   /// which is the one thing here that can hold up creating the game.
   int? get _delay {
@@ -226,12 +260,56 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
       (_buzzMode != BuzzMode.timer || _delay != null);
 
   @override
+  void initState() {
+    super.initState();
+    _package = widget.package;
+    _previewRoundIdx =
+        _package.rounds.isNotEmpty ? _package.rounds.first.idx : 1;
+  }
+
+  @override
   void didUpdateWidget(covariant _OptionsPane old) {
     super.didUpdateWidget(old);
     // A round id belongs to the package it came from, so switching packages in
     // the list beside this panel invalidates it -- but not the host's own
     // switches, which they should not have to set a second time.
-    if (old.package.id != _package.id) _roundId = null;
+    if (old.package.id != widget.package.id) {
+      _package = widget.package;
+      _roundId = null;
+      _previewRoundIdx =
+          _package.rounds.isNotEmpty ? _package.rounds.first.idx : 1;
+    } else if (old.package != widget.package) {
+      _package = widget.package;
+    }
+  }
+
+  Future<void> _rerollTopic(TopicSummary topic) async {
+    if (_rerollingTopicId != null) return;
+    setState(() => _rerollingTopicId = topic.id);
+    try {
+      final updated = await ref
+          .read(restClientProvider)
+          .rerollTopic(_package.id, topic.id);
+      if (!mounted) return;
+      final newRounds = _package.rounds.map((r) {
+        return r.copyWith(
+          topics: r.topics
+              .map((t) => t.id == topic.id ? updated : t)
+              .toList(),
+        );
+      }).toList();
+      final newPackage = _package.copyWith(rounds: newRounds);
+      setState(() {
+        _package = newPackage;
+        _rerollingTopicId = null;
+      });
+      widget.onPackageChanged?.call(newPackage);
+      showToast(context, '${L.categoryReplaced}: ${updated.name}');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _rerollingTopicId = null);
+      showToast(context, L.rerollError, error: true);
+    }
   }
 
   @override
@@ -245,6 +323,22 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
     if (!_canCreate) return;
     setState(() => _creating = true);
     try {
+      final prev = SessionStore.read();
+      if (prev != null) {
+        if (prev.isHost && prev.hostToken != null) {
+          unawaited(ref
+              .read(restClientProvider)
+              .deleteGame(prev.gameId, prev.hostToken!)
+              .catchError((_) {}));
+        } else if (!prev.isHost && prev.playerToken != null) {
+          unawaited(ref
+              .read(restClientProvider)
+              .leavePlayer(prev.gameId, prev.playerToken!)
+              .catchError((_) {}));
+        }
+        SessionStore.clear();
+      }
+
       final created = await ref
           .read(restClientProvider)
           .createGame(
@@ -310,6 +404,12 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                           .where((r) => r.playable)
                           .firstOrNull
                           ?.id;
+                      if (_roundId != null) {
+                        _previewRoundIdx = _package.rounds
+                            .firstWhere((r) => r.id == _roundId,
+                                orElse: () => _package.rounds.first)
+                            .idx;
+                      }
                     }
                   }),
                   title: const Text(L.wholePackage),
@@ -333,9 +433,29 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                             ? L.finalRound
                             : '${L.roundLabel} ${r.idx}',
                         selected: _roundId == r.id,
-                        onTap: () => setState(() => _roundId = r.id),
+                        onTap: () => setState(() {
+                          _roundId = r.id;
+                          _previewRoundIdx = r.idx;
+                        }),
                       ),
                   ],
+                ),
+              ],
+              if (_package.isRandom) ...[
+                _CategoriesSection(
+                  package: _package,
+                  selectedRoundIdx: _wholePackage
+                      ? _previewRoundIdx
+                      : (_package.rounds
+                              .where((r) => r.id == _roundId)
+                              .firstOrNull
+                              ?.idx ??
+                          _previewRoundIdx),
+                  showRoundTabs: _wholePackage,
+                  onSelectRoundIdx: (idx) =>
+                      setState(() => _previewRoundIdx = idx),
+                  onReroll: _rerollTopic,
+                  rerollingTopicId: _rerollingTopicId,
                 ),
               ],
               const SizedBox(height: 16),
@@ -517,23 +637,28 @@ class _PackageList extends StatelessWidget {
   /// it. As data, a rebuild costs forty-odd small objects and `ListView.builder`
   /// only inflates the handful actually on screen.
   List<_Row> _rows() {
-    // Two provenances, two sections. With forty packages a flat list is a long
-    // scroll in which the six authentic games are lost among the generated
-    // ones, and which of the two a host is picking is the thing they most need
-    // to know.
+    // Provenances in sections: authentic 2008 archive, Gemini generated, and Argon AI generated.
     final original = <_Row>[];
     final generated = <_Row>[];
+    final argon = <_Row>[];
     for (final p in packages) {
-      (p.generated ? generated : original).add(_PackageRow(p));
+      if (p.isArgon) {
+        argon.add(_PackageRow(p));
+      } else if (p.generated) {
+        generated.add(_PackageRow(p));
+      } else {
+        original.add(_PackageRow(p));
+      }
     }
 
     return [
       // Offered first, above every named packet: a host who does not care which
-      // specific one they play should not have to scan forty of them.
+      // specific one they play should not have to scan sixty of them.
       const _RandomRow(),
       for (final group in [
         (label: L.originalPackages, rows: original),
         (label: L.generatedPackages, rows: generated),
+        (label: L.argonPackages, rows: argon),
       ])
         if (group.rows.isNotEmpty) ...[
           _HeaderRow('${group.label}  ·  ${group.rows.length}'),
@@ -810,6 +935,15 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
+String? _cardSubtitle(String? raw) {
+  if (raw == null) return null;
+  final dot = raw.indexOf(' · ');
+  if (dot != -1 && raw.startsWith('გენერირებული პაკეტი')) {
+    return raw.substring(dot + 3).trim();
+  }
+  return raw;
+}
+
 class _PackageCard extends StatelessWidget {
   const _PackageCard({
     required this.package,
@@ -893,7 +1027,7 @@ class _PackageCard extends StatelessWidget {
                 if (package.subtitle != null) ...[
                   const SizedBox(height: 3),
                   Text(
-                    package.subtitle!,
+                    _cardSubtitle(package.subtitle)!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -950,6 +1084,161 @@ class _ErrorPane extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CategoriesSection extends StatelessWidget {
+  const _CategoriesSection({
+    required this.package,
+    required this.selectedRoundIdx,
+    required this.showRoundTabs,
+    required this.onSelectRoundIdx,
+    required this.onReroll,
+    required this.rerollingTopicId,
+  });
+
+  final PackageSummary package;
+  final int selectedRoundIdx;
+  final bool showRoundTabs;
+  final ValueChanged<int> onSelectRoundIdx;
+  final ValueChanged<TopicSummary> onReroll;
+  final int? rerollingTopicId;
+
+  @override
+  Widget build(BuildContext context) {
+    final rounds = package.rounds;
+    if (rounds.isEmpty) return const SizedBox.shrink();
+
+    final activeRound = rounds.firstWhere(
+      (r) => r.idx == selectedRoundIdx,
+      orElse: () => rounds.first,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        const _SectionLabel(L.categories),
+        if (showRoundTabs) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final r in rounds)
+                _Chip(
+                  label:
+                      r.finalRound ? L.finalRound : '${L.roundLabel} ${r.idx}',
+                  selected: r.idx == activeRound.idx,
+                  onTap: () => onSelectRoundIdx(r.idx),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 10),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              if (activeRound.topics.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(
+                    child: Text(
+                      'თემები არ მოიძებნა',
+                      style: TextStyle(color: JColors.textMuted, fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                for (var i = 0; i < activeRound.topics.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  _TopicTile(
+                    topic: activeRound.topics[i],
+                    isRerolling:
+                        rerollingTopicId == activeRound.topics[i].id,
+                    onReroll: () => onReroll(activeRound.topics[i]),
+                  ),
+                ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TopicTile extends StatelessWidget {
+  const _TopicTile({
+    required this.topic,
+    required this.isRerolling,
+    required this.onReroll,
+  });
+
+  final TopicSummary topic;
+  final bool isRerolling;
+  final VoidCallback onReroll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: JColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(JRadius.control),
+              border: Border.all(color: JColors.line),
+            ),
+            child: Text(
+              '${topic.idx}',
+              style: const TextStyle(
+                fontFamily: 'Condensed',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: JColors.gold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              topic.name,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: JColors.text,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (isRerolling)
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: Center(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18),
+              color: JColors.goldBright,
+              tooltip: L.rerollCategoryTooltip,
+              visualDensity: VisualDensity.compact,
+              onPressed: onReroll,
+            ),
+        ],
       ),
     );
   }

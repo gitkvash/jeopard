@@ -1,6 +1,7 @@
 package ge.jeopard.backend.game;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -14,4 +15,8 @@ public interface ClueLockoutRepository extends JpaRepository<ClueLockout, ClueLo
 
     @Query("select l.teamId from ClueLockout l where l.gameId = ?1 and l.clueId = ?2")
     List<UUID> findTeamIds(UUID gameId, Long clueId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from ClueLockout l where l.gameId = ?1")
+    void deleteByGameId(UUID gameId);
 }

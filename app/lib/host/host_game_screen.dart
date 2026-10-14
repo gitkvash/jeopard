@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/game_feed.dart';
 import '../core/models.dart';
+import '../core/notices.dart';
 import '../core/providers.dart';
 import '../core/responsive.dart';
 import '../core/rest_client.dart';
@@ -22,6 +24,7 @@ import '../widgets/game_chrome.dart';
 import '../widgets/scoreboard.dart';
 import '../widgets/stage.dart';
 import '../widgets/toast.dart';
+import 'manage_sheet.dart';
 
 /// The host's console: shows the board, puts clues in play, opens the buzzer,
 /// and rules on spoken answers.
@@ -37,6 +40,7 @@ class HostGameScreen extends ConsumerStatefulWidget {
 class _HostGameScreenState extends ConsumerState<HostGameScreen> {
   late final GameFeed _feed;
   late final GameSounds _sounds;
+  StreamSubscription<Notice>? _noticeSub;
   bool _busy = false;
 
   /// Answer fetched with the host token, held only while this clue is in play.
@@ -70,6 +74,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     super.initState();
     _feed = GameFeed(gameId: _gameId, onResync: _refresh)..addListener(_onFeed);
     _sounds = GameSounds(_feed, role: SoundRole.host);
+    _noticeSub = _feed.notices.listen(_onNotice);
     _feed.connect();
     // Renew the stored session: it is what a reload comes back through, and
     // the timestamp is what stops a days-old token being offered.
@@ -79,6 +84,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
 
   @override
   void dispose() {
+    _noticeSub?.cancel();
     _sounds.dispose();
     _feed.removeListener(_onFeed);
     _feed.dispose();
@@ -131,6 +137,48 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     if (snap?.state == GameState.finished) SessionStore.clear();
   }
 
+  /// The host hears what they changed too: it is the confirmation that the
+  /// number they typed is the one everybody now sees.
+  void _onNotice(Notice n) {
+    if (n.isGameTerminated) {
+      SessionStore.clear();
+      if (!mounted) return;
+      RoleScreen.replaceAll(context);
+      return;
+    }
+    final text = describeNotice(n, myPlayerId: widget.session.playerId);
+    if (text != null) _toast(text);
+  }
+
+  /// Corrections, from the manage sheet. Failures are toasted over the sheet; a
+  /// success needs no word of its own -- the sheet redraws and the notice says it.
+  Future<void> _guarded(Future<Snapshot> Function(RestClient c) action) async {
+    try {
+      _feed.push(await action(ref.read(restClientProvider)));
+    } catch (e) {
+      _toast(describeError(e), error: true);
+    }
+  }
+
+  void _openManage() {
+    showManageSheet(
+      context,
+      feed: _feed,
+      onSetScore: (teamId, score) =>
+          _guarded((c) => c.setScore(_gameId, _token, teamId, score)),
+      onMove: (playerId, {teamId, newTeamName}) => _guarded(
+        (c) => c.movePlayer(
+          _gameId,
+          _token,
+          playerId,
+          teamId: teamId,
+          newTeamName: newTeamName,
+        ),
+      ),
+      onEndGame: () => _endGame(),
+    );
+  }
+
   /// Buzzes in the host's own team. A separate path from [_act]: the socket
   /// is lower-latency than REST, and the host racing for the buzzer needs
   /// that as much as any other team does.
@@ -179,6 +227,11 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         _hostQuestion = question;
         _hostQuestionClueId = s.currentClue!.clueId;
       });
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) RoleScreen.replaceAll(context);
+      }
     } catch (_) {
       // The socket will deliver the next broadcast anyway.
     }
@@ -197,6 +250,15 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// Swapping a category is for random packages only: their categories belong to
+  /// this game alone. The server refuses it for a curated package or a category
+  /// already played from, so this only decides whether to offer it.
+  void Function(BoardColumn column)? _rerollTopicHandler() =>
+      (_feed.snapshot?.packageNumber ?? 0) < 0
+      ? (column) =>
+            _act((c) => c.rerollGameTopic(_gameId, _token, column.topicId))
+      : null;
 
   /// Overlays [_hostQuestion] onto [clue] when the server withheld it for
   /// being hidden from participants -- everywhere else, [clue] as sent.
@@ -254,16 +316,73 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     RoleScreen.replaceAll(context);
   }
 
+  Future<void> _endGame() async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text(L.endGameConfirmTitle),
+        content: const Text(L.endGameConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(L.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: JColors.wrong,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(L.endGameAction),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(restClientProvider).deleteGame(_gameId, _token);
+      SessionStore.clear();
+      if (!mounted) return;
+      RoleScreen.replaceAll(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast(describeError(e), error: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        RoleScreen.replaceAll(context);
+      },
+      child: Scaffold(
       appBar: AppBar(
         toolbarHeight: context.appBarHeight,
         titleSpacing: 16,
         title: GameTitle(feed: _feed),
         actions: [
+          IconButton(
+            tooltip: L.manage,
+            onPressed: _openManage,
+            icon: const Icon(Icons.groups_outlined, size: 22),
+          ),
           const SoundToggle(),
           ConnectionDot(feed: _feed, onTap: _refresh),
+          IconButton(
+            tooltip: L.endGame,
+            onPressed: _endGame,
+            icon: const Icon(
+              Icons.stop_circle_outlined,
+              size: 20,
+              color: JColors.wrongBright,
+            ),
+          ),
           IconButton(
             tooltip: L.leaveGame,
             onPressed: _leave,
@@ -341,6 +460,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -420,11 +540,13 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                             ],
                           ),
                         ),
-                        if (t.host)
-                          const Icon(
-                            Icons.co_present_outlined,
+                        if (t.host || t.solo)
+                          Icon(
+                            t.host
+                                ? Icons.co_present_outlined
+                                : Icons.person_outline,
                             size: 15,
-                            color: JColors.brass,
+                            color: t.host ? JColors.brass : JColors.textFaint,
                           ),
                       ],
                     ),
@@ -440,6 +562,21 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                       : () => _act((c) => c.start(_gameId, _token)),
                   icon: const Icon(Icons.play_arrow, size: 20),
                   label: const Text(L.startGame),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton.icon(
+                onPressed: _busy ? null : _endGame,
+                icon: const Icon(
+                  Icons.stop_circle_outlined,
+                  size: 18,
+                  color: JColors.wrongBright,
+                ),
+                label: const Text(
+                  L.endGame,
+                  style: TextStyle(color: JColors.wrongBright),
                 ),
               ),
             ),
@@ -477,6 +614,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                 board: board,
                 onTapTile: (t) =>
                     _act((c) => c.selectClue(_gameId, _token, t.clueId)),
+                onRerollTopic: _rerollTopicHandler(),
               ),
             ),
           ),
@@ -653,18 +791,37 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         break;
     }
 
+    // Quiet actions, off the main row. The host needs the answer in hand to
+    // judge; in host-plays mode fetching it costs them the buzzer, which the
+    // server enforces. Skipping sets the press aside unjudged -- an accidental
+    // tap, say -- and the buzzer reopens for everyone, no points either way.
+    final quiet = <Widget>[
+      if (snap.state == GameState.buzzed)
+        TextButton.icon(
+          onPressed: _busy
+              ? null
+              : () => _act((c) => c.skipBuzz(_gameId, _token)),
+          icon: const Icon(Icons.undo, size: 18),
+          label: const Text(L.skipBuzz),
+        ),
+      if (!snap.answerRevealed && _hostAnswer == null)
+        TextButton.icon(
+          onPressed: _busy ? null : _peek,
+          icon: const Icon(Icons.visibility_outlined, size: 18),
+          label: const Text(L.showAnswer),
+        ),
+    ];
+
     return ControlShelf(
       side: side,
-      // The host needs the answer in hand to judge. In host-plays mode fetching
-      // it costs them the buzzer, which the server enforces -- so it stays a
-      // quiet action, off the main row.
-      trailing: (!snap.answerRevealed && _hostAnswer == null)
-          ? TextButton.icon(
-              onPressed: _busy ? null : _peek,
-              icon: const Icon(Icons.visibility_outlined, size: 18),
-              label: const Text(L.showAnswer),
-            )
-          : null,
+      trailing: quiet.isEmpty
+          ? null
+          : Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              children: quiet,
+            ),
       children: buttons,
     );
   }
@@ -695,6 +852,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                   board: board,
                   onTapTile: (t) =>
                       _act((c) => c.selectClue(_gameId, _token, t.clueId)),
+                  onRerollTopic: _rerollTopicHandler(),
                 ),
               ),
             ),

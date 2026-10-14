@@ -359,7 +359,8 @@ class L {
   static const newGame = 'ახალი თამაში';
   static const packageLabel = 'პაკეტი';
   static const originalPackages = 'ორიგინალური პაკეტები (2008)';
-  static const generatedPackages = 'გენერირებული პაკეტები';
+  static const generatedPackages = 'გენერირებული პაკეტები (Gemini)';
+  static const argonPackages = 'გენერირებული პაკეტები (Argon AI)';
   static const randomPackage = 'შემთხვევითი პაკეტი';
   static const randomPackageHint = 'თემები შემთხვევითობით აირჩევა ყველა პაკეტიდან';
   static const randomPackageError = 'ვერ მოხერხდა შემთხვევითი პაკეტის შექმნა';
@@ -370,6 +371,11 @@ class L {
   static const gameOptions = 'პარამეტრები';
   static const roundLabel = 'ტური';
   static const finalRound = 'ფინალი';
+  static const categories = 'კატეგორიები';
+  static const replaceCategory = 'კატეგორიის შეცვლა';
+  static const rerollCategoryTooltip = 'შემთხვევითი კატეგორიით შეცვლა';
+  static const categoryReplaced = 'კატეგორია შეიცვალა';
+  static const rerollError = 'კატეგორიის შეცვლა ვერ მოხერხდა';
   static const wholePackage = 'სრული პაკეტი';
   static const wholePackageHint = 'სამი ტური და ფინალი, ქულები გროვდება';
   static const hostPlaysToo = 'მასპინძელიც თამაშობს';
@@ -416,6 +422,13 @@ class L {
   static const teamsJoined = 'შემოსული გუნდები';
   static const startGame = 'თამაშის დაწყება';
   static const noTeamsYet = 'ჯერ არავინ შემოსულა';
+  static const playSolo = 'მარტო ვთამაშობ';
+  static const playSoloHint = 'გუნდის გარეშე, თქვენი სახელით';
+  static const noTeam = 'გუნდის გარეშე';
+  static const yourTeam = 'თქვენი გუნდი';
+  static const leaveTeam = 'გუნდიდან გასვლა';
+  static const switchTeam = 'გუნდის შეცვლა';
+  static const otherTeams = 'სხვა გუნდები';
   static const shareCode = 'უთხარით მოთამაშეებს ეს კოდი';
   static const shareLink = 'ბმულის კოპირება';
   static const qrCode = 'QR კოდი';
@@ -441,6 +454,8 @@ class L {
   static const answer = 'პასუხი';
   static const next = 'შემდეგი';
   static const pass = 'გამოტოვება';
+  static const skipBuzz = 'გამოტოვება';
+  static const skipBuzzHint = 'დაჭერა არ ითვლება, ღილაკი ისევ იხსნება';
   static const lockedOut = 'დაბლოკილია';
   static const correctionNote = 'შესწორება';
   static const score = 'ქულა';
@@ -449,6 +464,29 @@ class L {
       'პასუხის ნახვა ამ შეკითხვაზე თქვენს ღილაკს გათიშავს';
   static const questionHiddenFromParticipants =
       'შეკითხვის ტექსტი დამალულია — მოუსმინეთ მასპინძელს';
+
+  // host corrections
+  static const manage = 'გუნდები და ქულები';
+  static const editScore = 'ქულის შეცვლა';
+  static const newScore = 'ახალი ქულა';
+  static const save = 'შენახვა';
+  static const moveTo = 'გადაყვანა';
+  static const moveAlone = 'მარტო (გუნდის გარეშე)';
+  static const moveToNewTeam = 'ახალ გუნდში';
+  static const movesBetweenClues =
+      'მოთამაშეების გადაყვანა მხოლოდ შეკითხვებს შორის შეიძლება';
+  static const hostSeat = 'მასპინძლის ადგილი';
+
+  static String scoreChanged(String team, int before, int after) =>
+      'მასპინძელმა შეცვალა ქულა — $team: $before → $after';
+
+  static String playerMoved(String player, String? to) => to == null
+      ? '$player ახლა მარტო თამაშობს'
+      : '$player გადავიდა გუნდში „$to“';
+
+  static String youWereMoved(String? to) => to == null
+      ? 'მასპინძელმა გადაგიყვანათ: ახლა მარტო თამაშობთ'
+      : 'მასპინძელმა გადაგიყვანათ გუნდში „$to“';
 
   // final round
   static const wager = 'ფსონი';
@@ -472,9 +510,17 @@ class L {
   static const restoring = 'თამაშს ვაბრუნებთ...';
   static const resume = 'თამაშის გაგრძელება';
   static const resumeHint = 'დაწყებული თამაში გაქვთ';
+  static const returnToGame = 'თამაშში დაბრუნება';
+  static const returnToGameHint = 'მიმდინარე თამაშში დაბრუნება';
   static const leaveGame = 'თამაშიდან გასვლა';
   static const leaveGameHint =
       'ამ მოწყობილობაზე შენახული სესია წაიშლება. თამაში სხვებისთვის გაგრძელდება.';
+  static const endGame = 'თამაშის დასრულება';
+  static const endGameConfirmTitle = 'თამაშის დასრულება';
+  static const endGameConfirmMessage =
+      'დარწმუნებული ხართ, რომ გსურთ თამაშის დასრულება? თამაში წაიშლება და ყველა მოთამაშე დაბრუნდება მთავარ გვერდზე.';
+  static const endGameAction = 'დასრულება';
+  static const gameEndedNotice = 'მასპინძელმა დაასრულა თამაში';
   static const sessionGone = 'შენახული თამაში ვერ მოიძებნა';
   static const cancel = 'გაუქმება';
   static const ok = 'კარგი';

@@ -154,7 +154,7 @@ public class GameService {
             String name = (req.hostTeamName() == null || req.hostTeamName().isBlank())
                     ? DEFAULT_HOST_TEAM_NAME
                     : req.hostTeamName().trim();
-            Team hostTeam = addTeam(game.getId(), name);
+            Team hostTeam = addTeam(game.getId(), name, false);
             Player hostPlayer = addPlayer(game.getId(), hostTeam.getId(), name, true);
             hostTeamId = hostTeam.getId();
             hostPlayerId = hostPlayer.getId();
@@ -165,11 +165,92 @@ public class GameService {
                 hostTeamId, hostPlayerId, hostPlayerToken);
     }
 
+    /**
+     * Terminate and delete the game. Broadcasts a termination notice to all
+     * connected participants so their clients return to the home screen.
+     */
+    @Transactional
+    public void deleteGame(UUID gameId, String hostToken) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+
+        game.setBuzzedTeamId(null);
+        game.setBuzzedPlayerId(null);
+        game.setPickingTeamId(null);
+        game.setCurrentClue(null);
+        games.saveAndFlush(game);
+
+        sendAfterCommit(noticesTopic(gameId), Notice.gameTerminated());
+
+        lockouts.deleteByGameId(gameId);
+        gameClues.deleteByGameId(gameId);
+        players.deleteByGameId(gameId);
+        teams.deleteByGameId(gameId);
+        games.delete(game);
+    }
+
+    /**
+     * Swap one category of the board in front of everyone for another random one,
+     * as long as nothing has been taken from it. Only a random package's
+     * categories are this game's alone to change; a played tile would leave its
+     * score and its place on the board pointing at a clue that no longer exists.
+     */
+    @Transactional
+    public Snapshot rerollTopic(UUID gameId, String hostToken, Long topicId) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+        if (game.getState() != GameState.LOBBY && game.getState() != GameState.BOARD) {
+            throw new ResponseStatusException(CONFLICT,
+                    "categories can only be changed from the board, not in " + game.getState());
+        }
+        GameRound round = game.getRound();
+        if (round.isFinalRound()) {
+            throw new ResponseStatusException(CONFLICT, "the final round has no board to change");
+        }
+
+        if (!game.getQuizPackage().isSynthetic()) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "only random package categories can be changed");
+        }
+
+        List<Long> clueIds = clues.findByRoundId(round.getId()).stream()
+                .filter(c -> c.getTopic().getId().equals(topicId))
+                .map(Clue::getId)
+                .toList();
+        if (clueIds.isEmpty()) {
+            throw new ResponseStatusException(NOT_FOUND, "that category is not on this board");
+        }
+
+        List<GameClue> tiles = gameClues.findByGameId(gameId).stream()
+                .filter(t -> clueIds.contains(t.getClueId()))
+                .toList();
+        if (tiles.stream().anyMatch(t -> t.getStatus() != ClueStatus.AVAILABLE)) {
+            throw new ResponseStatusException(CONFLICT,
+                    "a clue from this category has already been played");
+        }
+        if (gameClues.countInOtherGames(gameId, clueIds) > 0) {
+            throw new ResponseStatusException(CONFLICT,
+                    "this category is in use in another game");
+        }
+
+        // Tiles go first: they reference the clues that are about to be replaced.
+        gameClues.deleteAll(tiles);
+        gameClues.flush();
+        content.rerollTopic(game.getQuizPackage().getId(), topicId);
+        // Only this category's new tiles: the rest of the board keeps its state.
+        gameClues.saveAll(clues.findByRoundId(round.getId()).stream()
+                .filter(c -> c.getTopic().getId().equals(topicId))
+                .map(c -> new GameClue(gameId, c.getId()))
+                .toList());
+        bump(game);
+        return snapshotAndBroadcast(game);
+    }
+
     /** What a joining player needs in order to choose a team. */
     @Transactional(readOnly = true)
     public LobbyView lobby(String joinCode) {
         Game game = requireByCode(joinCode);
         List<TeamOption> options = teams.findByGameIdOrderBySeatAsc(game.getId()).stream()
+                // A solo player's team is that one person; nobody can sit with them.
+                .filter(t -> !t.isSolo())
                 .map(t -> new TeamOption(t.getId(), t.getName(), t.getSeat(), t.getScore(),
                         players.findByTeamIdOrderByJoinedAtAsc(t.getId()).stream()
                                 .map(Player::getName)
@@ -179,9 +260,10 @@ public class GameService {
     }
 
     /**
-     * A person joins: they name themselves, then either join an existing team or
-     * start a new one. Several players may share a team, so identity here is the
-     * player name -- the team name is not unique to one device.
+     * A person joins: they name themselves, then join an existing team, start a
+     * new one, or play on their own. Several players may share a team, so
+     * identity here is the player name -- the team name is not unique to one
+     * device.
      *
      * <p>The game row is locked for the whole of this, because everything below
      * reads the room before writing to it: whether a name is taken, and how many
@@ -198,35 +280,227 @@ public class GameService {
         if (game.getState() != GameState.LOBBY && game.getState() != GameState.BOARD) {
             throw new ResponseStatusException(CONFLICT, "game is mid-clue; join between clues");
         }
-        boolean hasNewTeam = req.newTeamName() != null && !req.newTeamName().isBlank();
-        if ((req.teamId() == null) == !hasNewTeam) {
-            throw new ResponseStatusException(BAD_REQUEST,
-                    "supply exactly one of teamId or newTeamName");
-        }
 
         String playerName = req.name().trim();
         if (players.existsByGameIdAndName(game.getId(), playerName)) {
             throw new ResponseStatusException(CONFLICT, "that player name is taken");
         }
 
-        Team team;
-        if (req.teamId() != null) {
-            team = teams.findById(req.teamId())
-                    .filter(t -> t.getGameId().equals(game.getId()))
-                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
-                            "no such team in this game"));
-        } else {
-            String teamName = req.newTeamName().trim();
-            if (teams.existsByGameIdAndName(game.getId(), teamName)) {
-                throw new ResponseStatusException(CONFLICT, "that team name is taken");
-            }
-            team = addTeam(game.getId(), teamName);
-        }
-
+        Team team = destinationTeam(game, playerName, req.teamId(), req.newTeamName());
         Player player = addPlayer(game.getId(), team.getId(), playerName, false);
         broadcastAfterCommit(game.getId());
         return new JoinedPlayer(game.getId(), player.getId(), player.getToken(),
-                player.getName(), team.getId(), team.getName(), team.getSeat());
+                player.getName(), team.getId(), team.getName(), team.getSeat(), team.isSolo());
+    }
+
+    // ------------------------------------------------------------------
+    // Moving between teams
+    // ------------------------------------------------------------------
+
+    /**
+     * A player changes their own team, or leaves it to play alone. Lobby only:
+     * once the game starts, who sits where is the host's to decide, because a
+     * team's score and lockout follow the team and a player who could hop teams
+     * mid-clue could hop out of a lockout.
+     */
+    @Transactional
+    public Snapshot changeOwnTeam(UUID gameId, String playerToken, UUID teamId, String newTeamName) {
+        Game game = games.findByIdForUpdate(gameId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
+        Player player = players.findByGameIdAndToken(gameId, playerToken)
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN,
+                        "not a player in this game"));
+        expect(game, GameState.LOBBY);
+        relocate(game, player, teamId, newTeamName);
+        bump(game);
+        return snapshotAndBroadcast(game);
+    }
+
+    /**
+     * A player voluntarily leaves the game. Their seat is freed, any buzz they
+     * held is cleared, and an empty team left behind them is removed. If the host
+     * leaves, the game is terminated.
+     */
+    @Transactional
+    public void leave(UUID gameId, String playerToken) {
+        Optional<Game> gameOpt = games.findByIdForUpdate(gameId);
+        if (gameOpt.isEmpty()) return;
+        Game game = gameOpt.get();
+
+        Optional<Player> playerOpt = players.findByGameIdAndToken(gameId, playerToken);
+        if (playerOpt.isEmpty()) return;
+        Player player = playerOpt.get();
+
+        if (player.isHost()) {
+            deleteGame(gameId, game.getHostToken());
+            return;
+        }
+
+        if (player.getId().equals(game.getBuzzedPlayerId())) {
+            clearBuzz(game);
+            if (game.getState() == GameState.BUZZED) {
+                game.setState(GameState.BUZZ_OPEN);
+            }
+        }
+
+        UUID teamId = player.getTeamId();
+        Team oldTeam = teams.findById(teamId).orElse(null);
+        players.delete(player);
+        players.flush();
+
+        if (oldTeam != null && players.countByTeamId(teamId) == 0) {
+            if (teamId.equals(game.getPickingTeamId())) {
+                game.setPickingTeamId(null);
+            }
+            if (teamId.equals(game.getBuzzedTeamId())) {
+                clearBuzz(game);
+                if (game.getState() == GameState.BUZZED) {
+                    game.setState(GameState.BUZZ_OPEN);
+                }
+            }
+            teams.delete(oldTeam);
+            teams.flush();
+        }
+
+        if (game.getState() != GameState.FINISHED) {
+            bump(game);
+            snapshotAndBroadcast(game);
+        }
+    }
+
+    /**
+     * The states in which the host may move a player: between clues. Mid-clue
+     * the buzz, the lockouts and the final round's judging marks all name teams,
+     * and a team appearing or vanishing under them would leave the clue judging
+     * a team that no longer exists.
+     */
+    private static final Set<GameState> MOVABLE = EnumSet.of(
+            GameState.LOBBY, GameState.BOARD, GameState.RESOLVED, GameState.FINAL_WAGER);
+
+    /**
+     * The host puts a player on an existing team, on a new one, or on their own.
+     * Everyone is told, the moved player included.
+     */
+    @Transactional
+    public Snapshot movePlayer(UUID gameId, String hostToken, UUID playerId,
+                               UUID teamId, String newTeamName) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+        if (!MOVABLE.contains(game.getState())) {
+            throw new ResponseStatusException(CONFLICT,
+                    "players can be moved between clues, not during " + game.getState());
+        }
+        Player player = players.findByIdAndGameId(playerId, gameId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such player"));
+
+        Team from = teams.findById(player.getTeamId()).orElseThrow();
+        String fromName = from.isSolo() ? null : from.getName();
+        Team to = relocate(game, player, teamId, newTeamName);
+        if (!to.getId().equals(from.getId())) {
+            sendAfterCommit(noticesTopic(gameId), new Notice("PLAYER_MOVED", null, null, null,
+                    player.getId(), player.getName(), fromName,
+                    to.isSolo() ? null : to.getName()));
+        }
+        bump(game);
+        return snapshotAndBroadcast(game);
+    }
+
+    /**
+     * Put {@code player} where they asked to be, tidy up behind them, and return
+     * the team they are now on. Only ever called with the game row locked, which
+     * is what makes the name check and the seat for a new team safe.
+     *
+     * <p>A team left with nobody in it is deleted -- a team of no one cannot
+     * buzz, and would still count toward "every team is locked out" and "every
+     * team is judged". Its lockouts go with it, and the tiles it had won lose
+     * their owner (both are the database's doing, see V1).
+     */
+    private Team relocate(Game game, Player player, UUID teamId, String newTeamName) {
+        if (player.isHost()) {
+            throw new ResponseStatusException(CONFLICT, "the host's own seat cannot be moved");
+        }
+        Team old = teams.findById(player.getTeamId()).orElseThrow();
+        boolean alone = teamId == null && (newTeamName == null || newTeamName.isBlank());
+        if ((alone && old.isSolo()) || old.getId().equals(teamId)) {
+            return old;   // already exactly where they asked to be
+        }
+
+        Team target = destinationTeam(game, player.getName(), teamId, newTeamName);
+        player.setTeamId(target.getId());
+        players.saveAndFlush(player);
+
+        if (players.countByTeamId(old.getId()) == 0) {
+            if (old.getId().equals(game.getPickingTeamId())) {
+                game.setPickingTeamId(null);
+            }
+            if (old.getId().equals(game.getBuzzedTeamId())) {
+                clearBuzz(game);
+            }
+            teams.delete(old);
+            teams.flush();
+        }
+        return target;
+    }
+
+    /**
+     * The team a player is about to be on: an existing one, a newly made one, or
+     * a team of one when they asked for neither. Only teams somebody chose can
+     * be sat with -- a solo player's team is the player.
+     */
+    private Team destinationTeam(Game game, String playerName, UUID teamId, String newTeamName) {
+        boolean hasNewTeam = newTeamName != null && !newTeamName.isBlank();
+        if (teamId != null && hasNewTeam) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "supply at most one of teamId or newTeamName");
+        }
+        if (teamId != null) {
+            return teams.findById(teamId)
+                    .filter(t -> t.getGameId().equals(game.getId()) && !t.isSolo())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
+                            "no such team in this game"));
+        }
+        if (hasNewTeam) {
+            String teamName = newTeamName.trim();
+            if (teams.existsByGameIdAndNameAndSoloFalse(game.getId(), teamName)) {
+                throw new ResponseStatusException(CONFLICT, "that team name is taken");
+            }
+            return addTeam(game.getId(), teamName, false);
+        }
+        return addTeam(game.getId(), playerName, true);
+    }
+
+    // ------------------------------------------------------------------
+    // Host corrections
+    // ------------------------------------------------------------------
+
+    /**
+     * The host sets a team's score outright, for the slip a ruling cannot undo: a
+     * mis-tap, a clue the room agreed was a draw. Everyone is told what it
+     * changed from and to, which is what keeps it honest -- a score that moves
+     * silently is a score nobody trusts.
+     *
+     * <p>Allowed in every state. A wager already placed is trimmed to the new
+     * score, since the rule that a team cannot stake more than it has applies
+     * to the score it has now.
+     */
+    @Transactional
+    public Snapshot setScore(UUID gameId, String hostToken, UUID teamId, int score) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+        Team team = teams.findById(teamId)
+                .filter(t -> t.getGameId().equals(gameId))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such team"));
+
+        int before = team.getScore();
+        if (before == score) {
+            return snapshotAndBroadcast(game);
+        }
+        team.setScore(score);
+        if (team.getWager() != null) {
+            team.setWager(Math.min(team.getWager(), Math.max(0, score)));
+        }
+        sendAfterCommit(noticesTopic(gameId), new Notice("SCORE_CHANGED", team.getName(),
+                before, score, null, null, null, null));
+        bump(game);
+        return snapshotAndBroadcast(game);
     }
 
     @Transactional
@@ -441,6 +715,23 @@ public class GameService {
         return snapshotAndBroadcast(game);
     }
 
+    /**
+     * Set a buzz aside without ruling on it: no points either way, no lockout,
+     * the buzzer reopens for everyone -- the team that pressed included. For the
+     * press that was an accident, or a team that cannot answer after all.
+     */
+    @Transactional
+    public Snapshot skipBuzz(UUID gameId, String hostToken) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+        expect(game, GameState.BUZZED);
+        requireClueInPlay(game);
+        clearBuzz(game);
+        game.setState(GameState.BUZZ_OPEN);
+        game.setBuzzOpensAt(null);
+        bump(game);
+        return snapshotAndBroadcast(game);
+    }
+
     /** Nobody buzzed (or the host gives up): burn the tile and show the answer. */
     @Transactional
     public Snapshot passClue(UUID gameId, String hostToken) {
@@ -633,7 +924,8 @@ public class GameService {
                 .map(t -> new TeamView(t.getId(), t.getName(), t.getScore(),
                         t.getId().equals(hostTeam), t.getSeat(), t.getWager(),
                         lockedOut.contains(t.getId()),
-                        byTeam.getOrDefault(t.getId(), List.of())))
+                        byTeam.getOrDefault(t.getId(), List.of()),
+                        t.isSolo()))
                 .toList();
 
         Map<Long, GameClue> byClue = new HashMap<>();
@@ -773,14 +1065,16 @@ public class GameService {
 
     /**
      * Only ever called with this game's row locked -- by {@link #createGame},
-     * which has just inserted it, or by {@link #join}, which locks it. That is
+     * which has just inserted it, or by {@link #join} and {@link #relocate}, which
+     * hold it. That is
      * what makes reading the highest seat and then taking the next one safe.
      */
-    private Team addTeam(UUID gameId, String name) {
+    private Team addTeam(UUID gameId, String name, boolean solo) {
         Team team = new Team();
         team.setId(UUID.randomUUID());
         team.setGameId(gameId);
         team.setName(name);
+        team.setSolo(solo);
         team.setSeat(teams.maxSeat(gameId) + 1);
         return teams.save(team);
     }
@@ -879,14 +1173,22 @@ public class GameService {
 
     /** Publish only once the transaction really committed. */
     private void publishAfterCommit(UUID gameId, Snapshot snap) {
+        sendAfterCommit("/topic/games/" + gameId, snap);
+    }
+
+    private static String noticesTopic(UUID gameId) {
+        return "/topic/games/" + gameId + "/notices";
+    }
+
+    private void sendAfterCommit(String destination, Object payload) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            broker.convertAndSend("/topic/games/" + gameId, snap);
+            broker.convertAndSend(destination, payload);
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                broker.convertAndSend("/topic/games/" + gameId, snap);
+                broker.convertAndSend(destination, payload);
             }
         });
     }

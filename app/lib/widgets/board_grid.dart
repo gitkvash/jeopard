@@ -20,10 +20,15 @@ class BoardGrid extends StatelessWidget {
     required this.board,
     required this.onTapTile,
     this.interactive = true,
+    this.onRerollTopic,
   });
 
   final List<BoardColumn> board;
   final void Function(TileView tile) onTapTile;
+
+  /// Host of a random package only: offered on a category nothing has been
+  /// taken from yet, to swap it for another.
+  final void Function(BoardColumn column)? onRerollTopic;
 
   /// False for team devices, which see the board but must not drive it.
   final bool interactive;
@@ -95,6 +100,7 @@ class BoardGrid extends StatelessWidget {
                   child: _Column(
                     column: board[i],
                     onTapTile: onTapTile,
+                    onRerollTopic: onRerollTopic,
                     interactive: interactive,
                     valueSize: valueSize,
                     headerHeight: headerHeight,
@@ -137,6 +143,7 @@ class _Column extends StatelessWidget {
   const _Column({
     required this.column,
     required this.onTapTile,
+    required this.onRerollTopic,
     required this.interactive,
     required this.valueSize,
     required this.headerHeight,
@@ -147,6 +154,7 @@ class _Column extends StatelessWidget {
 
   final BoardColumn column;
   final void Function(TileView tile) onTapTile;
+  final void Function(BoardColumn column)? onRerollTopic;
   final bool interactive;
   final double valueSize;
   final double headerHeight;
@@ -164,6 +172,10 @@ class _Column extends StatelessWidget {
           height: headerHeight,
           rotate: rotateHeader,
           small: smallHeader,
+          onReroll:
+              onRerollTopic != null && column.tiles.every((t) => t.available)
+              ? () => onRerollTopic!(column)
+              : null,
         ),
         for (final tile in column.tiles) ...[
           SizedBox(height: gutter),
@@ -193,9 +205,13 @@ class _TopicPlate extends StatelessWidget {
     required this.height,
     required this.rotate,
     required this.small,
+    this.onReroll,
   });
 
   final String name;
+
+  /// Set when the host may swap this category for another.
+  final VoidCallback? onReroll;
   final double height;
 
   /// Set on its side, reading bottom to top, for a column too narrow to wrap in.
@@ -224,7 +240,7 @@ class _TopicPlate extends StatelessWidget {
       ),
     );
 
-    return Container(
+    final plate = Container(
       height: height,
       padding: rotate
           ? const EdgeInsets.symmetric(horizontal: 3, vertical: 6)
@@ -242,6 +258,28 @@ class _TopicPlate extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: rotate ? RotatedBox(quarterTurns: 3, child: label) : label,
+    );
+
+    if (onReroll == null) return plate;
+    // Over the plate's corner, not beside the text: a Stack sized by its label
+    // would put the button next to the words and out of reach of the corner.
+    return Stack(
+      children: [
+        plate,
+        Positioned(
+          top: 0,
+          right: 0,
+          child: IconButton(
+            tooltip: L.rerollCategoryTooltip,
+            onPressed: onReroll,
+            icon: const Icon(Icons.refresh, size: 16),
+            color: JColors.goldBright,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+          ),
+        ),
+      ],
     );
   }
 }

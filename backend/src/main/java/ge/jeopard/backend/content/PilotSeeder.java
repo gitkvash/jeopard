@@ -162,6 +162,7 @@ public class PilotSeeder implements ApplicationRunner {
             // loop's shape, free to drift from it.
             if (present.contains(pkg.getId())) {
                 skipped++;
+                packages.updateMetadata(pkg.getId(), pkg.getTitle(), pkg.getSubtitle(), pkg.getSourceUrl());
                 pkg.getRounds().forEach(r -> r.getTopics()
                         .forEach(t -> t.getClues().forEach(c -> fromFile.put(c.getId(), c))));
                 continue;

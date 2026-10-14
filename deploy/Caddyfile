@@ -28,15 +28,6 @@
 		reverse_proxy backend:8080
 	}
 
-	# Asked for once per browser by flutter_bootstrap.js. Until 2026-10-14 the
-	# client's files went out as immutable for a year, and a browser holding
-	# them -- an icon font without today's icons, say -- never asks again.
-	handle /clear-cache {
-		header Cache-Control "no-store"
-		header Clear-Site-Data "\"cache\""
-		respond 204
-	}
-
 	# --- the client -----------------------------------------------------
 	handle {
 		root * /srv/web

@@ -12,22 +12,29 @@ for (const build of _flutter.buildConfig.builds) {
 
 // The same went for everything under assets/, whose names no build changes:
 // such a browser draws today's icons from a font tree-shaken before they
-// existed, as blanks. /clear-cache answers with Clear-Site-Data, once per
-// browser, before the engine asks for any of it.
-const CACHE_CLEARED_KEY = "jeopard.cacheCleared.v1";
+// existed, as blanks. So, once per browser, fetch the manifests and the fonts
+// with cache: "reload", which skips the cached copy and replaces it. Capped
+// in time: nothing here may keep the app from starting.
+const ASSETS_REFRESHED_KEY = "jeopard.assetsRefreshed.v1";
+const REFRESH_TIMEOUT_MS = 4000;
 
-async function clearStaleCacheOnce() {
-  try {
-    if (localStorage.getItem(CACHE_CLEARED_KEY)) return;
-    const res = await fetch("clear-cache", { cache: "no-store" });
-    // A dev server has no such route; asking again next load costs nothing.
-    if (res.ok) localStorage.setItem(CACHE_CLEARED_KEY, "1");
-  } catch (_) {
-    // Storage blocked or offline: start the app regardless.
-  }
+async function refreshStaleAssetsOnce() {
+  if (localStorage.getItem(ASSETS_REFRESHED_KEY)) return;
+  const reload = (path) => fetch(path, { cache: "reload" });
+  const fonts = await (await reload("assets/FontManifest.json")).json();
+  await Promise.all([
+    reload("assets/AssetManifest.bin.json"),
+    ...fonts.flatMap((family) =>
+      family.fonts.map((font) => reload(encodeURI("assets/" + font.asset))),
+    ),
+  ]);
+  localStorage.setItem(ASSETS_REFRESHED_KEY, "1");
 }
 
-clearStaleCacheOnce().then(() => {
+Promise.race([
+  refreshStaleAssetsOnce().catch(() => {}),
+  new Promise((resolve) => setTimeout(resolve, REFRESH_TIMEOUT_MS)),
+]).then(() => {
   _flutter.loader.load({
     serviceWorkerSettings: {
       serviceWorkerVersion: {{flutter_service_worker_version}}

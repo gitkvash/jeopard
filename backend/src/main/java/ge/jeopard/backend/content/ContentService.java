@@ -344,7 +344,8 @@ public class ContentService {
             topic.getClues().add(clue);
         }
 
-        topics.save(topic);
+        // Flushed here: a game re-seeding its tiles next needs these rows to exist.
+        topics.saveAndFlush(topic);
         boardCache.remove(round.getId());
 
         return new TopicSummary(topic.getId(), topic.getIdx(), topic.getName());

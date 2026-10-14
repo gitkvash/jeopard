@@ -188,6 +188,62 @@ public class GameService {
         games.delete(game);
     }
 
+    /**
+     * Swap one category of the board in front of everyone for another random one,
+     * as long as nothing has been taken from it. Only a random package's
+     * categories are this game's alone to change; a played tile would leave its
+     * score and its place on the board pointing at a clue that no longer exists.
+     */
+    @Transactional
+    public Snapshot rerollTopic(UUID gameId, String hostToken, Long topicId) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+        if (game.getState() != GameState.LOBBY && game.getState() != GameState.BOARD) {
+            throw new ResponseStatusException(CONFLICT,
+                    "categories can only be changed from the board, not in " + game.getState());
+        }
+        GameRound round = game.getRound();
+        if (round.isFinalRound()) {
+            throw new ResponseStatusException(CONFLICT, "the final round has no board to change");
+        }
+
+        if (!game.getQuizPackage().isSynthetic()) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "only random package categories can be changed");
+        }
+
+        List<Long> clueIds = clues.findByRoundId(round.getId()).stream()
+                .filter(c -> c.getTopic().getId().equals(topicId))
+                .map(Clue::getId)
+                .toList();
+        if (clueIds.isEmpty()) {
+            throw new ResponseStatusException(NOT_FOUND, "that category is not on this board");
+        }
+
+        List<GameClue> tiles = gameClues.findByGameId(gameId).stream()
+                .filter(t -> clueIds.contains(t.getClueId()))
+                .toList();
+        if (tiles.stream().anyMatch(t -> t.getStatus() != ClueStatus.AVAILABLE)) {
+            throw new ResponseStatusException(CONFLICT,
+                    "a clue from this category has already been played");
+        }
+        if (gameClues.countInOtherGames(gameId, clueIds) > 0) {
+            throw new ResponseStatusException(CONFLICT,
+                    "this category is in use in another game");
+        }
+
+        // Tiles go first: they reference the clues that are about to be replaced.
+        gameClues.deleteAll(tiles);
+        gameClues.flush();
+        content.rerollTopic(game.getQuizPackage().getId(), topicId);
+        // Only this category's new tiles: the rest of the board keeps its state.
+        gameClues.saveAll(clues.findByRoundId(round.getId()).stream()
+                .filter(c -> c.getTopic().getId().equals(topicId))
+                .map(c -> new GameClue(gameId, c.getId()))
+                .toList());
+        bump(game);
+        return snapshotAndBroadcast(game);
+    }
+
     /** What a joining player needs in order to choose a team. */
     @Transactional(readOnly = true)
     public LobbyView lobby(String joinCode) {

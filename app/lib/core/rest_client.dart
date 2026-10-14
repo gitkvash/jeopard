@@ -186,6 +186,13 @@ class RestClient {
   Future<Snapshot> selectClue(String gameId, String hostToken, int clueId) =>
       _hostAction(gameId, 'select-clue', hostToken, body: {'clueId': clueId});
 
+  /// Swaps a category nobody has played from for another random one.
+  Future<Snapshot> rerollGameTopic(
+    String gameId,
+    String hostToken,
+    int topicId,
+  ) => _hostAction(gameId, 'topics/$topicId/reroll', hostToken);
+
   Future<Snapshot> openBuzzer(String gameId, String hostToken) =>
       _hostAction(gameId, 'open-buzzer', hostToken);
 

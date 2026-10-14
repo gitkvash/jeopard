@@ -187,6 +187,13 @@ public class GameController {
         return gameService.finalJudge(gameId, token, req.teamId(), req.correct());
     }
 
+    @PostMapping("/{gameId}/topics/{topicId}/reroll")
+    public Snapshot rerollTopic(@PathVariable UUID gameId,
+                                @PathVariable Long topicId,
+                                @RequestHeader(HOST_TOKEN) String token) {
+        return gameService.rerollTopic(gameId, token, topicId);
+    }
+
     @DeleteMapping("/{gameId}")
     @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {

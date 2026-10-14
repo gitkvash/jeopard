@@ -251,6 +251,15 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     }
   }
 
+  /// Swapping a category is for random packages only: their categories belong to
+  /// this game alone. The server refuses it for a curated package or a category
+  /// already played from, so this only decides whether to offer it.
+  void Function(BoardColumn column)? _rerollTopicHandler() =>
+      (_feed.snapshot?.packageNumber ?? 0) < 0
+      ? (column) =>
+            _act((c) => c.rerollGameTopic(_gameId, _token, column.topicId))
+      : null;
+
   /// Overlays [_hostQuestion] onto [clue] when the server withheld it for
   /// being hidden from participants -- everywhere else, [clue] as sent.
   CurrentClue _withHostQuestion(CurrentClue clue) =>
@@ -605,6 +614,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                 board: board,
                 onTapTile: (t) =>
                     _act((c) => c.selectClue(_gameId, _token, t.clueId)),
+                onRerollTopic: _rerollTopicHandler(),
               ),
             ),
           ),
@@ -842,6 +852,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                   board: board,
                   onTapTile: (t) =>
                       _act((c) => c.selectClue(_gameId, _token, t.clueId)),
+                  onRerollTopic: _rerollTopicHandler(),
                 ),
               ),
             ),

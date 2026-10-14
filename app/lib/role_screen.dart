@@ -126,6 +126,36 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
     }
   }
 
+  /// A player's ✕ only drops this device's seat. The host's ✕ deletes the whole
+  /// game for everyone, so it asks first.
+  Future<void> _onCloseTapped(GameSession session) async {
+    if (session.isHost) {
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text(L.endGameConfirmTitle),
+          content: const Text(L.endGameConfirmMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(L.cancel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: JColors.wrong,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text(L.endGameAction),
+            ),
+          ],
+        ),
+      );
+      if (go != true || !mounted) return;
+    }
+    await _dismissSession(session);
+  }
+
   Future<void> _dismissSession(GameSession session) async {
     SessionStore.clear();
     setState(() => _session = null);
@@ -232,7 +262,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
           IconButton(
             tooltip: L.leaveGame,
             icon: const Icon(Icons.close, size: 18, color: JColors.textFaint),
-            onPressed: _resuming ? null : () => _dismissSession(session),
+            onPressed: _resuming ? null : () => _onCloseTapped(session),
           ),
         ],
       ),

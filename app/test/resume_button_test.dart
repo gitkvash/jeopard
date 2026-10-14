@@ -159,6 +159,42 @@ void main() {
     expect(find.text(L.returnToGame), findsNothing);
   });
 
+  testWidgets('host closing the return card asks first and deletes only on confirm',
+      (tester) async {
+    SessionStore.write(hostSession());
+    var deleteCalled = false;
+
+    final client = MockClient((request) async {
+      if (request.method == 'DELETE' && request.url.path == '/api/games/g-1') {
+        deleteCalled = true;
+        return http.Response('', 204);
+      }
+      return http.Response('not found', 404);
+    });
+
+    await tester.pumpWidget(testApp(client: client));
+    await tester.pumpAndSettle();
+
+    // Cancel: nothing is deleted and the card stays.
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    expect(find.text(L.endGameConfirmMessage), findsOneWidget);
+    await tester.tap(find.text(L.cancel));
+    await tester.pumpAndSettle();
+    expect(deleteCalled, isFalse);
+    expect(SessionStore.read(), isNotNull);
+    expect(find.text(L.returnToGame), findsOneWidget);
+
+    // Confirm: the game is deleted and the card goes away.
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(L.endGameAction));
+    await tester.pumpAndSettle();
+    expect(deleteCalled, isTrue);
+    expect(SessionStore.read(), isNull);
+    expect(find.text(L.returnToGame), findsNothing);
+  });
+
   testWidgets('joining a new game disconnects from old game', (tester) async {
     SessionStore.write(playerSession(gameId: 'old-g', code: 'OLDCOD'));
     var oldLeaveCalled = false;

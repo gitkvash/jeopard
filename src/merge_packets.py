@@ -94,7 +94,7 @@ def scrub(pkg: dict) -> int:
 
 def build() -> tuple[dict, list[str]]:
     pilot = load(PILOT)
-    original = pilot['packages']
+    original = pilot['packages'][:6]
     notes = [f'{len(original)} original packages from {PILOT}']
 
     generated = []
@@ -190,8 +190,10 @@ def main(argv: list[str]) -> int:
         return 1
 
     shutil.copyfile(MERGED, BACKEND_SEED)
+    shutil.copyfile(MERGED, PILOT)
     print(f'\nwrote {MERGED}')
     print(f'wrote {BACKEND_SEED}')
+    print(f'wrote {PILOT}')
     print('\nThe seeder only runs on an empty content table, so an already '
           'seeded database will ignore this. Reseed with:\n'
           '    .\\backend\\reseed.ps1')

@@ -113,7 +113,13 @@ public final class GameDtos {
     public record JudgeRequest(boolean correct) {
     }
 
-    public record BuzzRequest(@NotBlank String playerToken) {
+    /**
+     * @param reactionMs how long this device had been showing the open buzzer
+     *                   when the player pressed it. Optional -- an older client
+     *                   sends none and is ranked by arrival alone. See
+     *                   {@link BuzzArbiter} for how far it is believed.
+     */
+    public record BuzzRequest(@NotBlank String playerToken, Long reactionMs) {
     }
 
     public record WagerRequest(@NotBlank String playerToken, @NotNull Integer wager) {

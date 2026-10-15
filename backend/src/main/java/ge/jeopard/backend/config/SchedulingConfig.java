@@ -7,7 +7,8 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /**
- * The thread that opens a buzzer nobody pressed.
+ * The thread that opens a buzzer nobody pressed, and that closes each buzz
+ * window and names whoever pressed first (see {@code BuzzArbiter}).
  *
  * <p>Declared here rather than relying on {@code @EnableScheduling}: there are
  * no cron methods in this application, only one-shot work booked at a deadline

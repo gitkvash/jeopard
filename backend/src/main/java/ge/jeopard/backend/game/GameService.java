@@ -12,6 +12,7 @@ import ge.jeopard.backend.game.GameDtos.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,10 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.springframework.http.HttpStatus.*;
 
@@ -87,6 +92,15 @@ public class GameService {
      */
     private final TransactionTemplate transactions;
 
+    /** The same, read-only: the checks a buzz passes before it is ranked. */
+    private final TransactionTemplate readOnly;
+
+    /** Ranks simultaneous presses; see {@link BuzzArbiter}. */
+    private final BuzzArbiter arbiter;
+
+    /** How long a REST buzz may wait for its window to be settled. */
+    private final long buzzAwaitMs;
+
     GameService(GameRepository games,
                 TeamRepository teams,
                 PlayerRepository players,
@@ -97,7 +111,9 @@ public class GameService {
                 Attribution attribution,
                 SimpMessagingTemplate broker,
                 @Qualifier(SchedulingConfig.BUZZ_TIMER) TaskScheduler scheduler,
-                PlatformTransactionManager transactionManager) {
+                PlatformTransactionManager transactionManager,
+                @Value("${jeopard.buzz.window-ms:150}") long buzzWindowMs,
+                @Value("${jeopard.buzz.max-latency-compensation-ms:250}") long maxCompensationMs) {
         this.games = games;
         this.teams = teams;
         this.players = players;
@@ -109,6 +125,10 @@ public class GameService {
         this.broker = broker;
         this.scheduler = scheduler;
         this.transactions = new TransactionTemplate(transactionManager);
+        this.readOnly = new TransactionTemplate(transactionManager);
+        this.readOnly.setReadOnly(true);
+        this.arbiter = new BuzzArbiter(scheduler, buzzWindowMs, maxCompensationMs);
+        this.buzzAwaitMs = Math.max(0, buzzWindowMs) + 10_000;
     }
 
     // ------------------------------------------------------------------
@@ -181,6 +201,7 @@ public class GameService {
         games.saveAndFlush(game);
 
         sendAfterCommit(noticesTopic(gameId), Notice.gameTerminated());
+        afterCommit(() -> arbiter.forget(gameId));
 
         lockouts.deleteByGameId(gameId);
         gameClues.deleteByGameId(gameId);
@@ -345,7 +366,7 @@ public class GameService {
         if (player.getId().equals(game.getBuzzedPlayerId())) {
             clearBuzz(game);
             if (game.getState() == GameState.BUZZED) {
-                game.setState(GameState.BUZZ_OPEN);
+                markBuzzOpen(game);
             }
         }
 
@@ -361,7 +382,7 @@ public class GameService {
             if (teamId.equals(game.getBuzzedTeamId())) {
                 clearBuzz(game);
                 if (game.getState() == GameState.BUZZED) {
-                    game.setState(GameState.BUZZ_OPEN);
+                    markBuzzOpen(game);
                 }
             }
             teams.delete(oldTeam);
@@ -612,7 +633,7 @@ public class GameService {
         switch (game.getBuzzMode()) {
             case HOST -> {
             }
-            case INSTANT -> game.setState(GameState.BUZZ_OPEN);
+            case INSTANT -> markBuzzOpen(game);
             case TIMER -> {
                 Instant at = Instant.now().plusSeconds(game.getBuzzDelaySeconds());
                 game.setBuzzOpensAt(at);
@@ -654,7 +675,7 @@ public class GameService {
                     return;
                 }
                 clearBuzz(game);
-                game.setState(GameState.BUZZ_OPEN);
+                markBuzzOpen(game);
                 game.setBuzzOpensAt(null);
                 bump(game);
                 snapshotAndBroadcast(game);
@@ -679,54 +700,105 @@ public class GameService {
             throw new ResponseStatusException(CONFLICT, "every team is locked out on this clue");
         }
         clearBuzz(game);
-        game.setState(GameState.BUZZ_OPEN);
+        markBuzzOpen(game);
         game.setBuzzOpensAt(null);
         bump(game);
         return snapshotAndBroadcast(game);
     }
 
     /**
-     * First buzz wins, and the database decides which one that is.
+     * A press of the buzzer. Whoever pressed first wins it -- first by the
+     * moment of the press, not by which request happened to reach the database
+     * first; {@link BuzzArbiter} explains how that is judged.
      *
-     * <p>The checks below are the fast, friendly path: they turn the ordinary
-     * refusals into an explanation the player can read. None of them is what
-     * makes the race safe -- {@link GameRepository#claimBuzz} re-tests every
-     * condition that matters inside one conditional UPDATE, so a buzz that
-     * passed a check a millisecond before the state moved still loses.
+     * <p>The checks here turn the ordinary refusals into an explanation the
+     * player can read, and fail fast, before any waiting. None of them is what
+     * makes the race safe: a press is only ever written by
+     * {@link GameRepository#claimBuzz}, which re-tests every condition that
+     * matters inside one conditional UPDATE, so a press that passed a check a
+     * millisecond before the state moved still loses.
+     *
+     * @param reactionMs     how long the player's own device had shown the open
+     *                       buzzer when they pressed, or null from a client that
+     *                       does not measure it
+     * @param arrivedAtNanos {@link System#nanoTime()} when the press reached this
+     *                       server, taken before any queueing could reorder it
+     * @return completes once the press has been ranked against every other one
+     *         in its window: with the snapshot if it won, with a 409 if not
      */
-    @Transactional
-    public Snapshot buzz(UUID gameId, String playerToken) {
-        Game game = games.findById(gameId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
-        Player player = players.findByGameIdAndToken(gameId, playerToken)
-                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN,
-                        "not a player in this game"));
+    public CompletableFuture<Snapshot> buzz(UUID gameId, String playerToken,
+                                            Long reactionMs, long arrivedAtNanos) {
+        record Press(Long clueId, BuzzArbiter.Candidate candidate) {
+        }
+        Press press = readOnly.execute(status -> {
+            Game game = games.findById(gameId)
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
+            Player player = players.findByGameIdAndToken(gameId, playerToken)
+                    .orElseThrow(() -> new ResponseStatusException(FORBIDDEN,
+                            "not a player in this game"));
 
-        if (game.getState() != GameState.BUZZ_OPEN) {
-            throw new ResponseStatusException(CONFLICT, "buzzer is not open");
-        }
-        if (game.getBuzzedTeamId() != null) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "another team buzzed first");
-        }
-        Long clueId = requireClueInPlay(game).getId();
-        // The lockout belongs to the team, so a teammate cannot retry a clue
-        // their team has already answered wrong.
-        if (lockouts.existsByGameIdAndClueIdAndTeamId(gameId, clueId, player.getTeamId())) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
-                    "that team already had a turn on this clue");
-        }
-        if (player.isHost() && game.isAnswerPeeked()) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "host looked at the answer on this clue");
-        }
+            if (game.getState() != GameState.BUZZ_OPEN) {
+                throw new ResponseStatusException(CONFLICT, "buzzer is not open");
+            }
+            if (game.getBuzzedTeamId() != null) {
+                throw new ResponseStatusException(CONFLICT, "another team buzzed first");
+            }
+            Long clueId = requireClueInPlay(game).getId();
+            // The lockout belongs to the team, so a teammate cannot retry a clue
+            // their team has already answered wrong.
+            if (lockouts.existsByGameIdAndClueIdAndTeamId(gameId, clueId, player.getTeamId())) {
+                throw new ResponseStatusException(CONFLICT, "that team already had a turn on this clue");
+            }
+            if (player.isHost() && game.isAnswerPeeked()) {
+                throw new ResponseStatusException(CONFLICT, "host looked at the answer on this clue");
+            }
+            long rank = arbiter.rank(gameId, clueId, arrivedAtNanos, reactionMs);
+            return new Press(clueId, new BuzzArbiter.Candidate(player.getTeamId(), player.getId(),
+                    player.isHost(), arrivedAtNanos, rank, new CompletableFuture<>()));
+        });
+        return arbiter.submit(gameId, press.clueId(), press.candidate(),
+                ranked -> settleBuzz(gameId, press.clueId(), ranked));
+    }
 
-        int updated = games.claimBuzz(gameId, player.getTeamId(), player.getId(), clueId,
-                player.isHost(), GameState.BUZZ_OPEN, GameState.BUZZED);
-        if (updated == 0) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "another team buzzed first");
+    /**
+     * {@link #buzz}, waited for: the REST fallback answers with the outcome.
+     * The refusal is unwrapped so it reaches the client with its reason intact.
+     */
+    public Snapshot buzzAndWait(UUID gameId, String playerToken, Long reactionMs, long arrivedAtNanos) {
+        try {
+            return buzz(gameId, playerToken, reactionMs, arrivedAtNanos)
+                    .get(buzzAwaitMs, TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RuntimeException cause) {
+                throw cause;
+            }
+            throw new IllegalStateException(e.getCause());
+        } catch (TimeoutException e) {
+            throw new ResponseStatusException(SERVICE_UNAVAILABLE, "the buzz could not be settled in time");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(SERVICE_UNAVAILABLE, "interrupted while settling the buzz");
         }
+    }
 
-        game = games.findById(gameId).orElseThrow();
-        return snapshotAndBroadcast(game);
+    /**
+     * Write the best press of a window that can still land. Usually that is the
+     * first; a later one gets its turn only when every earlier one has been
+     * overtaken in the meantime -- its team locked out, the host peeked, the
+     * clue gone.
+     */
+    private BuzzArbiter.Outcome settleBuzz(UUID gameId, Long clueId, List<BuzzArbiter.Candidate> ranked) {
+        return transactions.execute(status -> {
+            for (BuzzArbiter.Candidate c : ranked) {
+                int updated = games.claimBuzz(gameId, c.teamId(), c.playerId(), clueId,
+                        c.host(), GameState.BUZZ_OPEN, GameState.BUZZED);
+                if (updated == 1) {
+                    Game game = games.findForSnapshot(gameId).orElseThrow();
+                    return new BuzzArbiter.Outcome(c, snapshotAndBroadcast(game));
+                }
+            }
+            return new BuzzArbiter.Outcome(null, null);
+        });
     }
 
     /**
@@ -756,7 +828,7 @@ public class GameService {
             lockouts.save(new ClueLockout(gameId, clue.getId(), team.getId()));
             clearBuzz(game);
             if (eligibleTeamCount(game) > 0) {
-                game.setState(GameState.BUZZ_OPEN);   // second team gets a shot
+                markBuzzOpen(game);                   // second team gets a shot
             } else {
                 resolve(game, clue, null);            // nobody left, show the answer
             }
@@ -776,7 +848,7 @@ public class GameService {
         expect(game, GameState.BUZZED);
         requireClueInPlay(game);
         clearBuzz(game);
-        game.setState(GameState.BUZZ_OPEN);
+        markBuzzOpen(game);
         game.setBuzzOpensAt(null);
         bump(game);
         return snapshotAndBroadcast(game);
@@ -934,7 +1006,7 @@ public class GameService {
      */
     @Transactional(readOnly = true)
     public Snapshot snapshot(UUID gameId, String hostToken) {
-        Game game = games.findById(gameId)
+        Game game = games.findForSnapshot(gameId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
         return buildSnapshot(game, matchesHostToken(game, hostToken));
     }
@@ -979,8 +1051,12 @@ public class GameService {
                 .toList();
 
         Map<Long, GameClue> byClue = new HashMap<>();
+        int remaining = 0;
         for (GameClue gc : gameClues.findByGameId(gameId)) {
             byClue.put(gc.getClueId(), gc);
+            if (gc.getStatus() == ClueStatus.AVAILABLE) {
+                remaining++;   // counted here rather than asked of the database again
+            }
         }
 
         ContentDtos.BoardView board = content.board(game.getRound().getId());
@@ -1017,7 +1093,7 @@ public class GameService {
                 teamViews, columns, currentView,
                 game.getBuzzedTeamId(), game.getBuzzedPlayerId(), game.getPickingTeamId(),
                 game.isAnswerRevealed(), game.isAnswerPeeked(),
-                gameClues.countByGameIdAndStatus(gameId, ClueStatus.AVAILABLE),
+                remaining,
                 game.getBuzzMode(), game.getBuzzDelaySeconds(), buzzOpensInMs(game),
                 game.isQuestionsVisibleToParticipants(),
                 game.isPlayersPickClues(),
@@ -1235,6 +1311,20 @@ public class GameService {
         return clue;
     }
 
+    /**
+     * Put the buzzer live, and once that has committed, start the clock that
+     * {@link BuzzArbiter} measures every press on this opening against.
+     */
+    private void markBuzzOpen(Game game) {
+        game.setState(GameState.BUZZ_OPEN);
+        UUID gameId = game.getId();
+        Clue clue = game.getCurrentClue();
+        if (clue != null) {
+            Long clueId = clue.getId();
+            afterCommit(() -> arbiter.opened(gameId, clueId));
+        }
+    }
+
     private static void bump(Game game) {
         game.setEventSeq(game.getEventSeq() + 1);
     }
@@ -1268,14 +1358,19 @@ public class GameService {
     }
 
     private void sendAfterCommit(String destination, Object payload) {
+        afterCommit(() -> broker.convertAndSend(destination, payload));
+    }
+
+    /** Run {@code work} once the transaction really committed, or now if there is none. */
+    private static void afterCommit(Runnable work) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            broker.convertAndSend(destination, payload);
+            work.run();
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                broker.convertAndSend(destination, payload);
+                work.run();
             }
         });
     }

@@ -57,6 +57,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
 
   String get _gameId => widget.session.gameId;
   String get _playerToken => widget.session.playerToken ?? '';
+
   /// The team this player is on *now*. Read off the game rather than off what was
   /// stored at join time, because a player can be moved -- by choice in the lobby
   /// or by the host mid-game -- and everything here (score, lockout, the buzz)
@@ -181,14 +182,13 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   void _buzz() {
     final snap = _feed.snapshot;
     if (snap == null || snap.state != GameState.buzzOpen) return;
+    final clueId = snap.currentClue?.clueId;
+    // The button fires on the finger landing and again, for keyboards and
+    // screen readers, on the tap; only the first of those is a press.
+    if (_buzzSent && _buzzSentForClue == clueId) return;
 
-    HapticFeedback.heavyImpact();
-    Sfx.instance.play(Cue.tap);
-    setState(() {
-      _buzzSent = true;
-      _buzzSentForClue = snap.currentClue?.clueId;
-    });
-
+    // Out of the door before anything else: the haptic, the sound and the
+    // rebuild below are all time the press would otherwise spend on the phone.
     // Prefer the socket -- it is the lowest-latency path. If it is down, fall
     // back to REST so a flaky connection does not silently cost the round.
     if (_feed.isSocketConnected) {
@@ -196,7 +196,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     } else {
       ref
           .read(restClientProvider)
-          .buzz(_gameId, _playerToken)
+          .buzz(_gameId, _playerToken, reactionMs: _feed.reactionMs)
           .then(_feed.push)
           .catchError((Object e) {
             if (e is ApiException && e.isNotFound) {
@@ -211,6 +211,13 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
             return Future<void>.value();
           });
     }
+
+    HapticFeedback.heavyImpact();
+    Sfx.instance.play(Cue.tap);
+    setState(() {
+      _buzzSent = true;
+      _buzzSentForClue = clueId;
+    });
   }
 
   Future<void> _submitWager(int amount) async {
@@ -258,10 +265,12 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     );
     if (go != true || !mounted) return;
     SessionStore.clear();
-    unawaited(ref
-        .read(restClientProvider)
-        .leavePlayer(_gameId, _playerToken)
-        .catchError((_) {}));
+    unawaited(
+      ref
+          .read(restClientProvider)
+          .leavePlayer(_gameId, _playerToken)
+          .catchError((_) {}),
+    );
     if (!mounted) return;
     RoleScreen.replaceAll(context);
   }
@@ -330,130 +339,139 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
         RoleScreen.replaceAll(context);
       },
       child: Scaffold(
-      appBar: AppBar(
-        toolbarHeight: context.appBarHeight,
-        titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              widget.session.playerName ?? L.team,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            SnapshotBuilder<String>(
-              feed: _feed,
-              select: (s) {
-                final mine = _myTeam;
-                if (mine == null) return widget.session.teamName ?? '';
-                return mine.solo ? L.noTeam : mine.name;
-              },
-              builder: (context, name) => Text(
-                name,
+        appBar: AppBar(
+          toolbarHeight: context.appBarHeight,
+          titleSpacing: 16,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                widget.session.playerName ?? L.team,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: JColors.textFaint),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          // My score, large enough to glance at mid-game.
-          SnapshotBuilder<int?>(
-            feed: _feed,
-            select: (s) => s?.teamById(_teamId)?.score,
-            builder: (context, score) => score == null
-                ? const SizedBox.shrink()
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Center(
-                      child: Text(
-                        '$score',
-                        style: engraved(
-                          22,
-                          color: score < 0 ? JColors.wrongBright : JColors.gold,
-                          glow: false,
+              SnapshotBuilder<String>(
+                feed: _feed,
+                select: (s) {
+                  final mine = _myTeam;
+                  if (mine == null) return widget.session.teamName ?? '';
+                  return mine.solo ? L.noTeam : mine.name;
+                },
+                builder: (context, name) => Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: JColors.textFaint,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // My score, large enough to glance at mid-game.
+            SnapshotBuilder<int?>(
+              feed: _feed,
+              select: (s) => s?.teamById(_teamId)?.score,
+              builder: (context, score) => score == null
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Center(
+                        child: Text(
+                          '$score',
+                          style: engraved(
+                            22,
+                            color: score < 0
+                                ? JColors.wrongBright
+                                : JColors.gold,
+                            glow: false,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-          ),
-          const SoundToggle(),
-          ConnectionDot(feed: _feed, onTap: _refresh),
-          IconButton(
-            tooltip: L.leaveGame,
-            onPressed: _leave,
-            icon: const Icon(Icons.logout, size: 20),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      // Sides only: in landscape a notch sits where the board starts. The top is
-      // the app bar's, and the bottom is the control shelf's own.
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Column(
-          // Stretch, or the score strip shrink-wraps its content and floats in
-          // the middle of the screen instead of spanning it.
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SnapshotBuilder<(GameState, List<TeamView>, String?)>(
-              feed: _feed,
-              select: (s) => (
-                s?.state ?? GameState.unknown,
-                s?.teams ?? const <TeamView>[],
-                s?.buzzedTeamId,
-              ),
-              equals: (a, b) =>
-                  a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
-              builder: (context, value) {
-                if (value.$1 == GameState.lobby || value.$2.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
-                    ),
-                    border: Border(bottom: BorderSide(color: JColors.brass)),
-                  ),
-                  child: Scoreboard(
-                    teams: value.$2,
-                    buzzedTeamId: value.$3,
-                    myTeamId: _teamId,
-                  ),
-                );
-              },
             ),
-            Expanded(
-              child: SnapshotBuilder<GameState?>(
-                feed: _feed,
-                select: (s) => s?.state,
-                builder: (context, state) => switch (state) {
-                  null || GameState.unknown => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  GameState.lobby => _waitingForHost(),
-                  GameState.board => _watchBoard(),
-                  GameState.clueReading ||
-                  GameState.buzzOpen ||
-                  GameState.buzzed ||
-                  GameState.resolved => _cluePhase(),
-                  GameState.finalWager => _wagerPhase(),
-                  GameState.finalClue || GameState.finalResult => _finalPhase(),
-                  GameState.finished => _finished(),
-                },
-              ),
+            const SoundToggle(),
+            ConnectionDot(feed: _feed, onTap: _refresh),
+            IconButton(
+              tooltip: L.leaveGame,
+              onPressed: _leave,
+              icon: const Icon(Icons.logout, size: 20),
             ),
+            const SizedBox(width: 4),
           ],
         ),
+        // Sides only: in landscape a notch sits where the board starts. The top is
+        // the app bar's, and the bottom is the control shelf's own.
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: Column(
+            // Stretch, or the score strip shrink-wraps its content and floats in
+            // the middle of the screen instead of spanning it.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SnapshotBuilder<(GameState, List<TeamView>, String?)>(
+                feed: _feed,
+                select: (s) => (
+                  s?.state ?? GameState.unknown,
+                  s?.teams ?? const <TeamView>[],
+                  s?.buzzedTeamId,
+                ),
+                equals: (a, b) =>
+                    a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
+                builder: (context, value) {
+                  if (value.$1 == GameState.lobby || value.$2.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
+                      ),
+                      border: Border(bottom: BorderSide(color: JColors.brass)),
+                    ),
+                    child: Scoreboard(
+                      teams: value.$2,
+                      buzzedTeamId: value.$3,
+                      myTeamId: _teamId,
+                    ),
+                  );
+                },
+              ),
+              Expanded(
+                child: SnapshotBuilder<GameState?>(
+                  feed: _feed,
+                  select: (s) => s?.state,
+                  builder: (context, state) => switch (state) {
+                    null || GameState.unknown => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    GameState.lobby => _waitingForHost(),
+                    GameState.board => _watchBoard(),
+                    GameState.clueReading ||
+                    GameState.buzzOpen ||
+                    GameState.buzzed ||
+                    GameState.resolved => _cluePhase(),
+                    GameState.finalWager => _wagerPhase(),
+                    GameState.finalClue ||
+                    GameState.finalResult => _finalPhase(),
+                    GameState.finished => _finished(),
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-    ),
     );
   }
 
@@ -567,10 +585,8 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
             // for everyone but whoever holds the pick.
             child: SnapshotBuilder<(List<BoardColumn>, bool)>(
               feed: _feed,
-              select: (s) => (
-                s?.board ?? const <BoardColumn>[],
-                _isMyTurnToPick(s),
-              ),
+              select: (s) =>
+                  (s?.board ?? const <BoardColumn>[], _isMyTurnToPick(s)),
               equals: (a, b) => a.$2 == b.$2 && boardsEqual(a.$1, b.$1),
               builder: (context, value) => BoardGrid(
                 board: value.$1,
@@ -946,30 +962,38 @@ class _BuzzButtonState extends State<_BuzzButton>
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: Material(
-              type: MaterialType.transparency,
-              child: InkWell(
-                onTap: widget.sent ? null : widget.onTap,
-                splashColor: const Color(0x40FFFFFF),
-                child: Center(
-                  child: widget.sent
-                      ? const Icon(Icons.check, size: 58, color: Colors.white)
-                      : const Text(
-                          L.buzz,
-                          style: TextStyle(
-                            fontSize: 46,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                            shadows: [
-                              Shadow(
-                                color: Color(0x66000000),
-                                offset: Offset(0, 3),
-                                blurRadius: 4,
-                              ),
-                            ],
+            // A tap only completes when the finger lifts, and only once the
+            // gesture arena has ruled out a scroll -- easily 100 ms after the
+            // press, longer for a player who leans on the button. The buzzer
+            // goes on the finger landing; the tap stays for keyboards and
+            // screen readers, and the press handler ignores the second call.
+            child: Listener(
+              onPointerDown: widget.sent ? null : (_) => widget.onTap(),
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: widget.sent ? null : widget.onTap,
+                  splashColor: const Color(0x40FFFFFF),
+                  child: Center(
+                    child: widget.sent
+                        ? const Icon(Icons.check, size: 58, color: Colors.white)
+                        : const Text(
+                            L.buzz,
+                            style: TextStyle(
+                              fontSize: 46,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 1.5,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0x66000000),
+                                  offset: Offset(0, 3),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
             ),

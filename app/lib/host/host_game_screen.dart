@@ -188,26 +188,30 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     if (snap == null || snap.state != GameState.buzzOpen || token == null) {
       return;
     }
+    final clueId = snap.currentClue?.clueId;
+    // Fired on the finger landing and again on the tap; one press only.
+    if (_buzzSent && _buzzSentForClue == clueId) return;
 
-    HapticFeedback.heavyImpact();
-    Sfx.instance.play(Cue.tap);
-    setState(() {
-      _buzzSent = true;
-      _buzzSentForClue = snap.currentClue?.clueId;
-    });
-
+    // Sent before the haptic, the sound and the rebuild -- see BuzzerScreen.
     if (_feed.isSocketConnected) {
       _feed.buzz(token);
     } else {
       ref
           .read(restClientProvider)
-          .buzz(_gameId, token)
+          .buzz(_gameId, token, reactionMs: _feed.reactionMs)
           .then(_feed.push)
           .catchError((_) {
             if (mounted) setState(() => _buzzSent = false);
             return Future<void>.value();
           });
     }
+
+    HapticFeedback.heavyImpact();
+    Sfx.instance.play(Cue.tap);
+    setState(() {
+      _buzzSent = true;
+      _buzzSentForClue = clueId;
+    });
   }
 
   Future<void> _refresh() async {
@@ -362,105 +366,106 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         RoleScreen.replaceAll(context);
       },
       child: Scaffold(
-      appBar: AppBar(
-        toolbarHeight: context.appBarHeight,
-        titleSpacing: 16,
-        title: GameTitle(feed: _feed),
-        actions: [
-          IconButton(
-            tooltip: L.manage,
-            onPressed: _openManage,
-            icon: const Icon(Icons.groups_outlined, size: 22),
-          ),
-          const SoundToggle(),
-          ConnectionDot(feed: _feed, onTap: _refresh),
-          IconButton(
-            tooltip: L.endGame,
-            onPressed: _endGame,
-            icon: const Icon(
-              Icons.stop_circle_outlined,
-              size: 20,
-              color: JColors.wrongBright,
+        appBar: AppBar(
+          toolbarHeight: context.appBarHeight,
+          titleSpacing: 16,
+          title: GameTitle(feed: _feed),
+          actions: [
+            IconButton(
+              tooltip: L.manage,
+              onPressed: _openManage,
+              icon: const Icon(Icons.groups_outlined, size: 22),
             ),
-          ),
-          IconButton(
-            tooltip: L.leaveGame,
-            onPressed: _leave,
-            icon: const Icon(Icons.logout, size: 20),
-          ),
-          IconButton(
-            onPressed: () =>
-                showAboutJeopard(context, _feed.snapshot?.attribution),
-            icon: const Icon(Icons.info_outline, size: 20),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      // Sides only: in landscape a notch sits where the board starts. The top is
-      // the app bar's, and the bottom is the control shelf's own.
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Column(
-          // Stretch, or the score strip shrink-wraps its content and floats in
-          // the middle of the screen instead of spanning it.
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Scores redraw on their own, without dragging the board along.
-            SnapshotBuilder<(GameState, List<TeamView>, String?)>(
-              feed: _feed,
-              select: (s) => (
-                s?.state ?? GameState.unknown,
-                s?.teams ?? const <TeamView>[],
-                s?.buzzedTeamId,
-              ),
-              equals: (a, b) =>
-                  a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
-              builder: (context, value) {
-                if (value.$1 == GameState.lobby || value.$2.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
-                    ),
-                    border: Border(bottom: BorderSide(color: JColors.brass)),
-                  ),
-                  child: Scoreboard(
-                    teams: value.$2,
-                    buzzedTeamId: value.$3,
-                    myTeamId: widget.session.hostTeamId,
-                  ),
-                );
-              },
-            ),
-            Expanded(
-              child: SnapshotBuilder<GameState?>(
-                feed: _feed,
-                select: (s) => s?.state,
-                builder: (context, state) => switch (state) {
-                  null || GameState.unknown => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  GameState.lobby => _lobby(),
-                  GameState.board => _board(),
-                  GameState.clueReading ||
-                  GameState.buzzOpen ||
-                  GameState.buzzed ||
-                  GameState.resolved => _cluePhase(),
-                  GameState.finalWager => _finalWager(),
-                  GameState.finalClue || GameState.finalResult => _finalClue(),
-                  GameState.finished => _finished(),
-                },
+            const SoundToggle(),
+            ConnectionDot(feed: _feed, onTap: _refresh),
+            IconButton(
+              tooltip: L.endGame,
+              onPressed: _endGame,
+              icon: const Icon(
+                Icons.stop_circle_outlined,
+                size: 20,
+                color: JColors.wrongBright,
               ),
             ),
+            IconButton(
+              tooltip: L.leaveGame,
+              onPressed: _leave,
+              icon: const Icon(Icons.logout, size: 20),
+            ),
+            IconButton(
+              onPressed: () =>
+                  showAboutJeopard(context, _feed.snapshot?.attribution),
+              icon: const Icon(Icons.info_outline, size: 20),
+            ),
+            const SizedBox(width: 4),
           ],
         ),
+        // Sides only: in landscape a notch sits where the board starts. The top is
+        // the app bar's, and the bottom is the control shelf's own.
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: Column(
+            // Stretch, or the score strip shrink-wraps its content and floats in
+            // the middle of the screen instead of spanning it.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Scores redraw on their own, without dragging the board along.
+              SnapshotBuilder<(GameState, List<TeamView>, String?)>(
+                feed: _feed,
+                select: (s) => (
+                  s?.state ?? GameState.unknown,
+                  s?.teams ?? const <TeamView>[],
+                  s?.buzzedTeamId,
+                ),
+                equals: (a, b) =>
+                    a.$1 == b.$1 && a.$3 == b.$3 && teamsEqual(a.$2, b.$2),
+                builder: (context, value) {
+                  if (value.$1 == GameState.lobby || value.$2.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xCC0A0E1C), Color(0x8805070F)],
+                      ),
+                      border: Border(bottom: BorderSide(color: JColors.brass)),
+                    ),
+                    child: Scoreboard(
+                      teams: value.$2,
+                      buzzedTeamId: value.$3,
+                      myTeamId: widget.session.hostTeamId,
+                    ),
+                  );
+                },
+              ),
+              Expanded(
+                child: SnapshotBuilder<GameState?>(
+                  feed: _feed,
+                  select: (s) => s?.state,
+                  builder: (context, state) => switch (state) {
+                    null || GameState.unknown => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    GameState.lobby => _lobby(),
+                    GameState.board => _board(),
+                    GameState.clueReading ||
+                    GameState.buzzOpen ||
+                    GameState.buzzed ||
+                    GameState.resolved => _cluePhase(),
+                    GameState.finalWager => _finalWager(),
+                    GameState.finalClue ||
+                    GameState.finalResult => _finalClue(),
+                    GameState.finished => _finished(),
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-    ),
     );
   }
 
@@ -741,14 +746,18 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         // server refuses that buzz anyway, and peeking already warned them.
         if (hostTeamId != null && !hostLockedOut && !snap.answerPeeked) {
           buttons.add(
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: JColors.buzz,
-                foregroundColor: Colors.white,
+            // On the finger landing, not the lift: see BuzzerScreen's button.
+            Listener(
+              onPointerDown: _buzzSent ? null : (_) => _buzz(),
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: JColors.buzz,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: _buzzSent ? null : _buzz,
+                icon: Icon(_buzzSent ? Icons.check : Icons.bolt, size: 20),
+                label: const Text(L.buzz),
               ),
-              onPressed: _buzzSent ? null : _buzz,
-              icon: Icon(_buzzSent ? Icons.check : Icons.bolt, size: 20),
-              label: const Text(L.buzz),
             ),
           );
         }

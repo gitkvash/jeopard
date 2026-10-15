@@ -103,10 +103,17 @@ class GameSocket {
   }
 
   /// Buzz over the socket -- the lowest-latency path we have.
-  void buzz(String playerToken) {
+  ///
+  /// [reactionMs] is how long this device had been showing the open buzzer
+  /// when the player pressed. The server ranks presses by it, so a phone on a
+  /// slow connection is not beaten by a slower finger on a fast one.
+  void buzz(String playerToken, {int? reactionMs}) {
     _client?.send(
       destination: '/app/games/$gameId/buzz',
-      body: jsonEncode({'playerToken': playerToken}),
+      body: jsonEncode({
+        'playerToken': playerToken,
+        'reactionMs': ?reactionMs,
+      }),
     );
   }
 

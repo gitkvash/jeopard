@@ -72,6 +72,16 @@ jeopard:
     # is one board per game in progress; the bound exists because generated
     # packages mint rounds that one game plays and nothing ever asks for again.
     size: ${JEOPARD_BOARD_CACHE:256}
+  buzz:
+    # Presses are not settled on arrival: the first opens a window this long, and
+    # whoever pressed first within it wins (see BuzzArbiter). It is the delay
+    # before "X buzzed in" appears, so it is kept short; 0 settles each press
+    # the moment it arrives, ranked by arrival alone.
+    window-ms: ${JEOPARD_BUZZ_WINDOW_MS:150}
+    # How much network delay a device's own reaction-time measurement may make
+    # up for. It never lets a press claim to be faster than the server saw, and
+    # caps how far a doctored client could shave its time. 0 trusts arrival only.
+    max-latency-compensation-ms: ${JEOPARD_BUZZ_MAX_COMPENSATION_MS:250}
   buzz-timer:
     # Threads shared by every room's automatic buzzer. See SchedulingConfig.
     threads: ${JEOPARD_BUZZ_TIMER_THREADS:4}

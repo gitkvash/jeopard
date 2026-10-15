@@ -266,11 +266,19 @@ class RestClient {
 
   // ---------- buzzing ----------
 
-  /// REST fallback for the STOMP buzz; same server-side locking path.
-  Future<Snapshot> buzz(String gameId, String playerToken) async {
+  /// REST fallback for the STOMP buzz; same server-side ranking path.
+  /// [reactionMs] is as for [GameSocket.buzz].
+  Future<Snapshot> buzz(
+    String gameId,
+    String playerToken, {
+    int? reactionMs,
+  }) async {
     final body = await _post(
       '/api/games/$gameId/buzz',
-      body: {'playerToken': playerToken},
+      body: {
+        'playerToken': playerToken,
+        'reactionMs': ?reactionMs,
+      },
     );
     return Snapshot.fromJson(body as Map<String, dynamic>);
   }

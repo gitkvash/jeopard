@@ -175,7 +175,8 @@ public class GameController {
      */
     @PostMapping("/{gameId}/buzz")
     public Snapshot buzz(@PathVariable UUID gameId, @Valid @RequestBody BuzzRequest req) {
-        return gameService.buzz(gameId, req.playerToken());
+        long arrivedAt = System.nanoTime();
+        return gameService.buzzAndWait(gameId, req.playerToken(), req.reactionMs(), arrivedAt);
     }
 
     // ---------- final round ----------

@@ -44,6 +44,12 @@ class GameFeed extends ChangeNotifier {
   Snapshot? _snapshot;
   bool _connected = false;
 
+  /// Started the moment this device learns the buzzer is open, by socket or
+  /// by REST, so a press can say how quickly the player reacted. The server
+  /// counts from its own opening the same way: a new clue, or a reopen after
+  /// a wrong answer, restarts it; another broadcast mid-open does not.
+  final Stopwatch _sinceOpen = Stopwatch();
+
   Snapshot? get snapshot => _snapshot;
 
   /// Host actions everybody should hear about; see [Notice].
@@ -59,9 +65,28 @@ class GameFeed extends ChangeNotifier {
   /// on the socket. Stale frames are dropped by seq inside [GameSocket].
   void push(Snapshot snapshot) => _socket.push(snapshot);
 
-  void buzz(String playerToken) => _socket.buzz(playerToken);
+  /// Milliseconds since this device learned the buzzer opened, or null while
+  /// it is not open.
+  int? get reactionMs =>
+      _snapshot?.state == GameState.buzzOpen && _sinceOpen.isRunning
+      ? _sinceOpen.elapsedMilliseconds
+      : null;
+
+  void buzz(String playerToken) =>
+      _socket.buzz(playerToken, reactionMs: reactionMs);
 
   void _onSnapshot(Snapshot snapshot) {
+    final previous = _snapshot;
+    final stillOpen =
+        previous?.state == GameState.buzzOpen &&
+        previous?.currentClue?.clueId == snapshot.currentClue?.clueId;
+    if (snapshot.state == GameState.buzzOpen && !stillOpen) {
+      _sinceOpen
+        ..reset()
+        ..start();
+    } else if (snapshot.state != GameState.buzzOpen) {
+      _sinceOpen.stop();
+    }
     _snapshot = snapshot;
     notifyListeners();
   }

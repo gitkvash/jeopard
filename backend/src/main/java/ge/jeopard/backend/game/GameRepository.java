@@ -1,6 +1,7 @@
 package ge.jeopard.backend.game;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -24,6 +25,17 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select g from Game g where g.id = ?1")
     Optional<Game> findByIdForUpdate(UUID id);
+
+    /**
+     * The game with everything a snapshot reads off it, in one statement. A
+     * plain find leaves the round, the clue in play and its topic as proxies,
+     * and building the snapshot then pays a round trip for each -- on every
+     * reconnect and every won buzz. Not for the locked paths: Postgres refuses
+     * FOR UPDATE on the nullable side of an outer join.
+     */
+    @EntityGraph(attributePaths = {"round", "currentClue", "currentClue.topic"})
+    @Query("select g from Game g where g.id = ?1")
+    Optional<Game> findForSnapshot(UUID id);
 
     /**
      * The same lock, for the one write that arrives knowing only the join code.
@@ -51,6 +63,11 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
      * game row alone: a playing host who has looked at the answer is out of this
      * clue. It is passed in rather than read first because reading it first is
      * exactly the race -- the peek can commit between the read and the update.
+     *
+     * <p>The clue is re-tested too. A press is written a short window after it
+     * arrives (see {@link BuzzArbiter}), and in an instant-buzzer game the host
+     * can pass and put the next clue up inside that window; a press made for
+     * the old clue must not land on the new one.
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
@@ -62,6 +79,7 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
              where g.id = :gameId
                and g.state = :oldState
                and g.buzzedTeamId is null
+               and g.currentClue.id = :clueId
                and (:buzzerIsHost = false or g.answerPeeked = false)
                and not exists (
                      select l.teamId from ClueLockout l

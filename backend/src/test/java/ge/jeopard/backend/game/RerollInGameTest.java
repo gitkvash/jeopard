@@ -43,7 +43,7 @@ class RerollInGameTest {
     private Snapshot startRandomGame() {
         PackageSummary pkg = content.generateRandomPackage();
         created = games.createGame(new CreateGameRequest(
-                pkg.id(), null, true, null, BuzzMode.HOST, null, true, null));
+                pkg.id(), null, true, null, BuzzMode.HOST, null, true, null, null));
         return games.start(created.gameId(), created.hostToken());
     }
 
@@ -111,7 +111,7 @@ class RerollInGameTest {
     void refusesACuratedPackage() {
         PackageSummary curated = content.listPackages().get(0);
         created = games.createGame(new CreateGameRequest(
-                curated.id(), null, true, null, BuzzMode.HOST, null, true, null));
+                curated.id(), null, true, null, BuzzMode.HOST, null, true, null, null));
         Snapshot board = games.start(created.gameId(), created.hostToken());
 
         assertThatThrownBy(() -> games.rerollTopic(

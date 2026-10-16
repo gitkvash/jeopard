@@ -11,12 +11,21 @@ import 'core/theme.dart';
 import 'host/host_game_screen.dart';
 import 'host/host_setup_screen.dart';
 import 'main.dart' show routeObserver;
+import 'practice/practice_screen.dart';
 import 'team/buzzer_screen.dart';
 import 'team/join_screen.dart';
 import 'widgets/stage.dart';
 import 'widgets/toast.dart';
 
+/// The screen a stored [session] reopens into.
+Widget gameScreenFor(GameSession session) => session.practice
+    ? PracticeScreen(session: session)
+    : session.isHost
+    ? HostGameScreen(session: session)
+    : BuzzerScreen(session: session);
+
 /// One binary, two roles: the host drives the board, everyone else buzzes.
+/// And practice, for one person on their own.
 ///
 /// Lives in its own file because leaving a game has to come back here from any
 /// navigator state, and the game screens cannot reach into main.dart for it.
@@ -93,13 +102,9 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
         });
         return;
       }
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => session.isHost
-              ? HostGameScreen(session: session)
-              : BuzzerScreen(session: session),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => gameScreenFor(session)));
     } on ApiException catch (e) {
       if (e.isNotFound) {
         SessionStore.clear();
@@ -133,8 +138,10 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
       final go = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text(L.endGameConfirmTitle),
-          content: const Text(L.endGameConfirmMessage),
+          title: Text(session.practice ? L.endPractice : L.endGameConfirmTitle),
+          content: Text(
+            session.practice ? L.endPracticeMessage : L.endGameConfirmMessage,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -178,12 +185,19 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
 
   Widget _buildReturnCard(BuildContext context, GameSession session) {
     final isHost = session.isHost;
-    final roleTitle = isHost ? L.host : (session.playerName ?? L.iAmPlayer);
-    final subtitleParts = <String>[];
+    final roleTitle = session.practice
+        ? L.practice
+        : isHost
+        ? L.host
+        : (session.playerName ?? L.iAmPlayer);
+    final subtitleParts = <String>[roleTitle];
     if (!isHost && session.teamName != null && session.teamName!.isNotEmpty) {
       subtitleParts.add(session.teamName!);
     }
-    subtitleParts.add('${L.joinCode}: ${session.joinCode}');
+    // Nobody can join a practice game, so its code means nothing to anyone.
+    if (!session.practice) {
+      subtitleParts.add('${L.joinCode}: ${session.joinCode}');
+    }
     final subtitle = subtitleParts.join(' · ');
 
     return Plate(
@@ -248,7 +262,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '$roleTitle · $subtitle',
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -341,6 +355,18 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
                     primary: false,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const JoinScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _RoleCard(
+                    icon: Icons.school_outlined,
+                    label: L.practice,
+                    hint: L.practiceHint,
+                    primary: false,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const HostSetupScreen(practice: true),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 28),

@@ -78,6 +78,7 @@ class RestClient {
     int? buzzDelaySeconds,
     bool questionsVisibleToParticipants = true,
     bool playersPickClues = false,
+    bool practice = false,
   }) async {
     assert(
       (packageId == null) != (roundId == null),
@@ -99,6 +100,7 @@ class RestClient {
         if (buzzMode == BuzzMode.timer) 'buzzDelaySeconds': buzzDelaySeconds,
         'questionsVisibleToParticipants': questionsVisibleToParticipants,
         'playersPickClues': playersPickClues,
+        if (practice) 'practice': true,
       },
     );
     return CreatedGame.fromJson(body as Map<String, dynamic>);
@@ -214,6 +216,11 @@ class RestClient {
 
   Future<Snapshot> judge(String gameId, String hostToken, bool correct) =>
       _hostAction(gameId, 'judge', hostToken, body: {'correct': correct});
+
+  /// A practice game's player ruling on their own answer. Wrong costs the
+  /// value, as a wrong buzz would; not knowing is [pass], which costs nothing.
+  Future<Snapshot> selfJudge(String gameId, String hostToken, bool correct) =>
+      _hostAction(gameId, 'self-judge', hostToken, body: {'correct': correct});
 
   Future<Snapshot> pass(String gameId, String hostToken) =>
       _hostAction(gameId, 'pass', hostToken);

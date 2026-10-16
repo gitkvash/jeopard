@@ -333,15 +333,20 @@ class CurrentClue {
 
   /// Only ever used to overlay a question the host fetched on the side (a
   /// host-token'd snapshot fetch, when the game hides it from participants) or
-  /// an explanation of why a team's device is not getting one -- every other
-  /// field stays what the server sent.
-  CurrentClue copyWith({String? question}) => CurrentClue(
+  /// an explanation of why a team's device is not getting one -- or, in
+  /// practice, the answer the player looked at -- every other field stays what
+  /// the server sent.
+  CurrentClue copyWith({
+    String? question,
+    String? answer,
+    String? correctionNote,
+  }) => CurrentClue(
     clueId: clueId,
     topicName: topicName,
     value: value,
     question: question ?? this.question,
-    answer: answer,
-    correctionNote: correctionNote,
+    answer: answer ?? this.answer,
+    correctionNote: correctionNote ?? this.correctionNote,
     lockedOutTeamIds: lockedOutTeamIds,
   );
 
@@ -384,6 +389,7 @@ class Snapshot {
     required this.buzzOpensInMs,
     required this.questionsVisibleToParticipants,
     this.playersPickClues = false,
+    this.practice = false,
     required this.seq,
     required this.attribution,
   });
@@ -434,6 +440,10 @@ class Snapshot {
   /// the host may pick at any time regardless.
   final bool playersPickClues;
 
+  /// One person practising alone: the host is the only player, and judges
+  /// their own answers instead of anyone buzzing.
+  final bool practice;
+
   final int seq;
   final String? attribution;
 
@@ -477,6 +487,7 @@ class Snapshot {
     questionsVisibleToParticipants:
         j['questionsVisibleToParticipants'] as bool? ?? true,
     playersPickClues: j['playersPickClues'] as bool? ?? false,
+    practice: j['practice'] as bool? ?? false,
     seq: (j['seq'] as num?)?.toInt() ?? 0,
     attribution: j['attribution'] as String?,
   );

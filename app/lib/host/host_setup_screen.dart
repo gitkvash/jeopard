@@ -9,7 +9,6 @@ import '../core/rest_client.dart';
 import '../core/session.dart';
 import '../core/session_store.dart';
 import '../core/theme.dart';
-import '../practice/practice_screen.dart';
 import '../widgets/stage.dart';
 import '../widgets/toast.dart';
 import 'host_game_screen.dart';
@@ -42,14 +41,8 @@ const double _listWidth = 720;
 ///
 /// On a wide screen the panel to the right is step two; on a narrow one,
 /// tapping a package opens it.
-///
-/// With [practice] the same two steps set up a game for one person on their
-/// own, which has no buzzer, no teams and nobody to share a code with -- so
-/// step two is only which package, or which round of it.
 class HostSetupScreen extends ConsumerStatefulWidget {
-  const HostSetupScreen({super.key, this.practice = false});
-
-  final bool practice;
+  const HostSetupScreen({super.key});
 
   @override
   ConsumerState<HostSetupScreen> createState() => _HostSetupScreenState();
@@ -85,7 +78,6 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
       MaterialPageRoute(
         builder: (_) => HostOptionsScreen(
           package: package,
-          practice: widget.practice,
           onPackageChanged: (updated) {
             setState(() {
               if (_extraPackage?.id == updated.id) {
@@ -120,9 +112,7 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
     final packages = ref.watch(packagesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.practice ? L.newPractice : L.newGame),
-      ),
+      appBar: AppBar(title: const Text(L.newGame)),
       body: packages.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorPane(
@@ -166,7 +156,6 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
                   ? const _NoPackageChosen()
                   : _OptionsPane(
                       package: selected,
-                      practice: widget.practice,
                       onPackageChanged: (updated) {
                         setState(() {
                           if (_extraPackage?.id == updated.id) {
@@ -190,20 +179,17 @@ class HostOptionsScreen extends StatelessWidget {
     super.key,
     required this.package,
     this.onPackageChanged,
-    this.practice = false,
   });
 
   final PackageSummary package;
   final ValueChanged<PackageSummary>? onPackageChanged;
-  final bool practice;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(practice ? L.newPractice : L.newGame)),
+      appBar: AppBar(title: const Text(L.newGame)),
       body: _OptionsPane(
         package: package,
-        practice: practice,
         onChangePackage: () => Navigator.of(context).pop(),
         onPackageChanged: onPackageChanged,
       ),
@@ -221,13 +207,9 @@ class _OptionsPane extends ConsumerStatefulWidget {
     required this.package,
     this.onChangePackage,
     this.onPackageChanged,
-    this.practice = false,
   });
 
   final PackageSummary package;
-
-  /// One person on their own: everything about buzzers and teams goes.
-  final bool practice;
 
   /// Offered only where the list is not on screen: a way back to it that is not
   /// the app bar's arrow.
@@ -280,7 +262,7 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
 
   bool get _canCreate =>
       (_wholePackage || _roundId != null) &&
-      (widget.practice || _buzzMode != BuzzMode.timer || _delay != null);
+      (_buzzMode != BuzzMode.timer || _delay != null);
 
   @override
   void initState() {
@@ -362,35 +344,27 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
         SessionStore.clear();
       }
 
-      final practice = widget.practice;
       final created = await ref
           .read(restClientProvider)
           .createGame(
             packageId: _wholePackage ? _package.id : null,
             roundId: _wholePackage ? null : _roundId,
-            hostPlays: practice || _hostPlays,
-            hostTeamName: !practice && _hostPlays
-                ? _hostTeamName.text.trim()
-                : null,
-            buzzMode: practice ? BuzzMode.host : _buzzMode,
-            buzzDelaySeconds: practice ? null : _delay,
+            hostPlays: _hostPlays,
+            hostTeamName: _hostPlays ? _hostTeamName.text.trim() : null,
+            buzzMode: _buzzMode,
+            buzzDelaySeconds: _delay,
             questionsVisibleToParticipants: _questionsVisibleToParticipants,
-            playersPickClues: !practice && _playersPickClues,
-            practice: practice,
+            playersPickClues: _playersPickClues,
           );
       if (!mounted) return;
       // Remembered before the screen even opens, so a reload during the lobby
       // -- when the host is reading the code out loud -- is survivable.
-      final session = GameSession.fromCreated(created, practice: practice);
+      final session = GameSession.fromCreated(created);
       SessionStore.write(session);
       // Both setup steps go away, leaving the game on top of the role picker:
       // nothing behind the board should lead back into choosing a package.
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => practice
-              ? PracticeScreen(session: session)
-              : HostGameScreen(session: session),
-        ),
+        MaterialPageRoute(builder: (_) => HostGameScreen(session: session)),
         (route) => route.isFirst,
       );
     } catch (e) {
@@ -490,89 +464,78 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                   rerollingTopicId: _rerollingTopicId,
                 ),
               ],
-              if (widget.practice) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  L.practiceScoringHint,
-                  style: TextStyle(
-                    color: JColors.textFaint,
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
+              const SizedBox(height: 16),
+              const _SectionLabel(L.buzzModeLabel),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final choice in const [
+                    (BuzzMode.host, L.buzzModeHost),
+                    (BuzzMode.instant, L.buzzModeInstant),
+                    (BuzzMode.timer, L.buzzModeTimer),
+                  ])
+                    _Chip(
+                      label: choice.$2,
+                      selected: _buzzMode == choice.$1,
+                      onTap: () => setState(() => _buzzMode = choice.$1),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // One line, about the choice that is actually made: three hints
+              // stacked under three radio rows cost more height than every
+              // other option on this page put together.
+              Text(
+                switch (_buzzMode) {
+                  BuzzMode.host => L.buzzModeHostHint,
+                  BuzzMode.instant => L.buzzModeInstantHint,
+                  BuzzMode.timer => L.buzzModeTimerHint,
+                },
+                style: const TextStyle(
+                  color: JColors.textFaint,
+                  fontSize: 12,
+                  height: 1.35,
                 ),
-              ] else ...[
+              ),
+              if (_buzzMode == BuzzMode.timer) ...[
                 const SizedBox(height: 16),
-                const _SectionLabel(L.buzzModeLabel),
+                const _SectionLabel(L.buzzDelayLabel),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final choice in const [
-                      (BuzzMode.host, L.buzzModeHost),
-                      (BuzzMode.instant, L.buzzModeInstant),
-                      (BuzzMode.timer, L.buzzModeTimer),
-                    ])
+                    for (final s in _delayPresets)
                       _Chip(
-                        label: choice.$2,
-                        selected: _buzzMode == choice.$1,
-                        onTap: () => setState(() => _buzzMode = choice.$1),
+                        label: '$s ${L.seconds}',
+                        selected: !_customDelay && _delaySeconds == s,
+                        onTap: () => setState(() {
+                          _customDelay = false;
+                          _delaySeconds = s;
+                        }),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // One line, about the choice that is actually made: three hints
-                // stacked under three radio rows cost more height than every
-                // other option on this page put together.
-                Text(
-                  switch (_buzzMode) {
-                    BuzzMode.host => L.buzzModeHostHint,
-                    BuzzMode.instant => L.buzzModeInstantHint,
-                    BuzzMode.timer => L.buzzModeTimerHint,
-                  },
-                  style: const TextStyle(
-                    color: JColors.textFaint,
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
-                ),
-                if (_buzzMode == BuzzMode.timer) ...[
-                  const SizedBox(height: 16),
-                  const _SectionLabel(L.buzzDelayLabel),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final s in _delayPresets)
-                        _Chip(
-                          label: '$s ${L.seconds}',
-                          selected: !_customDelay && _delaySeconds == s,
-                          onTap: () => setState(() {
-                            _customDelay = false;
-                            _delaySeconds = s;
-                          }),
-                        ),
-                      _Chip(
-                        label: L.customDelay,
-                        selected: _customDelay,
-                        onTap: () => setState(() => _customDelay = true),
-                      ),
-                    ],
-                  ),
-                  if (_customDelay) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _customSeconds,
-                      keyboardType: TextInputType.number,
-                      // The create button turns on the moment the number is
-                      // usable, so the field has to report every keystroke.
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        labelText: L.customDelayField,
-                        suffixText: L.seconds,
-                        errorText: _delay == null ? L.buzzDelayRange : null,
-                      ),
+                    _Chip(
+                      label: L.customDelay,
+                      selected: _customDelay,
+                      onTap: () => setState(() => _customDelay = true),
                     ),
                   ],
+                ),
+                if (_customDelay) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _customSeconds,
+                    keyboardType: TextInputType.number,
+                    // The create button turns on the moment the number is
+                    // usable, so the field has to report every keystroke.
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: L.customDelayField,
+                      suffixText: L.seconds,
+                      errorText: _delay == null ? L.buzzDelayRange : null,
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 16),
               Card(
@@ -628,7 +591,6 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                   ],
                 ),
               ),
-              ],
             ],
           ),
         ),
@@ -656,9 +618,7 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                           ),
                         )
                       : const Icon(Icons.play_arrow, size: 20),
-                  label: Text(
-                    widget.practice ? L.startPractice : L.create,
-                  ),
+                  label: const Text(L.create),
                 ),
               ),
             ),

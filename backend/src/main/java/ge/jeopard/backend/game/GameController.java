@@ -119,17 +119,6 @@ public class GameController {
         return gameService.judge(gameId, token, req.correct());
     }
 
-    /**
-     * A practice game's one player saying whether they had the clue in play:
-     * there is no buzzer and no one else to rule on it.
-     */
-    @PostMapping("/{gameId}/self-judge")
-    public Snapshot selfJudge(@PathVariable UUID gameId,
-                              @RequestHeader(HOST_TOKEN) String token,
-                              @RequestBody JudgeRequest req) {
-        return gameService.selfJudge(gameId, token, req.correct());
-    }
-
     /** Set a buzz aside unjudged: the buzzer reopens for everyone, no points move. */
     @PostMapping("/{gameId}/skip-buzz")
     public Snapshot skipBuzz(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {

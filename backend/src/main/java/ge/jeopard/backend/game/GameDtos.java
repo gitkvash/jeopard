@@ -57,13 +57,7 @@ public final class GameDtos {
              * player) at a time. Defaults to false: the host chooses. The host
              * may choose at any time either way.
              */
-            Boolean playersPickClues,
-            /*
-             * True for one person practising alone. Implies hostPlays, with
-             * hostTeamName as their name; the buzzer, visibility and picking
-             * options are ignored, and the game starts at once.
-             */
-            Boolean practice) {
+            Boolean playersPickClues) {
     }
 
     /**
@@ -293,12 +287,6 @@ public final class GameDtos {
              * member of it may pick; the host may pick regardless.
              */
             boolean playersPickClues,
-            /**
-             * One person practising alone, who is both the host and the only
-             * team: they judge themselves with {@code self-judge} instead of
-             * buzzing.
-             */
-            boolean practice,
             long seq,
             String attribution) {
     }

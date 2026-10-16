@@ -356,17 +356,13 @@ class L {
   static const iAmPlayer = 'ვთამაშობ';
   static const iAmPlayerHint = 'კოდით შევდივარ და ღილაკს ვაჭერ';
   static const practice = 'ვარჯიში';
-  static const practiceHint = 'მარტო ვთამაშობ და პასუხებს თავად ვამოწმებ';
-  static const newPractice = 'ახალი ვარჯიში';
-  static const startPractice = 'დაწყება';
+  static const practiceHint = 'შემთხვევითი შეკითხვები, პასუხებს თავად ვამოწმებ';
   static const practiceThink = 'მოიფიქრეთ პასუხი, შემდეგ ნახეთ';
-  static const practiceDidYouKnow = 'სწორად უპასუხეთ?';
-  static const practiceNotKnown = 'არ ვიცოდი';
-  static const practiceScoringHint =
-      'სწორი პასუხი ქულას მატებს, არასწორი აკლებს, „არ ვიცოდი“ — არაფერს';
-  static const endPractice = 'ვარჯიშის დასრულება';
-  static const endPracticeMessage =
-      'ვარჯიში წაიშლება და მისი გაგრძელება ვეღარ მოხერხდება.';
+  static const practiceDidYouKnow = 'იცოდით?';
+  static const practiceKnew = 'ვიცოდი';
+  static const practiceDidNotKnow = 'ვერ ვიცოდი';
+  static const practiceSkip = 'გამოტოვება';
+  static const practiceLoadError = 'შეკითხვების ჩატვირთვა ვერ მოხერხდა';
   static const chooseRole = 'აირჩიეთ როლი';
   static const newGame = 'ახალი თამაში';
   static const packageLabel = 'პაკეტი';

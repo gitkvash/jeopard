@@ -333,20 +333,15 @@ class CurrentClue {
 
   /// Only ever used to overlay a question the host fetched on the side (a
   /// host-token'd snapshot fetch, when the game hides it from participants) or
-  /// an explanation of why a team's device is not getting one -- or, in
-  /// practice, the answer the player looked at -- every other field stays what
-  /// the server sent.
-  CurrentClue copyWith({
-    String? question,
-    String? answer,
-    String? correctionNote,
-  }) => CurrentClue(
+  /// an explanation of why a team's device is not getting one -- every other
+  /// field stays what the server sent.
+  CurrentClue copyWith({String? question}) => CurrentClue(
     clueId: clueId,
     topicName: topicName,
     value: value,
     question: question ?? this.question,
-    answer: answer ?? this.answer,
-    correctionNote: correctionNote ?? this.correctionNote,
+    answer: answer,
+    correctionNote: correctionNote,
     lockedOutTeamIds: lockedOutTeamIds,
   );
 
@@ -389,7 +384,6 @@ class Snapshot {
     required this.buzzOpensInMs,
     required this.questionsVisibleToParticipants,
     this.playersPickClues = false,
-    this.practice = false,
     required this.seq,
     required this.attribution,
   });
@@ -440,10 +434,6 @@ class Snapshot {
   /// the host may pick at any time regardless.
   final bool playersPickClues;
 
-  /// One person practising alone: the host is the only player, and judges
-  /// their own answers instead of anyone buzzing.
-  final bool practice;
-
   final int seq;
   final String? attribution;
 
@@ -487,7 +477,6 @@ class Snapshot {
     questionsVisibleToParticipants:
         j['questionsVisibleToParticipants'] as bool? ?? true,
     playersPickClues: j['playersPickClues'] as bool? ?? false,
-    practice: j['practice'] as bool? ?? false,
     seq: (j['seq'] as num?)?.toInt() ?? 0,
     attribution: j['attribution'] as String?,
   );
@@ -672,5 +661,68 @@ class RevealedAnswer {
     answer: j['answer'] as String? ?? '',
     correctionNote: j['correctionNote'] as String?,
     peekPenaltyApplied: j['peekPenaltyApplied'] as bool? ?? false,
+  );
+}
+
+/// One practice card: a random clue from the catalogue, answer included.
+class PracticeQuestion {
+  PracticeQuestion({
+    required this.id,
+    required this.topicName,
+    required this.value,
+    required this.finalRound,
+    required this.question,
+    required this.answer,
+    required this.correctionNote,
+    required this.packageTitle,
+  });
+
+  final int id;
+  final String topicName;
+
+  /// Null for a final-round clue.
+  final int? value;
+  final bool finalRound;
+  final String question;
+  final String answer;
+  final String? correctionNote;
+  final String? packageTitle;
+
+  /// The same card in the shape the clue panel draws, with the answer left
+  /// out until [withAnswer].
+  CurrentClue toClue({required bool withAnswer}) => CurrentClue(
+    clueId: id,
+    topicName: topicName,
+    value: value,
+    question: question,
+    answer: withAnswer ? answer : null,
+    correctionNote: withAnswer ? correctionNote : null,
+    lockedOutTeamIds: const [],
+  );
+
+  factory PracticeQuestion.fromJson(Map<String, dynamic> j) => PracticeQuestion(
+    id: (j['id'] as num).toInt(),
+    topicName: j['topicName'] as String? ?? '',
+    value: (j['value'] as num?)?.toInt(),
+    finalRound: j['finalRound'] as bool? ?? false,
+    question: j['question'] as String? ?? '',
+    answer: j['answer'] as String? ?? '',
+    correctionNote: j['correctionNote'] as String?,
+    packageTitle: j['packageTitle'] as String?,
+  );
+}
+
+/// A batch of random practice cards, and the credit for the questions.
+class PracticeBatch {
+  PracticeBatch({required this.questions, required this.attribution});
+
+  final List<PracticeQuestion> questions;
+  final String? attribution;
+
+  factory PracticeBatch.fromJson(Map<String, dynamic> j) => PracticeBatch(
+    questions: (j['questions'] as List<dynamic>? ?? const [])
+        .map((q) => PracticeQuestion.fromJson(q as Map<String, dynamic>))
+        .toList(),
+    attribution: j['attribution'] as String?,
   );
 }

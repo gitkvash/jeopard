@@ -4,134 +4,51 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:jeopard_app/core/models.dart';
 import 'package:jeopard_app/core/providers.dart';
 import 'package:jeopard_app/core/rest_client.dart';
-import 'package:jeopard_app/core/session.dart';
-import 'package:jeopard_app/core/session_store.dart';
 import 'package:jeopard_app/core/theme.dart';
 import 'package:jeopard_app/practice/practice_screen.dart';
 import 'package:jeopard_app/role_screen.dart';
 
-/// One person practising alone: the start screen offers it, a stored practice
-/// session comes back to it, and the clue is judged by the player themselves.
+/// Practice: random cards, the answer only on request, and a tally of what
+/// the player says they knew.
 void main() {
-  setUp(() {
-    SessionStore.debugKeepInMemory = true;
-    SessionStore.clear();
-  });
-
-  tearDown(() {
-    SessionStore.clear();
-    SessionStore.debugKeepInMemory = false;
-  });
-
-  const answer = 'დავით აღმაშენებელი';
-
-  GameSession practiceSession() => GameSession(
-    gameId: 'g-1',
-    joinCode: 'S6HG3F',
-    isHost: true,
-    savedAt: DateTime.now(),
-    hostToken: 'host-tok',
-    hostTeamId: 't-1',
-    playerId: 'p-1',
-    playerToken: 'player-tok',
-    teamId: 't-1',
-    practice: true,
-  );
-
-  Map<String, dynamic> snapshot(
-    String state, {
-    int score = 0,
-    bool answerPeeked = false,
-    bool answerRevealed = false,
-  }) => {
-    'gameId': 'g-1',
-    'joinCode': 'S6HG3F',
-    'state': state,
-    'hostPlays': true,
-    'practice': true,
-    'roundId': 25,
-    'roundIdx': 1,
+  Map<String, dynamic> card(int id) => {
+    'id': id,
+    'topicName': 'ისტორია',
+    'value': 40,
     'finalRound': false,
-    'progressRounds': true,
-    'packageNumber': 7,
+    'question': 'შეკითხვა $id',
+    'answer': 'პასუხი $id',
+    'correctionNote': null,
     'packageTitle': 'პაკეტი #7',
-    'teams': [
-      {
-        'id': 't-1',
-        'name': 'მოთამაშე',
-        'score': score,
-        'host': true,
-        'seat': 1,
-        'wager': null,
-        'lockedOutOnCurrentClue': false,
-        'solo': false,
-        'players': [
-          {'id': 'p-1', 'name': 'მოთამაშე', 'host': true},
-        ],
-      },
-    ],
-    'board': const [],
-    'currentClue': state == 'BOARD'
-        ? null
-        : {
-            'clueId': 3,
-            'topicName': 'ისტორია',
-            'value': 40,
-            'question': 'ვინ მოიგო დიდგორის ბრძოლა?',
-            'answer': answerRevealed ? answer : null,
-            'correctionNote': null,
-            'lockedOutTeamIds': const <String>[],
-          },
-    'buzzedTeamId': null,
-    'buzzedPlayerId': null,
-    'pickingTeamId': null,
-    'answerRevealed': answerRevealed,
-    'answerPeeked': answerPeeked,
-    'tilesRemaining': 29,
-    'buzzMode': 'HOST',
-    'seq': 1,
-    'attribution': 'moazrovne.net',
   };
 
-  /// Every request the app made, as `METHOD path` plus its decoded body.
-  final calls = <(String, Map<String, dynamic>)>[];
+  /// How many batches the screen asked for.
+  var fetches = 0;
 
-  /// A server that answers the snapshot with [snap], a peek with the answer,
-  /// and a ruling with the clue resolved.
-  Widget app(Widget home, {required Map<String, dynamic> snap}) {
-    calls.clear();
+  /// Each fetch deals the next [perBatch] ids, except that every batch also
+  /// repeats card 1 -- which the screen must not deal twice.
+  Widget app(Widget home, {int perBatch = 3}) {
+    fetches = 0;
     final client = MockClient((request) async {
-      final body = request.body.isEmpty
-          ? <String, dynamic>{}
-          : jsonDecode(request.body) as Map<String, dynamic>;
-      calls.add(('${request.method} ${request.url.path}', body));
-      final path = request.url.path;
-      final Object reply;
-      if (path.endsWith('/peek')) {
-        reply = {
-          'clueId': 3,
-          'answer': answer,
-          'correctionNote': null,
-          'peekPenaltyApplied': true,
-        };
-      } else if (path.endsWith('/self-judge')) {
-        reply = snapshot(
-          'RESOLVED',
-          score: body['correct'] == true ? 40 : -40,
-          answerRevealed: true,
-        );
-      } else {
-        reply = snap;
-      }
+      expect(request.url.path, '/api/practice/questions');
+      final first = fetches * perBatch + 1;
+      fetches++;
       return http.Response(
-        jsonEncode(reply),
+        jsonEncode({
+          'questions': [
+            card(1),
+            for (var i = first; i < first + perBatch; i++)
+              if (i != 1) card(i),
+          ],
+          'attribution': 'moazrovne.net',
+        }),
         200,
         headers: {'content-type': 'application/json; charset=utf-8'},
       );
@@ -156,102 +73,84 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  test('a practice session survives being stored', () {
-    final restored = GameSession.decode(practiceSession().encode());
-    expect(restored?.practice, isTrue);
-    // A session written before practice existed is an ordinary one.
-    final old = GameSession.decode(
-      jsonEncode({
-        'gameId': 'g-1',
-        'joinCode': 'S6HG3F',
-        'isHost': true,
-        'savedAt': DateTime.now().toIso8601String(),
-        'hostToken': 'host-tok',
-      }),
-    );
-    expect(old?.practice, isFalse);
-    expect(gameScreenFor(practiceSession()), isA<PracticeScreen>());
-  });
-
-  test('the snapshot says whether the game is practice', () {
-    expect(Snapshot.fromJson(snapshot('BOARD')).practice, isTrue);
-    expect(
-      Snapshot.fromJson({...snapshot('BOARD')}..remove('practice')).practice,
-      isFalse,
-    );
-  });
-
-  testWidgets('the start screen offers practice, and returns to one', (
+  testWidgets('the start screen opens practice straight onto a question', (
     tester,
   ) async {
     useSize(tester);
-    SessionStore.write(practiceSession());
-    await tester.pumpWidget(app(const RoleScreen(), snap: snapshot('BOARD')));
+    await tester.pumpWidget(app(const RoleScreen()));
     await settle(tester);
 
-    expect(find.text(L.practiceHint), findsOneWidget);
-    // Nobody can join a practice game, so its code is not offered.
-    expect(find.text(L.practice), findsWidgets);
-    expect(find.textContaining('${L.joinCode}:'), findsNothing);
-    expect(find.textContaining('S6HG3F'), findsNothing);
+    await tester.tap(find.text(L.practiceHint));
+    await settle(tester);
+    expect(find.text('შეკითხვა 1'), findsOneWidget);
+    expect(find.text(L.showAnswer), findsOneWidget);
   });
 
-  testWidgets('looking at the answer, then judging it oneself', (tester) async {
+  testWidgets('the answer waits to be asked for, then the player rules', (
+    tester,
+  ) async {
     useSize(tester);
-    await tester.pumpWidget(
-      app(
-        PracticeScreen(session: practiceSession()),
-        snap: snapshot('CLUE_READING'),
-      ),
-    );
+    await tester.pumpWidget(app(const PracticeScreen()));
     await settle(tester);
 
-    expect(find.text(L.practiceThink), findsOneWidget);
-    expect(find.text(answer), findsNothing);
-    expect(find.text(L.correct), findsNothing);
+    expect(find.text('შეკითხვა 1'), findsOneWidget);
+    expect(find.text('პასუხი 1'), findsNothing);
+    expect(find.text(L.practiceKnew), findsNothing);
 
     await tester.tap(find.text(L.showAnswer));
     await settle(tester);
-    expect(calls.map((c) => c.$1), contains('POST /api/games/g-1/peek'));
-    expect(find.text(answer), findsOneWidget);
-    expect(find.text(L.practiceDidYouKnow), findsOneWidget);
+    expect(find.text('პასუხი 1'), findsOneWidget);
 
-    await tester.tap(find.text(L.correct));
+    await tester.tap(find.text(L.practiceKnew));
     await settle(tester);
-    final judged = calls.lastWhere((c) => c.$1.endsWith('/self-judge'));
-    expect(judged.$2, {'correct': true});
-    expect(find.text(L.next), findsOneWidget);
+    expect(find.text('შეკითხვა 2'), findsOneWidget);
+    expect(find.text('პასუხი 2'), findsNothing);
+
+    await tester.tap(find.text(L.showAnswer));
+    await settle(tester);
+    await tester.tap(find.text(L.practiceDidNotKnow));
+    await settle(tester);
+
+    // One known, one not, in the tally.
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('1')),
+      findsNWidgets(2),
+    );
   });
 
-  testWidgets('an answer already looked at comes back after a reload', (
+  testWidgets('cards keep coming, and none is dealt twice', (tester) async {
+    useSize(tester);
+    await tester.pumpWidget(app(const PracticeScreen()));
+    await settle(tester);
+
+    final dealt = <String>[];
+    for (var i = 0; i < 8; i++) {
+      final shown = tester
+          .widgetList<Text>(find.textContaining('შეკითხვა '))
+          .single
+          .data!;
+      dealt.add(shown);
+      await tester.tap(find.text(L.practiceSkip));
+      await settle(tester);
+    }
+    expect(dealt.toSet(), hasLength(dealt.length));
+    expect(fetches, greaterThan(1));
+  });
+
+  testWidgets('on a keyboard: space shows the answer, 1 and 2 rule', (
     tester,
   ) async {
     useSize(tester);
-    await tester.pumpWidget(
-      app(
-        PracticeScreen(session: practiceSession()),
-        snap: snapshot('CLUE_READING', answerPeeked: true),
-      ),
-    );
+    await tester.pumpWidget(app(const PracticeScreen()));
     await settle(tester);
 
-    expect(find.text(answer), findsOneWidget);
-    expect(find.text(L.wrong), findsOneWidget);
-  });
-
-  testWidgets('not knowing passes the clue, at no cost', (tester) async {
-    useSize(tester);
-    await tester.pumpWidget(
-      app(
-        PracticeScreen(session: practiceSession()),
-        snap: snapshot('CLUE_READING'),
-      ),
-    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await settle(tester);
+    expect(find.text('პასუხი 1'), findsOneWidget);
 
-    await tester.tap(find.text(L.practiceNotKnown));
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
     await settle(tester);
-    expect(calls.map((c) => c.$1), contains('POST /api/games/g-1/pass'));
-    expect(calls.where((c) => c.$1.endsWith('/self-judge')), isEmpty);
+    expect(find.text('შეკითხვა 2'), findsOneWidget);
+    expect(find.text('პასუხი 2'), findsNothing);
   });
 }

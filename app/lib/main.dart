@@ -8,7 +8,9 @@ import 'core/session.dart';
 import 'core/session_store.dart';
 import 'core/sfx.dart';
 import 'core/theme.dart';
+import 'host/host_game_screen.dart';
 import 'role_screen.dart';
+import 'team/buzzer_screen.dart';
 import 'team/join_screen.dart';
 import 'widgets/stage.dart';
 
@@ -123,7 +125,11 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
       }
 
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => gameScreenFor(session)),
+        MaterialPageRoute(
+          builder: (_) => session.isHost
+              ? HostGameScreen(session: session)
+              : BuzzerScreen(session: session),
+        ),
       );
     } catch (e) {
       if (!mounted) return;

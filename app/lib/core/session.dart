@@ -22,7 +22,6 @@ class GameSession {
     this.teamId,
     this.teamName,
     this.seat = 0,
-    this.practice = false,
   });
 
   final String gameId;
@@ -46,26 +45,19 @@ class GameSession {
   final String? teamName;
   final int seat;
 
-  /// A host session for one person practising alone, which reopens on the
-  /// practice screen rather than the host's console.
-  final bool practice;
-
-  GameSession.fromCreated(
-    CreatedGame created, {
-    DateTime? at,
-    this.practice = false,
-  }) : gameId = created.gameId,
-       joinCode = created.joinCode,
-       isHost = true,
-       savedAt = at ?? DateTime.now(),
-       hostToken = created.hostToken,
-       hostTeamId = created.hostTeamId,
-       playerId = created.hostPlayerId,
-       playerToken = created.hostPlayerToken,
-       playerName = null,
-       teamId = created.hostTeamId,
-       teamName = null,
-       seat = 0;
+  GameSession.fromCreated(CreatedGame created, {DateTime? at})
+    : gameId = created.gameId,
+      joinCode = created.joinCode,
+      isHost = true,
+      savedAt = at ?? DateTime.now(),
+      hostToken = created.hostToken,
+      hostTeamId = created.hostTeamId,
+      playerId = created.hostPlayerId,
+      playerToken = created.hostPlayerToken,
+      playerName = null,
+      teamId = created.hostTeamId,
+      teamName = null,
+      seat = 0;
 
   GameSession.fromJoined(
     JoinedPlayer joined, {
@@ -81,8 +73,7 @@ class GameSession {
        playerName = joined.playerName,
        teamId = joined.teamId,
        teamName = joined.teamName,
-       seat = joined.seat,
-       practice = false;
+       seat = joined.seat;
 
   /// Same session, stamped now -- written on entering a game screen so an
   /// evening-long game does not age out mid-play.
@@ -99,7 +90,6 @@ class GameSession {
     teamId: teamId,
     teamName: teamName,
     seat: seat,
-    practice: practice,
   );
 
   /// The same player on a different team. A player can be moved -- by choice in
@@ -118,7 +108,6 @@ class GameSession {
         teamId: teamId,
         teamName: teamName,
         seat: seat,
-        practice: practice,
       );
 
   /// A host session is only usable if we still hold the host token; a player
@@ -140,7 +129,6 @@ class GameSession {
     if (teamId != null) 'teamId': teamId,
     if (teamName != null) 'teamName': teamName,
     'seat': seat,
-    if (practice) 'practice': true,
   };
 
   static GameSession? fromJson(Map<String, dynamic> j) {
@@ -160,7 +148,6 @@ class GameSession {
       teamId: j['teamId'] as String?,
       teamName: j['teamName'] as String?,
       seat: (j['seat'] as num?)?.toInt() ?? 0,
-      practice: j['practice'] as bool? ?? false,
     );
   }
 

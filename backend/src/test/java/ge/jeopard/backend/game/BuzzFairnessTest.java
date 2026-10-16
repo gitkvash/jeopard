@@ -134,7 +134,7 @@ class BuzzFairnessTest {
     @DisplayName("a teammate of the winner gets no second go in the same window")
     void oneWinnerPerWindowEvenWithinATeam() throws Exception {
         CreatedGame created = games.createGame(new CreateGameRequest(
-                null, 1L, false, null, BuzzMode.HOST, null, null, null, null));
+                null, 1L, false, null, BuzzMode.HOST, null, null, null));
         JoinedPlayer first = games.join(created.joinCode(), new JoinRequest("ანა", null, "მთიები"));
         JoinedPlayer mate = games.join(created.joinCode(), new JoinRequest("ბექა", first.teamId(), null));
         open(created.gameId(), created.hostToken());
@@ -190,7 +190,7 @@ class BuzzFairnessTest {
     /** Two solo players in the lobby. */
     private Room seatRoom() {
         CreatedGame created = games.createGame(new CreateGameRequest(
-                null, 1L, false, null, BuzzMode.HOST, null, null, null, null));
+                null, 1L, false, null, BuzzMode.HOST, null, null, null));
         JoinedPlayer a = games.join(created.joinCode(), new JoinRequest("ანა", null, null));
         JoinedPlayer b = games.join(created.joinCode(), new JoinRequest("ბექა", null, null));
         return new Room(created.gameId(), created.hostToken(), a, b);

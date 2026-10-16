@@ -230,53 +230,6 @@ void main() {
     'team-finished': (host: false, snap: snapshot('FINISHED')),
   };
 
-  // One person practising alone: a single team, which is the host's own.
-  final alone = [team(1, 'მოთამაშე', 1200, host: true)];
-  final practiceCases = <String, Map<String, dynamic>>{
-    'practice-board': snapshot('BOARD', withTeams: alone),
-    'practice-reading': snapshot(
-      'CLUE_READING',
-      clue: clue(),
-      withTeams: alone,
-    ),
-    // Looked at: the answer is in the panel and the two rulings are below it.
-    'practice-judging': snapshot(
-      'CLUE_READING',
-      clue: clue(),
-      withTeams: alone,
-      extra: {'answerPeeked': true},
-    ),
-    'practice-resolved': snapshot(
-      'RESOLVED',
-      clue: clue(answer: 'დავით აღმაშენებელი'),
-      answerRevealed: true,
-      withTeams: alone,
-    ),
-    'practice-final-wager': snapshot(
-      'FINAL_WAGER',
-      withTeams: alone,
-      extra: {'currentClue': clue()},
-    ),
-    'practice-final-clue': snapshot(
-      'FINAL_CLUE',
-      clue: clue(),
-      withTeams: alone,
-      extra: {'answerPeeked': true},
-    ),
-    'practice-finished': snapshot('FINISHED', withTeams: alone),
-  };
-
-  GameSession practiceSession() => GameSession(
-    gameId: 'g-1',
-    joinCode: 'S6HG3F',
-    isHost: true,
-    savedAt: DateTime.now(),
-    hostToken: 'host-tok',
-    hostTeamId: 't-1',
-    playerToken: 'player-tok',
-    practice: true,
-  );
-
   GameSession hostSession() => GameSession(
     gameId: 'g-1',
     joinCode: 'S6HG3F',
@@ -302,12 +255,22 @@ void main() {
     final client = MockClient(
       (request) async => http.Response(
         jsonEncode(
-          request.url.path.endsWith('/peek')
+          request.url.path == '/api/practice/questions'
               ? {
-                  'clueId': 3,
-                  'answer': 'დავით აღმაშენებელი',
-                  'correctionNote': null,
-                  'peekPenaltyApplied': true,
+                  'questions': [
+                    for (var i = 0; i < 20; i++)
+                      {
+                        'id': i + 1,
+                        'topicName': topics[0],
+                        'value': 600,
+                        'finalRound': false,
+                        'question': longQuestion,
+                        'answer': 'დავით აღმაშენებელი',
+                        'correctionNote': null,
+                        'packageTitle': 'პაკეტი #7 — ძალიან გრძელი სათაური',
+                      },
+                  ],
+                  'attribution': 'moazrovne.net',
                 }
               : snap ?? snapshot('LOBBY'),
         ),
@@ -375,14 +338,17 @@ void main() {
       });
     }
 
-    for (final MapEntry(key: caseName, value: snap) in practiceCases.entries) {
-      testWidgets('$caseName fits a $sizeName screen', (tester) async {
+    for (final revealed in [false, true]) {
+      final name = revealed ? 'practice-answer' : 'practice-question';
+      testWidgets('$name fits a $sizeName screen', (tester) async {
         useSize(tester, size);
-        await tester.pumpWidget(
-          app(PracticeScreen(session: practiceSession()), snap: snap),
-        );
+        await tester.pumpWidget(app(const PracticeScreen()));
         await settle(tester);
-        await shoot(tester, '$sizeName/$caseName');
+        if (revealed) {
+          await tester.tap(find.text(L.showAnswer));
+          await settle(tester);
+        }
+        await shoot(tester, '$sizeName/$name');
         expect(tester.takeException(), isNull);
       });
     }

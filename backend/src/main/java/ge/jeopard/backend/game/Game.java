@@ -65,14 +65,6 @@ public class Game {
     @Column(name = "players_pick_clues", nullable = false)
     private boolean playersPickClues;
 
-    /**
-     * One person practising alone: host and sole player at once, judging their
-     * own answers. Nobody can join, and there is no buzzer to open -- see
-     * {@link ge.jeopard.backend.game.GameService#selfJudge}.
-     */
-    @Column(name = "practice", nullable = false)
-    private boolean practice;
-
     /** Who or what opens the buzzer once a clue is up. */
     @Enumerated(EnumType.STRING)
     @Column(name = "buzz_mode", nullable = false)
@@ -144,8 +136,6 @@ public class Game {
     }
     public boolean isPlayersPickClues() { return playersPickClues; }
     public void setPlayersPickClues(boolean playersPickClues) { this.playersPickClues = playersPickClues; }
-    public boolean isPractice() { return practice; }
-    public void setPractice(boolean practice) { this.practice = practice; }
     public BuzzMode getBuzzMode() { return buzzMode; }
     public void setBuzzMode(BuzzMode buzzMode) { this.buzzMode = buzzMode; }
     public int getBuzzDelaySeconds() { return buzzDelaySeconds; }

@@ -48,9 +48,6 @@ public class GameService {
     private static final String DEFAULT_HOST_TEAM_NAME =
             "მასპინძელი";
 
-    /** Default name for someone practising alone: "მოთამაშე" (player). */
-    private static final String DEFAULT_PRACTICE_NAME = "მოთამაშე";
-
     /** No I/O/0/1 -- these get misread when someone reads a code out loud. */
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -152,12 +149,6 @@ public class GameService {
                 ? content.requireFirstRound(req.packageId())
                 : content.requireRound(req.roundId());
 
-        // Practice is one person who hosts and plays at once. They read the clue
-        // to themselves, so nothing about buzzing, picking or who may see the
-        // question applies: those are fixed rather than left to the request.
-        boolean practice = Boolean.TRUE.equals(req.practice());
-        boolean hostPlays = practice || req.hostPlays();
-
         Game game = new Game();
         game.setId(UUID.randomUUID());
         game.setJoinCode(uniqueJoinCode());
@@ -165,25 +156,14 @@ public class GameService {
         game.setRound(round);
         game.setProgressRounds(wholePackage);
         game.setHostToken(newToken());
-        game.setHostPlays(hostPlays);
-        game.setPractice(practice);
-        if (practice) {
-            game.setBuzzMode(BuzzMode.HOST);
-            game.setBuzzDelaySeconds(0);
-            game.setQuestionsVisibleToParticipants(true);
-            game.setPlayersPickClues(false);
-        } else {
-            game.setBuzzMode(req.buzzMode() == null ? BuzzMode.INSTANT : req.buzzMode());
-            game.setBuzzDelaySeconds(buzzDelayFor(game.getBuzzMode(), req.buzzDelaySeconds()));
-            game.setQuestionsVisibleToParticipants(req.questionsVisibleToParticipants() == null
-                    ? true
-                    : req.questionsVisibleToParticipants());
-            game.setPlayersPickClues(Boolean.TRUE.equals(req.playersPickClues()));
-        }
-        // Nobody is coming to a practice game's lobby, so it opens on the board.
-        game.setState(!practice
-                ? GameState.LOBBY
-                : round.isFinalRound() ? GameState.FINAL_WAGER : GameState.BOARD);
+        game.setHostPlays(req.hostPlays());
+        game.setBuzzMode(req.buzzMode() == null ? BuzzMode.INSTANT : req.buzzMode());
+        game.setBuzzDelaySeconds(buzzDelayFor(game.getBuzzMode(), req.buzzDelaySeconds()));
+        game.setQuestionsVisibleToParticipants(req.questionsVisibleToParticipants() == null
+                ? true
+                : req.questionsVisibleToParticipants());
+        game.setPlayersPickClues(Boolean.TRUE.equals(req.playersPickClues()));
+        game.setState(GameState.LOBBY);
         games.save(game);
 
         seedTiles(game, round);
@@ -191,10 +171,9 @@ public class GameService {
         UUID hostTeamId = null;
         UUID hostPlayerId = null;
         String hostPlayerToken = null;
-        if (hostPlays) {
-            String fallback = practice ? DEFAULT_PRACTICE_NAME : DEFAULT_HOST_TEAM_NAME;
+        if (req.hostPlays()) {
             String name = (req.hostTeamName() == null || req.hostTeamName().isBlank())
-                    ? fallback
+                    ? DEFAULT_HOST_TEAM_NAME
                     : req.hostTeamName().trim();
             Team hostTeam = addTeam(game.getId(), name, false);
             Player hostPlayer = addPlayer(game.getId(), hostTeam.getId(), name, true);
@@ -291,7 +270,6 @@ public class GameService {
     @Transactional(readOnly = true)
     public LobbyView lobby(String joinCode) {
         Game game = requireByCode(joinCode);
-        refuseIfPractice(game);
         List<TeamOption> options = teams.findByGameIdOrderBySeatAsc(game.getId()).stream()
                 // A solo player's team is that one person; nobody can sit with them.
                 .filter(t -> !t.isSolo())
@@ -320,7 +298,6 @@ public class GameService {
     @Transactional
     public JoinedPlayer join(String joinCode, JoinRequest req) {
         Game game = requireByCodeForUpdate(joinCode);
-        refuseIfPractice(game);
 
         if (game.getState() != GameState.LOBBY && game.getState() != GameState.BOARD) {
             throw new ResponseStatusException(CONFLICT, "game is mid-clue; join between clues");
@@ -861,37 +838,6 @@ public class GameService {
     }
 
     /**
-     * The one player of a practice game rules on themselves, straight from the
-     * clue: no buzzer, nobody else to hand it to. Scored as a buzz would be --
-     * the value won, or lost -- so the total means what it would in a game. Not
-     * knowing is {@link #passClue}, which costs nothing.
-     */
-    @Transactional
-    public Snapshot selfJudge(UUID gameId, String hostToken, boolean correct) {
-        Game game = lockAndAuthorise(gameId, hostToken);
-        if (!game.isPractice()) {
-            throw new ResponseStatusException(CONFLICT, "only a practice game is self-judged");
-        }
-        expect(game, GameState.CLUE_READING);
-        Clue clue = requireClueInPlay(game);
-        Team team = players.findFirstByGameIdAndHostIsTrue(gameId)
-                .flatMap(p -> teams.findById(p.getTeamId()))
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "the player is gone"));
-        int value = clue.getValue() == null ? 0 : clue.getValue();
-
-        if (correct) {
-            team.setScore(team.getScore() + value);
-            resolve(game, clue, team.getId());
-        } else {
-            team.setScore(team.getScore() - value);
-            lockouts.save(new ClueLockout(gameId, clue.getId(), team.getId()));
-            resolve(game, clue, null);
-        }
-        bump(game);
-        return snapshotAndBroadcast(game);
-    }
-
-    /**
      * Set a buzz aside without ruling on it: no points either way, no lockout,
      * the buzzer reopens for everyone -- the team that pressed included. For the
      * press that was an accident, or a team that cannot answer after all.
@@ -1151,7 +1097,6 @@ public class GameService {
                 game.getBuzzMode(), game.getBuzzDelaySeconds(), buzzOpensInMs(game),
                 game.isQuestionsVisibleToParticipants(),
                 game.isPlayersPickClues(),
-                game.isPractice(),
                 game.getEventSeq(), attribution.text());
     }
 
@@ -1349,13 +1294,6 @@ public class GameService {
         byte[] want = game.getHostToken().getBytes(StandardCharsets.UTF_8);
         byte[] got = hostToken == null ? new byte[0] : hostToken.getBytes(StandardCharsets.UTF_8);
         return MessageDigest.isEqual(want, got);
-    }
-
-    /** A practice game is one person's; it has no lobby to show and no seat to offer. */
-    private static void refuseIfPractice(Game game) {
-        if (game.isPractice()) {
-            throw new ResponseStatusException(CONFLICT, "this is a practice game; nobody can join it");
-        }
     }
 
     private static void expect(Game game, GameState expected) {

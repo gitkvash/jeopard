@@ -17,15 +17,7 @@ import 'team/join_screen.dart';
 import 'widgets/stage.dart';
 import 'widgets/toast.dart';
 
-/// The screen a stored [session] reopens into.
-Widget gameScreenFor(GameSession session) => session.practice
-    ? PracticeScreen(session: session)
-    : session.isHost
-    ? HostGameScreen(session: session)
-    : BuzzerScreen(session: session);
-
 /// One binary, two roles: the host drives the board, everyone else buzzes.
-/// And practice, for one person on their own.
 ///
 /// Lives in its own file because leaving a game has to come back here from any
 /// navigator state, and the game screens cannot reach into main.dart for it.
@@ -102,9 +94,13 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
         });
         return;
       }
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => gameScreenFor(session)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => session.isHost
+              ? HostGameScreen(session: session)
+              : BuzzerScreen(session: session),
+        ),
+      );
     } on ApiException catch (e) {
       if (e.isNotFound) {
         SessionStore.clear();
@@ -138,10 +134,8 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
       final go = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(session.practice ? L.endPractice : L.endGameConfirmTitle),
-          content: Text(
-            session.practice ? L.endPracticeMessage : L.endGameConfirmMessage,
-          ),
+          title: const Text(L.endGameConfirmTitle),
+          content: const Text(L.endGameConfirmMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -185,19 +179,12 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
 
   Widget _buildReturnCard(BuildContext context, GameSession session) {
     final isHost = session.isHost;
-    final roleTitle = session.practice
-        ? L.practice
-        : isHost
-        ? L.host
-        : (session.playerName ?? L.iAmPlayer);
-    final subtitleParts = <String>[roleTitle];
+    final roleTitle = isHost ? L.host : (session.playerName ?? L.iAmPlayer);
+    final subtitleParts = <String>[];
     if (!isHost && session.teamName != null && session.teamName!.isNotEmpty) {
       subtitleParts.add(session.teamName!);
     }
-    // Nobody can join a practice game, so its code means nothing to anyone.
-    if (!session.practice) {
-      subtitleParts.add('${L.joinCode}: ${session.joinCode}');
-    }
+    subtitleParts.add('${L.joinCode}: ${session.joinCode}');
     final subtitle = subtitleParts.join(' · ');
 
     return Plate(
@@ -262,7 +249,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  '$roleTitle · $subtitle',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -364,9 +351,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
                     hint: L.practiceHint,
                     primary: false,
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const HostSetupScreen(practice: true),
-                      ),
+                      MaterialPageRoute(builder: (_) => const PracticeScreen()),
                     ),
                   ),
                   const SizedBox(height: 28),

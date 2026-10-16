@@ -7,7 +7,9 @@ import java.util.List;
  *
  * <p>Note what is absent: no clue {@code question} or {@code answer} text
  * appears in any board payload. Clue text only reaches a client through the
- * game API, and only once the host has put that specific clue into play.
+ * game API, once the host has put that specific clue into play -- or as a
+ * random practice card ({@link PracticeController}), which cannot be aimed at
+ * a particular clue.
  */
 public final class ContentDtos {
 

@@ -472,4 +472,113 @@ void main() {
     expect(row(L.playersPickClues).value, isTrue);
     expect(row(L.participantsSeeQuestions).value, isFalse);
   });
+
+  testWidgets('host can search packages by query and transliteration',
+      (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(setupScreen([
+      package(1, generated: false),
+      package(2, generated: false),
+      PackageSummary(
+        id: 7,
+        number: 7,
+        title: 'პაკეტი #7',
+        subtitle: 'გენერირებული პაკეტი (Gemini) · ასტრონომია',
+        sourceUrl: 'generated:gemini-pro',
+        rounds: [],
+      ),
+      PackageSummary(
+        id: 8,
+        number: 8,
+        title: 'პაკეტი #8',
+        subtitle: 'გენერირებული პაკეტი (Gemini) · გეოგრაფია',
+        sourceUrl: 'generated:gemini-pro',
+        rounds: [],
+      ),
+    ]));
+    await tester.pumpAndSettle();
+
+    final searchField = find.byType(TextField);
+    expect(searchField, findsOneWidget);
+
+    // Initial state: all packages visible
+    expect(find.text('პაკეტი #1'), findsOneWidget);
+    expect(find.text('პაკეტი #7'), findsOneWidget);
+    expect(find.text('პაკეტი #8'), findsOneWidget);
+
+    // Type Latin transliteration "astronomia" matching "ასტრონომია" in package 7 subtitle
+    await tester.enterText(searchField, 'astronomia');
+    await tester.pumpAndSettle();
+
+    expect(find.text('პაკეტი #7'), findsOneWidget);
+    expect(find.text('პაკეტი #8'), findsNothing);
+    expect(find.text('პაკეტი #1'), findsNothing);
+
+    // Clear search with clear button
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pumpAndSettle();
+
+    expect(find.text('პაკეტი #1'), findsOneWidget);
+    expect(find.text('პაკეტი #7'), findsOneWidget);
+    expect(find.text('პაკეტი #8'), findsOneWidget);
+  });
+
+  testWidgets('host can filter packages by provenance chip', (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(setupScreen([
+      package(1, generated: false),
+      package(7, generated: true),
+      package(51, generated: true, sourceUrl: 'generated:argon'),
+    ]));
+    await tester.pumpAndSettle();
+
+    // Tap Gemini chip
+    await tester.tap(find.text(L.filterGemini));
+    await tester.pumpAndSettle();
+
+    expect(find.text('პაკეტი #7'), findsOneWidget);
+    expect(find.text('პაკეტი #1'), findsNothing);
+    expect(find.text('პაკეტი #51'), findsNothing);
+
+    // Tap Argon chip
+    await tester.tap(find.text(L.filterArgon));
+    await tester.pumpAndSettle();
+
+    expect(find.text('პაკეტი #51'), findsOneWidget);
+    expect(find.text('პაკეტი #7'), findsNothing);
+    expect(find.text('პაკეტი #1'), findsNothing);
+
+    // Tap All chip
+    await tester.tap(find.text(L.filterAll));
+    await tester.pumpAndSettle();
+
+    expect(find.text('პაკეტი #1'), findsOneWidget);
+    expect(find.text('პაკეტი #7'), findsOneWidget);
+    expect(find.text('პაკეტი #51'), findsOneWidget);
+  });
+
+  testWidgets('non-matching search shows polite empty state and clear button',
+      (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(setupScreen([
+      package(1, generated: false),
+      package(7, generated: true),
+    ]));
+    await tester.pumpAndSettle();
+
+    final searchField = find.byType(TextField);
+    await tester.enterText(searchField, 'ararsebuli999');
+    await tester.pumpAndSettle();
+
+    expect(find.text(L.noPackagesFound), findsOneWidget);
+    expect(find.text(L.noPackagesFoundHint), findsOneWidget);
+
+    // Tapping clear button in empty state clears search
+    await tester.tap(find.widgetWithText(OutlinedButton, L.clearSearch));
+    await tester.pumpAndSettle();
+
+    expect(find.text('პაკეტი #1'), findsOneWidget);
+    expect(find.text('პაკეტი #7'), findsOneWidget);
+  });
 }
+

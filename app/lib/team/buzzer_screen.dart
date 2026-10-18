@@ -44,6 +44,8 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   /// the round trip. Cleared when the next snapshot tells us the real outcome.
   bool _buzzSent = false;
   int? _buzzSentForClue;
+  int? _lastClueId;
+  GameState? _lastState;
 
   /// Whether the last snapshot made it this team's turn to choose, so the phone
   /// buzzes once when the turn arrives rather than on every broadcast.
@@ -105,11 +107,19 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     final myTurn = _isMyTurnToPick(snap);
     if (myTurn && !_wasMyTurn) HapticFeedback.mediumImpact();
     _wasMyTurn = myTurn;
+
+    final clueId = snap?.currentClue?.clueId;
     if (_buzzSent &&
-        (snap?.currentClue?.clueId != _buzzSentForClue ||
-            snap?.state != GameState.buzzOpen)) {
+        (clueId != _buzzSentForClue || snap?.state != GameState.buzzOpen)) {
       setState(() => _buzzSent = false);
     }
+    if (_lastClueId != clueId ||
+        (snap?.state == GameState.buzzOpen && _lastState != GameState.buzzOpen)) {
+      _buzzSentForClue = null;
+    }
+    _lastClueId = clueId;
+    _lastState = snap?.state;
+
     if (snap?.state == GameState.finished) SessionStore.clear();
   }
 
@@ -670,15 +680,29 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   Widget _buzzArea(Snapshot snap, bool someoneElse) {
     final lockedOut = _me?.lockedOut ?? false;
     final open = snap.state == GameState.buzzOpen;
+    final iBuzzed = snap.buzzedTeamId == _teamId;
+    final clueId = snap.currentClue?.clueId;
 
     if (lockedOut) {
       return _statusBar(L.lockedOut, Icons.block);
     }
-    if (someoneElse) {
-      return _statusBar(
-        '${buzzerLabel(snap, snap.teamById(snap.buzzedTeamId))} ${L.buzzedIn}',
-        Icons.hourglass_bottom,
+    if (iBuzzed) {
+      return _BuzzButton(
+        status: BuzzButtonStatus.won,
+        onTap: () {},
       );
+    }
+    if (someoneElse) {
+      final lostLabel =
+          '${buzzerLabel(snap, snap.teamById(snap.buzzedTeamId))} ${L.buzzedIn}';
+      if (_buzzSentForClue == clueId) {
+        return _BuzzButton(
+          status: BuzzButtonStatus.lost,
+          lostLabel: lostLabel,
+          onTap: () {},
+        );
+      }
+      return _statusBar(lostLabel, Icons.hourglass_bottom);
     }
     if (snap.state == GameState.resolved) {
       return _statusBar(L.waitingForHost, Icons.hourglass_bottom);
@@ -687,7 +711,10 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
       return _statusBar(L.buzzerClosed, Icons.lock_outline);
     }
 
-    return _BuzzButton(sent: _buzzSent, onTap: _buzz);
+    return _BuzzButton(
+      status: _buzzSent ? BuzzButtonStatus.pending : BuzzButtonStatus.ready,
+      onTap: _buzz,
+    );
   }
 
   Widget _statusBar(String text, IconData icon) {
@@ -871,17 +898,38 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   }
 }
 
+/// The visual and interactive state of the buzzer on a player's screen.
+enum BuzzButtonStatus {
+  /// Open and ready to buzz: breathes red, inviting the press.
+  ready,
+
+  /// Pressed! Waiting for arbitration: amber/orange with spinner ("მოიცადეთ...").
+  pending,
+
+  /// This team won the race: bright green with checkmark ("თქვენ დააჭირეთ! უპასუხეთ").
+  won,
+
+  /// Another team buzzed first: red with close icon ("სხვამ დაასწრო").
+  lost,
+}
+
 /// The one control that has to be unmissable and fast.
 ///
 /// Full width, tall enough to hit without looking, and lit from within: while
 /// the buzzer is open the glow breathes, which is what tells a player across the
 /// room that it is their moment without them reading anything. The instant it is
-/// pressed it latches, before any round trip.
+/// pressed it turns amber/orange ("მოიცადეთ...") to indicate arbitration is pending,
+/// before settling into green (won) or red (lost).
 class _BuzzButton extends StatefulWidget {
-  const _BuzzButton({required this.sent, required this.onTap});
+  const _BuzzButton({
+    required this.status,
+    required this.onTap,
+    this.lostLabel,
+  });
 
-  final bool sent;
+  final BuzzButtonStatus status;
   final VoidCallback onTap;
+  final String? lostLabel;
 
   @override
   State<_BuzzButton> createState() => _BuzzButtonState();
@@ -897,17 +945,21 @@ class _BuzzButtonState extends State<_BuzzButton>
   @override
   void initState() {
     super.initState();
-    if (!widget.sent) _pulse.repeat(reverse: true);
+    if (widget.status == BuzzButtonStatus.ready ||
+        widget.status == BuzzButtonStatus.pending) {
+      _pulse.repeat(reverse: true);
+    }
   }
 
   @override
   void didUpdateWidget(_BuzzButton old) {
     super.didUpdateWidget(old);
-    // A latched button stops breathing: the moment has passed to the host.
-    if (widget.sent && _pulse.isAnimating) {
-      _pulse.stop();
-    } else if (!widget.sent && !_pulse.isAnimating) {
+    final shouldAnimate = widget.status == BuzzButtonStatus.ready ||
+        widget.status == BuzzButtonStatus.pending;
+    if (shouldAnimate && !_pulse.isAnimating) {
       _pulse.repeat(reverse: true);
+    } else if (!shouldAnimate && _pulse.isAnimating) {
+      _pulse.stop();
     }
   }
 
@@ -924,7 +976,150 @@ class _BuzzButtonState extends State<_BuzzButton>
         animation: _pulse,
         builder: (context, _) {
           final t = Curves.easeInOut.transform(_pulse.value);
-          final glow = widget.sent ? 0.0 : 34 + 26 * t;
+          final glow = switch (widget.status) {
+            BuzzButtonStatus.ready => 34 + 26 * t,
+            BuzzButtonStatus.pending => 20 + 16 * t,
+            BuzzButtonStatus.won => 28.0,
+            BuzzButtonStatus.lost => 0.0,
+          };
+          final glowColor = switch (widget.status) {
+            BuzzButtonStatus.ready => JColors.buzz.withValues(alpha: 0.55),
+            BuzzButtonStatus.pending =>
+              JColors.buzzPending.withValues(alpha: 0.55),
+            BuzzButtonStatus.won => JColors.correct.withValues(alpha: 0.55),
+            BuzzButtonStatus.lost => Colors.transparent,
+          };
+          final colors = switch (widget.status) {
+            BuzzButtonStatus.ready => const [
+              JColors.buzzBright,
+              JColors.buzz,
+              Color(0xFF7D0B1B),
+            ],
+            BuzzButtonStatus.pending => const [
+              JColors.buzzPendingBright,
+              JColors.buzzPending,
+              JColors.buzzPendingDeep,
+            ],
+            BuzzButtonStatus.won => const [
+              Color(0xFF3FD98A),
+              JColors.correct,
+              Color(0xFF14663B),
+            ],
+            BuzzButtonStatus.lost => const [
+              Color(0xFFE53935),
+              JColors.wrong,
+              Color(0xFF5C0B14),
+            ],
+          };
+
+          final content = switch (widget.status) {
+            BuzzButtonStatus.ready => const Text(
+              L.buzz,
+              style: TextStyle(
+                fontSize: 46,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 1.5,
+                shadows: [
+                  Shadow(
+                    color: Color(0x66000000),
+                    offset: Offset(0, 3),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+            BuzzButtonStatus.pending => const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3.5,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  L.buzzWaiting,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                    shadows: [
+                      Shadow(
+                        color: Color(0x66000000),
+                        offset: Offset(0, 3),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            BuzzButtonStatus.won => const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check, size: 52, color: Colors.white),
+                SizedBox(height: 6),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    L.youBuzzed,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x66000000),
+                          offset: Offset(0, 3),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            BuzzButtonStatus.lost => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.close, size: 48, color: Colors.white),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    widget.lostLabel ?? L.someoneElseBuzzed,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x66000000),
+                          offset: Offset(0, 3),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          };
+
+          final canTap = widget.status == BuzzButtonStatus.ready;
+
           return Container(
             height: 168,
             width: double.infinity,
@@ -932,24 +1127,14 @@ class _BuzzButtonState extends State<_BuzzButton>
               gradient: RadialGradient(
                 center: const Alignment(0, -0.9),
                 radius: 1.4,
-                colors: widget.sent
-                    ? const [
-                        Color(0xFF3FD98A),
-                        JColors.correct,
-                        Color(0xFF14663B),
-                      ]
-                    : const [
-                        JColors.buzzBright,
-                        JColors.buzz,
-                        Color(0xFF7D0B1B),
-                      ],
+                colors: colors,
                 stops: const [0, 0.45, 1],
               ),
               borderRadius: BorderRadius.circular(JRadius.panel),
               boxShadow: [
                 if (glow > 0)
                   BoxShadow(
-                    color: JColors.buzz.withValues(alpha: 0.55),
+                    color: glowColor,
                     blurRadius: glow,
                     spreadRadius: -8,
                   ),
@@ -968,32 +1153,13 @@ class _BuzzButtonState extends State<_BuzzButton>
             // goes on the finger landing; the tap stays for keyboards and
             // screen readers, and the press handler ignores the second call.
             child: Listener(
-              onPointerDown: widget.sent ? null : (_) => widget.onTap(),
+              onPointerDown: canTap ? (_) => widget.onTap() : null,
               child: Material(
                 type: MaterialType.transparency,
                 child: InkWell(
-                  onTap: widget.sent ? null : widget.onTap,
+                  onTap: canTap ? widget.onTap : null,
                   splashColor: const Color(0x40FFFFFF),
-                  child: Center(
-                    child: widget.sent
-                        ? const Icon(Icons.check, size: 58, color: Colors.white)
-                        : const Text(
-                            L.buzz,
-                            style: TextStyle(
-                              fontSize: 46,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: 1.5,
-                              shadows: [
-                                Shadow(
-                                  color: Color(0x66000000),
-                                  offset: Offset(0, 3),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
+                  child: Center(child: content),
                 ),
               ),
             ),

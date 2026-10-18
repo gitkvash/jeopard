@@ -12,6 +12,7 @@ import '../core/theme.dart';
 import '../widgets/stage.dart';
 import '../widgets/toast.dart';
 import 'host_game_screen.dart';
+import 'package_search.dart';
 
 /// Above this width the options sit beside the list; below it they get a page
 /// of their own.
@@ -629,8 +630,8 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
   }
 }
 
-/// The packages, in two sections.
-class _PackageList extends StatelessWidget {
+/// The packages, with smart search, provenance filters, and sections.
+class _PackageList extends StatefulWidget {
   const _PackageList({
     required this.packages,
     required this.selectedId,
@@ -647,43 +648,195 @@ class _PackageList extends StatelessWidget {
   final VoidCallback onPickRandom;
   final bool generatingRandom;
 
-  /// The list flattened to one row per line: the shuffle card, two headings,
-  /// and a card per package.
-  ///
-  /// Built as data rather than as widgets because the widgets are not cheap --
-  /// every card is a gradient tile, a bevel and two blurred shadows -- and the
-  /// list rebuilds on every keystroke-sized state change in the screen above
-  /// it. As data, a rebuild costs forty-odd small objects and `ListView.builder`
-  /// only inflates the handful actually on screen.
+  @override
+  State<_PackageList> createState() => _PackageListState();
+}
+
+class _PackageListState extends State<_PackageList> {
+  final TextEditingController _searchController = TextEditingController();
+  PackageSourceFilter _filter = PackageSourceFilter.all;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    final text = _searchController.text;
+    if (text != _query) {
+      setState(() => _query = text);
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _filter = PackageSourceFilter.all;
+    });
+  }
+
   List<_Row> _rows() {
-    // Provenances in sections: authentic 2008 archive, Gemini generated, and Argon AI generated.
-    final original = <_Row>[];
-    final generated = <_Row>[];
-    final argon = <_Row>[];
-    for (final p in packages) {
-      if (p.isArgon) {
-        argon.add(_PackageRow(p));
-      } else if (p.generated) {
-        generated.add(_PackageRow(p));
-      } else {
-        original.add(_PackageRow(p));
+    final trimmedQuery = _query.trim();
+    final isFiltering = _filter != PackageSourceFilter.all;
+    final isSearching = trimmedQuery.isNotEmpty || isFiltering;
+
+    if (!isSearching) {
+      // Default categorized catalogue view
+      final original = <_Row>[];
+      final generated = <_Row>[];
+      final argon = <_Row>[];
+      for (final p in widget.packages) {
+        if (p.isArgon) {
+          argon.add(_PackageRow(p));
+        } else if (p.generated) {
+          generated.add(_PackageRow(p));
+        } else {
+          original.add(_PackageRow(p));
+        }
+      }
+
+      return [
+        const _RandomRow(),
+        for (final group in [
+          (label: L.originalPackages, rows: original),
+          (label: L.generatedPackages, rows: generated),
+          (label: L.argonPackages, rows: argon),
+        ])
+          if (group.rows.isNotEmpty) ...[
+            _HeaderRow('${group.label}  ·  ${group.rows.length}'),
+            ...group.rows,
+          ],
+      ];
+    }
+
+    final searchResults = PackageSearch.search(
+      widget.packages,
+      trimmedQuery,
+      filter: _filter,
+    );
+
+    final rows = <_Row>[];
+
+    // Include random package card if matching keyword or empty query with filter
+    if (trimmedQuery.isNotEmpty && PackageSearch.matchesRandom(trimmedQuery)) {
+      rows.add(const _RandomRow());
+    }
+
+    if (searchResults.isEmpty && rows.isEmpty) {
+      return const [_EmptyRow()];
+    }
+
+    if (searchResults.isNotEmpty) {
+      final headerTitle = trimmedQuery.isNotEmpty
+          ? '${L.searchResults.toUpperCase()}  ·  ${searchResults.length}'
+          : switch (_filter) {
+              PackageSourceFilter.original =>
+                '${L.originalPackages.toUpperCase()}  ·  ${searchResults.length}',
+              PackageSourceFilter.gemini =>
+                '${L.generatedPackages.toUpperCase()}  ·  ${searchResults.length}',
+              PackageSourceFilter.argon =>
+                '${L.argonPackages.toUpperCase()}  ·  ${searchResults.length}',
+              PackageSourceFilter.all =>
+                '${L.packageLabel.toUpperCase()}  ·  ${searchResults.length}',
+            };
+
+      rows.add(_HeaderRow(headerTitle));
+      for (final res in searchResults) {
+        rows.add(
+          _PackageRow(
+            res.package,
+            titleHighlights: res.titleHighlights,
+            subtitleHighlights: res.subtitleHighlights,
+          ),
+        );
       }
     }
 
-    return [
-      // Offered first, above every named packet: a host who does not care which
-      // specific one they play should not have to scan sixty of them.
-      const _RandomRow(),
-      for (final group in [
-        (label: L.originalPackages, rows: original),
-        (label: L.generatedPackages, rows: generated),
-        (label: L.argonPackages, rows: argon),
-      ])
-        if (group.rows.isNotEmpty) ...[
-          _HeaderRow('${group.label}  ·  ${group.rows.length}'),
-          ...group.rows,
-        ],
-    ];
+    return rows;
+  }
+
+  Widget _buildSearchHeader(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _searchController,
+          style: const TextStyle(
+            color: JColors.text,
+            fontSize: 14,
+          ),
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: L.searchPackages,
+            hintStyle: const TextStyle(color: JColors.textFaint, fontSize: 14),
+            prefixIcon: const Icon(Icons.search, color: JColors.brass, size: 20),
+            suffixIcon: _query.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, color: JColors.textMuted, size: 18),
+                    tooltip: L.clearSearch,
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    },
+                  )
+                : null,
+            filled: true,
+            fillColor: JColors.surfaceHigh,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 11,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(JRadius.control),
+              borderSide: const BorderSide(color: JColors.line),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(JRadius.control),
+              borderSide: const BorderSide(color: JColors.brass, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _Chip(
+              label: L.filterAll,
+              selected: _filter == PackageSourceFilter.all,
+              onTap: () => setState(() => _filter = PackageSourceFilter.all),
+            ),
+            _Chip(
+              label: L.filterOriginal,
+              selected: _filter == PackageSourceFilter.original,
+              onTap: () => setState(() => _filter = PackageSourceFilter.original),
+            ),
+            _Chip(
+              label: L.filterGemini,
+              selected: _filter == PackageSourceFilter.gemini,
+              onTap: () => setState(() => _filter = PackageSourceFilter.gemini),
+            ),
+            _Chip(
+              label: L.filterArgon,
+              selected: _filter == PackageSourceFilter.argon,
+              onTap: () => setState(() => _filter = PackageSourceFilter.argon),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
   }
 
   @override
@@ -695,38 +848,98 @@ class _PackageList extends StatelessWidget {
         final side = (constraints.maxWidth - _listWidth) / 2;
         final gutter = side > 16 ? side : 16.0;
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 24),
-          itemCount: rows.length,
-          itemBuilder: (context, i) => switch (rows[i]) {
-            _HeaderRow(label: final label) => _SectionLabel(label),
-            _RandomRow() => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _RandomPackageCard(
-                generating: generatingRandom,
-                onTap: generatingRandom ? null : onPickRandom,
+        return Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 4),
+              child: _buildSearchHeader(context),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.fromLTRB(gutter, 4, gutter, 24),
+                itemCount: rows.length,
+                itemBuilder: (context, i) => switch (rows[i]) {
+                  _HeaderRow(label: final label) => _SectionLabel(label),
+                  _EmptyRow() => Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 36,
+                        horizontal: 16,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.search_off,
+                              size: 40,
+                              color: JColors.brass,
+                            ),
+                            const SizedBox(height: 14),
+                            const Text(
+                              L.noPackagesFound,
+                              style: TextStyle(
+                                color: JColors.textMuted,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              L.noPackagesFoundHint,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: JColors.textFaint,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: _clearSearch,
+                              icon: const Icon(Icons.refresh, size: 18),
+                              label: const Text(L.clearSearch),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  _RandomRow() => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _RandomPackageCard(
+                        generating: widget.generatingRandom,
+                        onTap: widget.generatingRandom ? null : widget.onPickRandom,
+                      ),
+                    ),
+                  _PackageRow(
+                    package: final p,
+                    titleHighlights: final th,
+                    subtitleHighlights: final sh,
+                  ) =>
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _PackageCard(
+                        package: p,
+                        selected: p.id == widget.selectedId,
+                        onTap: () => widget.onPick(p),
+                        titleHighlights: th,
+                        subtitleHighlights: sh,
+                        trailing: Icon(
+                          p.id == widget.selectedId
+                              ? Icons.check_circle
+                              : (widget.opensPage
+                                    ? Icons.chevron_right
+                                    : Icons.circle_outlined),
+                          color: p.id == widget.selectedId
+                              ? JColors.goldBright
+                              : (widget.opensPage ? JColors.brass : JColors.line),
+                          size: 21,
+                        ),
+                      ),
+                    ),
+                },
               ),
             ),
-            _PackageRow(package: final p) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _PackageCard(
-                package: p,
-                selected: p.id == selectedId,
-                onTap: () => onPick(p),
-                trailing: Icon(
-                  p.id == selectedId
-                      ? Icons.check_circle
-                      : (opensPage
-                            ? Icons.chevron_right
-                            : Icons.circle_outlined),
-                  color: p.id == selectedId
-                      ? JColors.goldBright
-                      : (opensPage ? JColors.brass : JColors.line),
-                  size: 21,
-                ),
-              ),
-            ),
-          },
+          ],
         );
       },
     );
@@ -736,6 +949,10 @@ class _PackageList extends StatelessWidget {
 /// One line of the picker.
 sealed class _Row {
   const _Row();
+}
+
+class _EmptyRow extends _Row {
+  const _EmptyRow();
 }
 
 class _RandomRow extends _Row {
@@ -749,9 +966,15 @@ class _HeaderRow extends _Row {
 }
 
 class _PackageRow extends _Row {
-  const _PackageRow(this.package);
+  const _PackageRow(
+    this.package, {
+    this.titleHighlights = const [],
+    this.subtitleHighlights = const [],
+  });
 
   final PackageSummary package;
+  final List<(int, int)> titleHighlights;
+  final List<(int, int)> subtitleHighlights;
 }
 
 /// The card offered above every named packet: assembles a fresh one from
@@ -969,6 +1192,8 @@ class _PackageCard extends StatelessWidget {
     required this.selected,
     this.onTap,
     this.trailing,
+    this.titleHighlights = const [],
+    this.subtitleHighlights = const [],
   });
 
   final PackageSummary package;
@@ -977,6 +1202,53 @@ class _PackageCard extends StatelessWidget {
   /// Absent where the card is a heading rather than a choice.
   final VoidCallback? onTap;
   final Widget? trailing;
+  final List<(int, int)> titleHighlights;
+  final List<(int, int)> subtitleHighlights;
+
+  Widget _buildSpanText({
+    required String text,
+    required TextStyle baseStyle,
+    required TextStyle highlightStyle,
+    required List<(int, int)> highlights,
+    int? maxLines,
+    TextOverflow? overflow,
+  }) {
+    if (highlights.isEmpty) {
+      return Text(
+        text,
+        style: baseStyle,
+        maxLines: maxLines,
+        overflow: overflow,
+      );
+    }
+
+    final spans = <TextSpan>[];
+    var curr = 0;
+    for (final (start, end) in highlights) {
+      if (start > curr && start <= text.length) {
+        spans.add(TextSpan(text: text.substring(curr, start), style: baseStyle));
+      }
+      if (start < text.length) {
+        final safeEnd = end.clamp(start, text.length);
+        spans.add(
+          TextSpan(
+            text: text.substring(start, safeEnd),
+            style: highlightStyle,
+          ),
+        );
+        curr = safeEnd;
+      }
+    }
+    if (curr < text.length) {
+      spans.add(TextSpan(text: text.substring(curr), style: baseStyle));
+    }
+
+    return Text.rich(
+      TextSpan(children: spans),
+      maxLines: maxLines,
+      overflow: overflow,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1034,26 +1306,40 @@ class _PackageCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  package.title,
-                  style: TextStyle(
+                _buildSpanText(
+                  text: package.title,
+                  baseStyle: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.2,
                     color: selected ? JColors.goldBright : JColors.text,
                   ),
+                  highlightStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: JColors.goldBright,
+                  ),
+                  highlights: titleHighlights,
                 ),
                 if (package.subtitle != null) ...[
                   const SizedBox(height: 3),
-                  Text(
-                    _cardSubtitle(package.subtitle)!,
+                  _buildSpanText(
+                    text: _cardSubtitle(package.subtitle)!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    baseStyle: const TextStyle(
                       color: JColors.textFaint,
                       fontSize: 12,
                       height: 1.35,
                     ),
+                    highlightStyle: const TextStyle(
+                      color: JColors.goldBright,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                    highlights: subtitleHighlights,
                   ),
                 ],
                 const SizedBox(height: 6),

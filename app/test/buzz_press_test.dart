@@ -167,11 +167,139 @@ void main() {
     expect(buzzes, hasLength(1));
     expect(buzzes.single['playerToken'], 'tok-p-1');
     expect(buzzes.single['reactionMs'], isA<int>());
+    expect(find.text(L.buzzWaiting), findsOneWidget);
 
     // Lifting it completes the tap, which must not press a second time.
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 50));
     expect(buzzes, hasLength(1));
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('pressed buzzer transitions to won when own team buzzed in', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = const Size(420, 860) * 2;
+    addTearDown(tester.view.reset);
+
+    var buzzed = false;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/buzz')) {
+        buzzed = true;
+      }
+      return http.Response(
+        jsonEncode(
+          buzzed
+              ? (snapshot(state: 'BUZZED')..['buzzedTeamId'] = 't-1')
+              : snapshot(state: 'BUZZ_OPEN'),
+        ),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          restClientProvider.overrideWithValue(RestClient(client: client)),
+        ],
+        child: MaterialApp(
+          theme: buildTheme(),
+          builder: (context, child) => Stage(child: child!),
+          home: BuzzerScreen(
+            session: GameSession(
+              gameId: 'g-1',
+              joinCode: 'S6HG3F',
+              isHost: false,
+              savedAt: DateTime.now(),
+              playerId: 'p-1',
+              playerToken: 'tok-p-1',
+              playerName: 'ანა',
+              teamId: 't-1',
+              teamName: 'მთიები',
+            ),
+          ),
+        ),
+      ),
+    );
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    final button = find.text(L.buzz);
+    expect(button, findsOneWidget);
+
+    await tester.tap(button);
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text(L.youBuzzed), findsNWidgets(2));
+    expect(find.byIcon(Icons.check), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('pressed buzzer transitions to lost when another team buzzed in', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = const Size(420, 860) * 2;
+    addTearDown(tester.view.reset);
+
+    var buzzed = false;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/buzz')) {
+        buzzed = true;
+      }
+      return http.Response(
+        jsonEncode(
+          buzzed
+              ? (snapshot(state: 'BUZZED')..['buzzedTeamId'] = 't-2')
+              : snapshot(state: 'BUZZ_OPEN'),
+        ),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          restClientProvider.overrideWithValue(RestClient(client: client)),
+        ],
+        child: MaterialApp(
+          theme: buildTheme(),
+          builder: (context, child) => Stage(child: child!),
+          home: BuzzerScreen(
+            session: GameSession(
+              gameId: 'g-1',
+              joinCode: 'S6HG3F',
+              isHost: false,
+              savedAt: DateTime.now(),
+              playerId: 'p-1',
+              playerToken: 'tok-p-1',
+              playerName: 'ანა',
+              teamId: 't-1',
+              teamName: 'მთიები',
+            ),
+          ),
+        ),
+      ),
+    );
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    final button = find.text(L.buzz);
+    expect(button, findsOneWidget);
+
+    await tester.tap(button);
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byIcon(Icons.close), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));

@@ -40,6 +40,9 @@ class JColors {
   static const wrongBright = Color(0xFFFF3B4E);
   static const buzz = Color(0xFFC4162C);
   static const buzzBright = Color(0xFFFF3B4E);
+  static const buzzPending = Color(0xFFF57C00);
+  static const buzzPendingBright = Color(0xFFFFA726);
+  static const buzzPendingDeep = Color(0xFFBF360C);
 
   static const text = Color(0xFFF4F5FA);
   static const textMuted = Color(0xFF93A0C0);
@@ -372,6 +375,17 @@ class L {
   static const randomPackage = 'შემთხვევითი პაკეტი';
   static const randomPackageHint = 'თემები შემთხვევითობით აირჩევა ყველა პაკეტიდან';
   static const randomPackageError = 'ვერ მოხერხდა შემთხვევითი პაკეტის შექმნა';
+  static const searchPackages = 'პაკეტის ძებნა...';
+  static const clearSearch = 'გასუფთავება';
+  static const noPackagesFound = 'პაკეტები ვერ მოიძებნა';
+  static const noPackagesFoundHint =
+      'სცადეთ სხვა საძიებო სიტყვა ან შეცვალეთ ფილტრი';
+  static const filterAll = 'ყველა';
+  static const filterOriginal = '2008 არქივი';
+  static const filterGemini = 'Gemini';
+  static const filterArgon = 'Argon AI';
+  static const searchResults = 'ძებნის შედეგები';
+  static String foundPackagesCount(int count) => 'ნაპოვნია $count პაკეტი';
   static const choosePackage = 'აირჩიეთ პაკეტი';
   static const choosePackageHint =
       'აირჩიეთ პაკეტი მარცხნივ, პარამეტრები აქ გამოჩნდება';
@@ -465,6 +479,8 @@ class L {
   static const buzzerClosed = 'ღილაკი დახურულია';
   static const waitingForBuzz = 'ველოდებით პასუხს';
   static const buzz = 'ვიცი!';
+  static const buzzWaiting = 'მოიცადეთ...';
+  static const someoneElseBuzzed = 'სხვამ დაასწრო';
   static const youBuzzed = 'თქვენ დააჭირეთ! უპასუხეთ';
   static const buzzedIn = 'დააჭირა';
   static const correct = 'სწორი';

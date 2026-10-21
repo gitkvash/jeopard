@@ -13,6 +13,8 @@ import '../widgets/stage.dart';
 import '../widgets/toast.dart';
 import '../widgets/topic_suggestion_dialog.dart';
 import 'host_game_screen.dart';
+import 'package_builder_screen.dart';
+import 'topic_picker_dialog.dart';
 import 'package_search.dart';
 
 /// Above this width the options sit beside the list; below it they get a page
@@ -109,6 +111,18 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
     }
   }
 
+  Future<void> _openBuilder({required bool twoPane}) async {
+    final created = await Navigator.of(context).push<PackageSummary>(
+      MaterialPageRoute(builder: (_) => const PackageBuilderScreen()),
+    );
+    if (!mounted || created == null) return;
+    setState(() {
+      _extraPackage = created;
+      _packageId = created.id;
+    });
+    _pick(created, twoPane: twoPane);
+  }
+
   @override
   Widget build(BuildContext context) {
     final packages = ref.watch(packagesProvider);
@@ -151,6 +165,7 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
           opensPage: !twoPane,
           onPick: (p) => _pick(p, twoPane: twoPane),
           onPickRandom: () => _pickRandom(twoPane: twoPane),
+          onOpenBuilder: () => _openBuilder(twoPane: twoPane),
           generatingRandom: _generatingRandom,
         );
 
@@ -328,6 +343,47 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
     }
   }
 
+  Future<void> _replaceTopic(TopicSummary topic) async {
+    if (_rerollingTopicId != null) return;
+    final round = _package.rounds.firstWhere(
+      (r) => r.topics.any((t) => t.id == topic.id),
+      orElse: () => _package.rounds.first,
+    );
+    final picked = await showTopicPickerDialog(
+      context,
+      ref: ref,
+      roundIdx: round.idx,
+      currentTopicName: topic.name,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _rerollingTopicId = topic.id);
+    try {
+      final updated = await ref
+          .read(restClientProvider)
+          .replaceTopic(_package.id, topic.id, picked.id);
+      if (!mounted) return;
+      final newRounds = _package.rounds.map((r) {
+        return r.copyWith(
+          topics: r.topics
+              .map((t) => t.id == topic.id ? updated : t)
+              .toList(),
+        );
+      }).toList();
+      final newPackage = _package.copyWith(rounds: newRounds);
+      setState(() {
+        _package = newPackage;
+        _rerollingTopicId = null;
+      });
+      widget.onPackageChanged?.call(newPackage);
+      showToast(context, '${L.topicReplaced}: ${updated.name}');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _rerollingTopicId = null);
+      showToast(context, 'თემის ჩანაცვლება ვერ მოხერხდა', error: true);
+    }
+  }
+
   @override
   void dispose() {
     _hostTeamName.dispose();
@@ -472,6 +528,7 @@ class _OptionsPaneState extends ConsumerState<_OptionsPane> {
                   onSelectRoundIdx: (idx) =>
                       setState(() => _previewRoundIdx = idx),
                   onReroll: _rerollTopic,
+                  onReplace: _replaceTopic,
                   rerollingTopicId: _rerollingTopicId,
                 ),
               ],
@@ -648,6 +705,7 @@ class _PackageList extends StatefulWidget {
     required this.opensPage,
     required this.onPick,
     required this.onPickRandom,
+    required this.onOpenBuilder,
     required this.generatingRandom,
   });
 
@@ -656,6 +714,7 @@ class _PackageList extends StatefulWidget {
   final bool opensPage;
   final ValueChanged<PackageSummary> onPick;
   final VoidCallback onPickRandom;
+  final VoidCallback onOpenBuilder;
   final bool generatingRandom;
 
   @override
@@ -716,7 +775,7 @@ class _PackageListState extends State<_PackageList> {
       }
 
       return [
-        const _RandomRow(),
+        const _QuickActionsRow(),
         for (final group in [
           (label: L.originalPackages, rows: original),
           (label: L.generatedPackages, rows: generated),
@@ -738,8 +797,10 @@ class _PackageListState extends State<_PackageList> {
     final rows = <_Row>[];
 
     // Include random package card if matching keyword or empty query with filter
-    if (trimmedQuery.isNotEmpty && PackageSearch.matchesRandom(trimmedQuery)) {
-      rows.add(const _RandomRow());
+    final qLower = trimmedQuery.toLowerCase();
+    final matchesBuilder = qLower.contains('აწყობ') || qLower.contains('კონსტრუქტ') || qLower.contains('შექმნ') || qLower.contains('build') || qLower.contains('custom');
+    if (trimmedQuery.isNotEmpty && (PackageSearch.matchesRandom(trimmedQuery) || matchesBuilder)) {
+      rows.add(const _QuickActionsRow());
     }
 
     if (searchResults.isEmpty && rows.isEmpty) {
@@ -913,11 +974,12 @@ class _PackageListState extends State<_PackageList> {
                         ),
                       ),
                     ),
-                  _RandomRow() => Padding(
+                  _QuickActionsRow() => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _RandomPackageCard(
-                        generating: widget.generatingRandom,
-                        onTap: widget.generatingRandom ? null : widget.onPickRandom,
+                      child: _QuickActionsCard(
+                        generatingRandom: widget.generatingRandom,
+                        onPickRandom: widget.onPickRandom,
+                        onOpenBuilder: widget.onOpenBuilder,
                       ),
                     ),
                   _PackageRow(
@@ -965,8 +1027,8 @@ class _EmptyRow extends _Row {
   const _EmptyRow();
 }
 
-class _RandomRow extends _Row {
-  const _RandomRow();
+class _QuickActionsRow extends _Row {
+  const _QuickActionsRow();
 }
 
 class _HeaderRow extends _Row {
@@ -989,79 +1051,153 @@ class _PackageRow extends _Row {
 
 /// The card offered above every named packet: assembles a fresh one from
 /// topics sampled across the whole library, rather than picking a fixed set.
-class _RandomPackageCard extends StatelessWidget {
-  const _RandomPackageCard({required this.generating, required this.onTap});
+class _QuickActionsCard extends StatelessWidget {
+  const _QuickActionsCard({
+    required this.generatingRandom,
+    required this.onPickRandom,
+    required this.onOpenBuilder,
+  });
 
-  final bool generating;
+  final bool generatingRandom;
+  final VoidCallback onPickRandom;
+  final VoidCallback onOpenBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 440;
+        final randomTile = _ActionTile(
+          icon: Icons.shuffle,
+          iconGradient: const [
+            Color(0xFFFFF0C4),
+            JColors.goldBright,
+            Color(0xFFC99A2E),
+          ],
+          iconColor: const Color(0xFF14120A),
+          title: L.randomPackage,
+          subtitle: L.randomPackageHint,
+          loading: generatingRandom,
+          onTap: generatingRandom ? null : onPickRandom,
+        );
+
+        final builderTile = _ActionTile(
+          icon: Icons.tune,
+          iconGradient: const [
+            Color(0xFF3A56F5),
+            JColors.boardLit,
+            JColors.boardDeep,
+          ],
+          iconColor: JColors.goldBright,
+          title: L.buildPackage,
+          subtitle: L.buildPackageHint,
+          loading: false,
+          onTap: onOpenBuilder,
+        );
+
+        if (isNarrow) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              randomTile,
+              const SizedBox(height: 8),
+              builderTile,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: randomTile),
+            const SizedBox(width: 8),
+            Expanded(child: builderTile),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.iconGradient,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final List<Color> iconGradient;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final bool loading;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Plate(
       onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 38,
+            height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFF0C4),
-                  JColors.goldBright,
-                  Color(0xFFC99A2E),
-                ],
-                stops: [0, 0.12, 1],
+                colors: iconGradient,
+                stops: const [0, 0.12, 1],
               ),
               borderRadius: BorderRadius.circular(JRadius.tile),
             ),
-            child: const Icon(
-              Icons.shuffle,
-              size: 22,
-              color: Color(0xFF14120A),
-            ),
+            child: Icon(icon, size: 20, color: iconColor),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  L.randomPackage,
-                  style: TextStyle(
-                    fontSize: 15,
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.2,
                     color: JColors.goldBright,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
-                  L.randomPackageHint,
-                  maxLines: 2,
+                  subtitle,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: JColors.textFaint,
-                    fontSize: 12,
-                    height: 1.35,
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          if (generating)
+          const SizedBox(width: 6),
+          if (loading)
             const SizedBox(
-              width: 21,
-              height: 21,
+              width: 18,
+              height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           else
-            const Icon(Icons.chevron_right, color: JColors.brass, size: 21),
+            const Icon(Icons.chevron_right, color: JColors.brass, size: 18),
         ],
       ),
     );
@@ -1411,6 +1547,7 @@ class _CategoriesSection extends StatelessWidget {
     required this.showRoundTabs,
     required this.onSelectRoundIdx,
     required this.onReroll,
+    required this.onReplace,
     required this.rerollingTopicId,
   });
 
@@ -1419,6 +1556,7 @@ class _CategoriesSection extends StatelessWidget {
   final bool showRoundTabs;
   final ValueChanged<int> onSelectRoundIdx;
   final ValueChanged<TopicSummary> onReroll;
+  final ValueChanged<TopicSummary> onReplace;
   final int? rerollingTopicId;
 
   @override
@@ -1475,6 +1613,7 @@ class _CategoriesSection extends StatelessWidget {
                     isRerolling:
                         rerollingTopicId == activeRound.topics[i].id,
                     onReroll: () => onReroll(activeRound.topics[i]),
+                    onReplace: () => onReplace(activeRound.topics[i]),
                   ),
                 ],
             ],
@@ -1490,11 +1629,13 @@ class _TopicTile extends StatelessWidget {
     required this.topic,
     required this.isRerolling,
     required this.onReroll,
+    required this.onReplace,
   });
 
   final TopicSummary topic;
   final bool isRerolling;
   final VoidCallback onReroll;
+  final VoidCallback onReplace;
 
   @override
   Widget build(BuildContext context) {
@@ -1545,7 +1686,7 @@ class _TopicTile extends StatelessWidget {
                 ),
               ),
             )
-          else
+          else ...[
             IconButton(
               icon: const Icon(Icons.refresh, size: 18),
               color: JColors.goldBright,
@@ -1553,6 +1694,14 @@ class _TopicTile extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               onPressed: onReroll,
             ),
+            IconButton(
+              icon: const Icon(Icons.search, size: 18),
+              color: JColors.brass,
+              tooltip: L.replaceWithSpecific,
+              visualDensity: VisualDensity.compact,
+              onPressed: onReplace,
+            ),
+          ],
         ],
       ),
     );

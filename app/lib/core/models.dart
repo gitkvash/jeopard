@@ -101,6 +101,38 @@ class TopicSummary {
   };
 }
 
+class AvailableTopic {
+  AvailableTopic({
+    required this.id,
+    required this.name,
+    required this.roundIdx,
+    required this.finalRound,
+    required this.packageTitle,
+  });
+
+  final int id;
+  final String name;
+  final int roundIdx;
+  final bool finalRound;
+  final String packageTitle;
+
+  factory AvailableTopic.fromJson(Map<String, dynamic> j) => AvailableTopic(
+    id: j['id'] as int,
+    name: j['name'] as String,
+    roundIdx: j['roundIdx'] as int? ?? 1,
+    finalRound: j['finalRound'] as bool? ?? false,
+    packageTitle: j['packageTitle'] as String? ?? '',
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'roundIdx': roundIdx,
+    'finalRound': finalRound,
+    'packageTitle': packageTitle,
+  };
+}
+
 class RoundSummary {
   RoundSummary({
     required this.id,

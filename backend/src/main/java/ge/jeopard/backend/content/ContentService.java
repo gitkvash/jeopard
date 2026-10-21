@@ -1,8 +1,10 @@
 package ge.jeopard.backend.content;
 
+import ge.jeopard.backend.content.ContentDtos.AvailableTopic;
 import ge.jeopard.backend.content.ContentDtos.BoardTile;
 import ge.jeopard.backend.content.ContentDtos.BoardTopic;
 import ge.jeopard.backend.content.ContentDtos.BoardView;
+import ge.jeopard.backend.content.ContentDtos.BuildPackageRequest;
 import ge.jeopard.backend.content.ContentDtos.PackageSummary;
 import ge.jeopard.backend.content.ContentDtos.RoundSummary;
 import ge.jeopard.backend.content.ContentDtos.TopicSummary;
@@ -52,36 +54,10 @@ public class ContentService {
     private final TopicRepository topics;
     private final ClueRepository clues;
 
-    /**
-     * The browsable package list, and the tag that identifies this copy of it.
-     *
-     * <p>Seeded content never changes while the process is up -- and the one
-     * thing that does write packages, {@link #generateRandomPackage()}, writes
-     * only synthetic ones, which this list excludes by definition. So the list
-     * is worth building once: a fresh page load then costs no query, no DTO
-     * mapping, and (thanks to the tag) often not even a response body.
-     */
     private volatile List<PackageSummary> packageCache;
     private volatile String packageCacheTag = "\"empty\"";
+    private volatile List<AvailableTopic> availableTopicsCache;
 
-    /**
-     * Boards already built, least recently used first.
-     *
-     * <p>Bounded, which the plain map it replaces was not. Seeded rounds are a
-     * fixed set and would have been fine forever, but every random packet mints
-     * four more rounds that exactly one game will ever play -- so the old cache
-     * grew for as long as the process ran, and a deployment where hosts like the
-     * random packet button was the case where it grew fastest.
-     *
-     * <p>The working set is one board per game in progress, so this holds far
-     * more rooms than the application will ever run at once, and what falls out
-     * is whatever nobody has looked at for longest -- a finished game's board,
-     * every time. Losing one costs a single query to rebuild.
-     *
-     * <p>Access-ordered, which means a <em>read</em> reorders the map: it has to
-     * be a synchronized map rather than a concurrent one, because a plain
-     * {@code ConcurrentHashMap} cannot express that at all.
-     */
     private final Map<Long, BoardView> boardCache;
 
     ContentService(PackageRepository packages, RoundRepository rounds, TopicRepository topics,
@@ -108,9 +84,6 @@ public class ContentService {
                 .sorted(Comparator.comparing(QuizPackage::getNumber))
                 .map(p -> toSummary(p, false))
                 .toList();
-        // Tomcat is serving before the seeder has finished its first run, so an
-        // empty answer here is "not ready yet", not "no packages" -- caching it
-        // would freeze the app on an empty picker for the life of the process.
         if (!fresh.isEmpty()) {
             packageCacheTag = '"' + Integer.toHexString(fresh.hashCode()) + '"';
             packageCache = fresh;
@@ -155,11 +128,6 @@ public class ContentService {
         if (cached != null) {
             return cached;
         }
-        // Built outside the map's monitor on purpose. That lock is shared by
-        // every room, and this is a query: holding it across the query would
-        // make one room's cache miss a pause in the next room's broadcast. Two
-        // misses on the same round race to build the same immutable view, which
-        // costs a duplicate query and cannot produce a wrong answer.
         BoardView fresh = buildBoard(roundId);
         boardCache.put(roundId, fresh);
         return fresh;
@@ -205,38 +173,100 @@ public class ContentService {
                 p.getSourceUrl(), p.isSynthetic(), roundSummaries);
     }
 
-    /**
-     * Assembles a fresh packet by sampling topics from the existing (non-synthetic)
-     * packets: six random topics per playable round, plus one final round cloned
-     * whole from a random source packet. Persisted like any other packet, just
-     * marked {@code synthetic} so it stays out of {@link #listPackages()}.
-     *
-     * <p>The host is watching a spinner while this runs, so it is written to a
-     * round-trip budget rather than to whatever JPA does by default: a handful
-     * of reads -- names to choose from, then only the chosen topics, then one
-     * id block per table -- and a hundred and seventeen rows inserted in a few
-     * JDBC batches. What it replaced asked the sequence for every id one at a
-     * time and hydrated every candidate topic <em>with its clues</em> to pick
-     * six of them, which is where the second of wall clock went.
-     */
+    public List<AvailableTopic> availableTopics(Integer roundIdx, String query) {
+        List<AvailableTopic> all = availableTopicsCache;
+        if (all == null) {
+            all = topics.findAvailableTopicRefs().stream()
+                    .map(r -> new AvailableTopic(
+                            r.getId(),
+                            r.getName(),
+                            r.getRoundIdx(),
+                            r.isFinalRound(),
+                            r.getPackageTitle()
+                    ))
+                    .toList();
+            availableTopicsCache = all;
+        }
+
+        final String q = query != null ? query.trim().toLowerCase() : null;
+        return all.stream()
+                .filter(t -> {
+                    if (roundIdx != null) {
+                        if (roundIdx == 4 || roundIdx > PLAYABLE_ROUNDS) {
+                            if (!t.finalRound()) return false;
+                        } else {
+                            if (t.finalRound() || !Objects.equals(t.roundIdx(), roundIdx)) return false;
+                        }
+                    }
+                    if (q != null && !q.isEmpty()) {
+                        if (!t.name().toLowerCase().contains(q)) return false;
+                    }
+                    return true;
+                })
+                .toList();
+    }
+
     @Transactional
     public PackageSummary generateRandomPackage() {
-        // --- choose, using nothing heavier than topic names -------------------
+        return buildCustomPackage(null);
+    }
+
+    @Transactional
+    public PackageSummary buildCustomPackage(BuildPackageRequest req) {
         Map<Integer, List<TopicRef>> pool = topics.findPlayableTopicRefs(PLAYABLE_ROUNDS).stream()
                 .collect(Collectors.groupingBy(TopicRef::getRoundIdx));
 
+        Set<String> chosenNames = new HashSet<>();
         Map<Integer, List<Long>> boardTopicIds = new LinkedHashMap<>();
+
+        List<List<Long>> roundInputs = List.of(
+                req != null && req.round1TopicIds() != null ? req.round1TopicIds() : List.<Long>of(),
+                req != null && req.round2TopicIds() != null ? req.round2TopicIds() : List.<Long>of(),
+                req != null && req.round3TopicIds() != null ? req.round3TopicIds() : List.<Long>of()
+        );
+
         for (int idx = 1; idx <= PLAYABLE_ROUNDS; idx++) {
-            boardTopicIds.put(idx, pickDistinctByName(
-                    pool.getOrDefault(idx, List.of()), TOPICS_PER_ROUND));
+            List<Long> inputIds = roundInputs.get(idx - 1);
+            List<Long> roundTopicIds = new ArrayList<>();
+            for (Long id : inputIds) {
+                if (roundTopicIds.size() >= TOPICS_PER_ROUND) break;
+                if (!roundTopicIds.contains(id)) {
+                    roundTopicIds.add(id);
+                }
+            }
+            if (!roundTopicIds.isEmpty()) {
+                topics.findAllById(roundTopicIds).forEach(t -> chosenNames.add(t.getName()));
+            }
+
+            int needed = TOPICS_PER_ROUND - roundTopicIds.size();
+            if (needed > 0) {
+                List<TopicRef> available = pool.getOrDefault(idx, List.of()).stream()
+                        .filter(t -> !chosenNames.contains(t.getName()) && !roundTopicIds.contains(t.getId()))
+                        .toList();
+                List<Long> randomPicked = pickDistinctByNameAndExclude(available, needed, chosenNames);
+                roundTopicIds.addAll(randomPicked);
+            }
+            boardTopicIds.put(idx, roundTopicIds);
         }
 
-        List<Long> finalRoundIds = rounds.findFinalRoundIds();
-        List<Long> finalTopicIds = finalRoundIds.isEmpty()
-                ? List.of()
-                : topics.findIdsByRoundId(finalRoundIds.get(random.nextInt(finalRoundIds.size())));
+        List<Long> finalTopicIds = new ArrayList<>();
+        List<Long> finalInput = req != null && req.finalTopicIds() != null ? req.finalTopicIds() : List.of();
+        for (Long id : finalInput) {
+            if (finalTopicIds.size() >= 2) break;
+            if (!finalTopicIds.contains(id)) finalTopicIds.add(id);
+        }
+        if (!finalTopicIds.isEmpty()) {
+            topics.findAllById(finalTopicIds).forEach(t -> chosenNames.add(t.getName()));
+        }
+        int finalNeeded = 2 - finalTopicIds.size();
+        if (finalNeeded > 0) {
+            List<TopicRef> finalPool = topics.findFinalTopicRefs().stream()
+                    .filter(t -> !chosenNames.contains(t.getName()) && !finalTopicIds.contains(t.getId()))
+                    .toList();
+            List<Long> randomFinal = pickDistinctByNameAndExclude(finalPool, finalNeeded, chosenNames);
+            finalTopicIds.addAll(randomFinal);
+        }
 
-        // --- load only what is actually being copied --------------------------
         List<Long> chosen = new ArrayList<>(finalTopicIds);
         boardTopicIds.values().forEach(chosen::addAll);
         Map<Long, Topic> sources = topics.findAllWithCluesByIdIn(chosen).stream()
@@ -252,20 +282,21 @@ public class ContentService {
         Ids topicIds = new Ids(topics.nextSyntheticIds(chosen.size()));
         Ids clueIds = new Ids(clues.nextSyntheticIds(clueCount));
 
-        // --- assemble ---------------------------------------------------------
         QuizPackage pkg = new QuizPackage();
         pkg.setId(packages.nextSyntheticId());
-        // Numbered below zero, where seeded content can never reach. This used
-        // to take the next catalogue number, which was safe only while the
-        // seeder refused to touch a database that had any content; now that it
-        // adds missing packages, a generated packet sitting on number 43 would
-        // make seeding the real package 43 fail on a UNIQUE violation. The
-        // ordinal -- first random packet, second, third -- is what the host
-        // sees, and the app shows the magnitude.
         int ordinal = Math.toIntExact(pkg.getId() - SYNTHETIC_ID_BASE + 1);
         pkg.setNumber(-ordinal);
-        pkg.setTitle("შემთხვევითი პაკეტი #" + ordinal);
-        pkg.setSubtitle("თემები შემთხვევითობით აღებულია ყველა პაკეტიდან");
+        String customTitle = req != null && req.title() != null ? req.title().trim() : "";
+        if (!customTitle.isEmpty()) {
+            pkg.setTitle(customTitle);
+            pkg.setSubtitle("ხელით აწყობილი პაკეტი");
+        } else if (req != null && (req.round1TopicIds() != null || req.round2TopicIds() != null || req.round3TopicIds() != null || req.finalTopicIds() != null)) {
+            pkg.setTitle("მორგებული პაკეტი #" + ordinal);
+            pkg.setSubtitle("ხელით აწყობილი პაკეტი");
+        } else {
+            pkg.setTitle("შემთხვევითი პაკეტი #" + ordinal);
+            pkg.setSubtitle("თემები შემთხვევითობით აღებულია ყველა პაკეტიდან");
+        }
         pkg.setSynthetic(true);
 
         for (int idx = 1; idx <= PLAYABLE_ROUNDS; idx++) {
@@ -281,11 +312,6 @@ public class ContentService {
         return toSummary(pkg, true);
     }
 
-    /**
-     * Swaps one category of a synthetic (random) package with another random category
-     * appropriate for that round (e.g. from the pool for that round index, or final round),
-     * avoiding duplicate categories within the package.
-     */
     @Transactional
     public TopicSummary rerollTopic(Long packageId, Long topicId) {
         Topic topic = topics.findById(topicId)
@@ -329,21 +355,57 @@ public class ContentService {
         }
 
         TopicRef chosen = available.get(random.nextInt(available.size()));
-        Topic source = topics.findAllWithCluesByIdIn(List.of(chosen.getId())).stream()
+        return replaceTopicInternal(topic, round, chosen.getId());
+    }
+
+    @Transactional
+    public TopicSummary replaceTopic(Long packageId, Long topicId, Long sourceTopicId) {
+        if (sourceTopicId == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "sourceTopicId is required");
+        }
+        Topic topic = topics.findById(topicId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "topic " + topicId + " not found"));
+
+        GameRound round = topic.getRound();
+        QuizPackage pkg = round.getQuizPackage();
+        if (!pkg.getId().equals(packageId)) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "topic " + topicId + " does not belong to package " + packageId);
+        }
+        if (!pkg.isSynthetic()) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "only custom/random package categories can be changed");
+        }
+
+        return replaceTopicInternal(topic, round, sourceTopicId);
+    }
+
+    private TopicSummary replaceTopicInternal(Topic topic, GameRound round, Long sourceTopicId) {
+        Topic source = topics.findAllWithCluesByIdIn(List.of(sourceTopicId)).stream()
                 .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(INTERNAL_SERVER_ERROR,
-                        "failed to load chosen topic " + chosen.getId()));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
+                        "failed to load source topic " + sourceTopicId));
 
         clues.deleteByTopicId(topic.getId());
         topic.getClues().clear();
         topic.setName(source.getName());
 
         Ids clueIds = new Ids(clues.nextSyntheticIds(source.getClues().size()));
-        for (Clue sourceClue : source.getClues()) {
+        List<Clue> sortedSourceClues = source.getClues().stream()
+                .sorted(BY_VALUE)
+                .toList();
+
+        int clueIdx = 0;
+        for (Clue sourceClue : sortedSourceClues) {
             Clue clue = new Clue();
             clue.setId(clueIds.take());
             clue.setTopic(topic);
-            clue.setValue(sourceClue.getValue());
+            if (round.isFinalRound()) {
+                clue.setValue(null);
+            } else {
+                clue.setValue((clueIdx + 1) * round.getIdx() * 10);
+            }
+            clueIdx++;
             clue.setQuestion(sourceClue.getQuestion());
             clue.setAnswer(sourceClue.getAnswer());
             clue.setQuestionOriginal(sourceClue.getQuestionOriginal());
@@ -352,7 +414,6 @@ public class ContentService {
             topic.getClues().add(clue);
         }
 
-        // Flushed here: a game re-seeding its tiles next needs these rows to exist.
         topics.saveAndFlush(topic);
         boardCache.remove(round.getId());
 
@@ -366,6 +427,7 @@ public class ContentService {
         round.setId(id);
         round.setQuizPackage(pkg);
         round.setIdx(idx);
+        round.setHeader(finalRound ? "ფინალური ტური" : (idx + " ტური"));
         round.setFinalRound(finalRound);
         round.setPlayable(playable);
 
@@ -384,26 +446,39 @@ public class ContentService {
         topic.setRound(round);
         topic.setIdx(round.getTopics().size() + 1);
         topic.setName(source.getName());
-        for (Clue sourceClue : source.getClues()) {
+        List<Clue> sortedSourceClues = source.getClues().stream()
+                .sorted(BY_VALUE)
+                .toList();
+        int clueIdx = 0;
+        for (Clue sourceClue : sortedSourceClues) {
             Clue clue = new Clue();
             clue.setId(clueIds.take());
             clue.setTopic(topic);
-            clue.setValue(sourceClue.getValue());
+            if (round.isFinalRound()) {
+                clue.setValue(null);
+            } else {
+                clue.setValue((clueIdx + 1) * round.getIdx() * 10);
+            }
+            clueIdx++;
             clue.setQuestion(sourceClue.getQuestion());
             clue.setAnswer(sourceClue.getAnswer());
+            clue.setQuestionOriginal(sourceClue.getQuestionOriginal());
+            clue.setAnswerOriginal(sourceClue.getAnswerOriginal());
+            clue.setCorrectionNote(sourceClue.getCorrectionNote());
             topic.getClues().add(clue);
         }
         return topic;
     }
 
-    /** Shuffles then takes the first {@code count} topics with distinct names. */
-    private List<Long> pickDistinctByName(List<TopicRef> pool, int count) {
+    private List<Long> pickDistinctByNameAndExclude(List<TopicRef> pool, int count, Set<String> excludeNames) {
         List<TopicRef> shuffled = new ArrayList<>(pool);
         Collections.shuffle(shuffled, random);
         Map<String, Long> chosen = new LinkedHashMap<>();
         for (TopicRef t : shuffled) {
             if (chosen.size() >= count) break;
+            if (excludeNames.contains(t.getName())) continue;
             chosen.putIfAbsent(t.getName(), t.getId());
+            excludeNames.add(t.getName());
         }
         return new ArrayList<>(chosen.values());
     }

@@ -46,6 +46,13 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
             nativeQuery = true)
     List<Long> nextSyntheticIds(int count);
 
+    @Query("select t.id as id, t.name as name, t.round.idx as roundIdx, "
+            + "t.round.finalRound as finalRound, t.round.quizPackage.title as packageTitle "
+            + "from Topic t "
+            + "where t.round.quizPackage.synthetic = false "
+            + "order by t.name asc")
+    List<AvailableTopicRef> findAvailableTopicRefs();
+
     /** A candidate topic as the sampler sees it: which board, which id, what name. */
     interface TopicRef {
         Integer getRoundIdx();
@@ -53,5 +60,17 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
         Long getId();
 
         String getName();
+    }
+
+    interface AvailableTopicRef {
+        Long getId();
+
+        String getName();
+
+        Integer getRoundIdx();
+
+        boolean isFinalRound();
+
+        String getPackageTitle();
     }
 }

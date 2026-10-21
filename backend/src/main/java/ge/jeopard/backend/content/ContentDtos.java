@@ -63,4 +63,24 @@ public final class ContentDtos {
             Long clueId,
             Integer value) {
     }
+
+    public record AvailableTopic(
+            Long id,
+            String name,
+            Integer roundIdx,
+            boolean finalRound,
+            String packageTitle) {
+    }
+
+    public record BuildPackageRequest(
+            String title,
+            List<Long> round1TopicIds,
+            List<Long> round2TopicIds,
+            List<Long> round3TopicIds,
+            List<Long> finalTopicIds) {
+    }
+
+    public record ReplaceTopicRequest(
+            Long sourceTopicId) {
+    }
 }

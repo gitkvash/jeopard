@@ -1,7 +1,11 @@
 package ge.jeopard.backend.content;
 
+import ge.jeopard.backend.content.ContentDtos.AvailableTopic;
 import ge.jeopard.backend.content.ContentDtos.BoardView;
+import ge.jeopard.backend.content.ContentDtos.BuildPackageRequest;
 import ge.jeopard.backend.content.ContentDtos.PackageSummary;
+import ge.jeopard.backend.content.ContentDtos.ReplaceTopicRequest;
+import ge.jeopard.backend.content.ContentDtos.TopicSummary;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -9,8 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
@@ -40,10 +46,6 @@ public class ContentController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
         List<PackageSummary> list = content.listPackages();
         if (list.isEmpty()) {
-            // Tomcat accepts requests before the seeder's ApplicationRunner has
-            // finished loading pilot.json, so an empty list here means "not
-            // ready yet" -- and a browser that cached that for a minute would
-            // show a host an empty picker with nothing to retry.
             return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(list);
         }
         String tag = content.packagesTag();
@@ -66,11 +68,31 @@ public class ContentController {
         return content.generateRandomPackage();
     }
 
+    @PostMapping("/packages/build")
+    public PackageSummary buildCustomPackage(@RequestBody(required = false) BuildPackageRequest request) {
+        return content.buildCustomPackage(request);
+    }
+
     @PostMapping("/packages/{packageId}/topics/{topicId}/reroll")
-    public ContentDtos.TopicSummary rerollTopic(
+    public TopicSummary rerollTopic(
             @PathVariable Long packageId,
             @PathVariable Long topicId) {
         return content.rerollTopic(packageId, topicId);
+    }
+
+    @PostMapping("/packages/{packageId}/topics/{topicId}/replace")
+    public TopicSummary replaceTopic(
+            @PathVariable Long packageId,
+            @PathVariable Long topicId,
+            @RequestBody ReplaceTopicRequest request) {
+        return content.replaceTopic(packageId, topicId, request != null ? request.sourceTopicId() : null);
+    }
+
+    @GetMapping("/topics/available")
+    public List<AvailableTopic> availableTopics(
+            @RequestParam(required = false) Integer roundIdx,
+            @RequestParam(required = false) String query) {
+        return content.availableTopics(roundIdx, query);
     }
 
     @GetMapping("/rounds/{roundId}/board")

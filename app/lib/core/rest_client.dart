@@ -60,6 +60,52 @@ class RestClient {
     return TopicSummary.fromJson(body as Map<String, dynamic>);
   }
 
+  /// Replaces a category of a synthetic package with a specific chosen category.
+  Future<TopicSummary> replaceTopic(int packageId, int topicId, int sourceTopicId) async {
+    final body = await _post(
+      '/api/packages/$packageId/topics/$topicId/replace',
+      body: {'sourceTopicId': sourceTopicId},
+    );
+    return TopicSummary.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// Fetches available topics from the database, optionally filtered by [roundIdx]
+  /// and search [query].
+  Future<List<AvailableTopic>> availableTopics({int? roundIdx, String? query}) async {
+    final params = <String>[];
+    if (roundIdx != null) params.add('roundIdx=$roundIdx');
+    if (query != null && query.isNotEmpty) {
+      params.add('query=${Uri.encodeQueryComponent(query)}');
+    }
+    final q = params.isNotEmpty ? '?${params.join('&')}' : '';
+    final body = await _get('/api/topics/available$q');
+    return (body as List<dynamic>)
+        .map((t) => AvailableTopic.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Assembles a custom package with chosen topic IDs for each round.
+  /// Any omitted or partial rounds are filled with random topics.
+  Future<PackageSummary> buildPackage({
+    String? title,
+    List<int>? round1TopicIds,
+    List<int>? round2TopicIds,
+    List<int>? round3TopicIds,
+    List<int>? finalTopicIds,
+  }) async {
+    final body = await _post(
+      '/api/packages/build',
+      body: {
+        if (title != null && title.isNotEmpty) 'title': title,
+        if (round1TopicIds != null) 'round1TopicIds': round1TopicIds,
+        if (round2TopicIds != null) 'round2TopicIds': round2TopicIds,
+        if (round3TopicIds != null) 'round3TopicIds': round3TopicIds,
+        if (finalTopicIds != null) 'finalTopicIds': finalTopicIds,
+      },
+    );
+    return PackageSummary.fromJson(body as Map<String, dynamic>);
+  }
+
   Future<PackageSummary> getPackage(int packageId) async {
     final body = await _get('/api/packages/$packageId');
     return PackageSummary.fromJson(body as Map<String, dynamic>);

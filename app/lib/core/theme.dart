@@ -562,6 +562,7 @@ class L {
 
   // clue report
   static const reportClue = 'შეცდომის რეპორტი';
+  static const reportClueButton = 'შეცდომაა?';
   static const reportClueTitle = 'შეკითხვის დარეპორტება';
   static const reportClueSubtitle = 'შეცდომის მოკლე აღწერა';
   static const reportClueHint = 'აღწერეთ რა არის შეცდომა (მაგ. არასწორი პასუხი, შეცდომა ფაქტში, ბეჭდური შეცდომა)...';

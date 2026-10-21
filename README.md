@@ -22,6 +22,7 @@ jeopard/
 ├─ app/                Flutter client (host + team in one binary)
 ├─ data/               the pilot question set (unchanged)
 ├─ src/                the Python pipeline that produced it (unchanged)
+├─ REPORTS.md          clue error reporting & AI resolution guide
 └─ docker-compose.yml  Postgres 17
 ```
 

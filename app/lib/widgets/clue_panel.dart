@@ -107,15 +107,9 @@ class CluePanel extends StatelessWidget {
                     style: engraved(21, glow: false),
                   ),
                 ],
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.flag_outlined, size: 18),
-                  color: Colors.white54,
-                  tooltip: L.reportClue,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: () => showClueReportDialog(context, clue: clue),
+                const SizedBox(width: 10),
+                _ReportClueButton(
+                  onTap: () => showClueReportDialog(context, clue: clue),
                 ),
               ],
             ),
@@ -315,6 +309,58 @@ class CluePanelBanner extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+class _ReportClueButton extends StatelessWidget {
+  const _ReportClueButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: L.reportClue,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: JColors.gold.withValues(alpha: 0.55),
+                width: 1,
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.flag_outlined,
+                  size: 14,
+                  color: JColors.goldBright,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  L.reportClueButton,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

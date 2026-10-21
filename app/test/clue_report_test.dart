@@ -47,6 +47,7 @@ void main() {
   testWidgets('CluePanel renders report button', (tester) async {
     await tester.pumpWidget(host(CluePanel(clue: sampleClue)));
     expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+    expect(find.text(L.reportClueButton), findsOneWidget);
   });
 
   testWidgets('tapping report button opens ClueReportDialog', (tester) async {

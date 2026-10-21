@@ -50,6 +50,8 @@ services:
       # unaffected.
       JEOPARD_WS_ORIGINS: https://${JEOPARD_HOST},http://${JEOPARD_HOST}
       JEOPARD_GAMES_PER_HOUR: ${JEOPARD_GAMES_PER_HOUR:-30}
+      JEOPARD_REPORTS_PER_HOUR: ${JEOPARD_REPORTS_PER_HOUR:-10}
+      JEOPARD_REPORT_COOLDOWN_SECONDS: ${JEOPARD_REPORT_COOLDOWN_SECONDS:-10}
       # DEBUG for one namespace is fine for a pilot and invaluable when a game
       # misbehaves; drop to INFO if the log volume ever matters.
       LOGGING_LEVEL_GE_JEOPARD: ${LOG_LEVEL:-INFO}

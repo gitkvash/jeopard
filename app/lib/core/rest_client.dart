@@ -337,6 +337,17 @@ class RestClient {
     return Snapshot.fromJson(json as Map<String, dynamic>);
   }
 
+  // ---------- reports ----------
+
+  /// Submits an error/feedback report on a specific clue.
+  Future<ReportResult> reportClue(int clueId, String description) async {
+    final body = await _post(
+      '/api/clues/$clueId/report',
+      body: {'description': description},
+    );
+    return ReportResult.fromJson(body as Map<String, dynamic>);
+  }
+
   Future<dynamic> _get(String path, {String? hostToken}) async {
     final res = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}$path'),

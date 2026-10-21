@@ -90,6 +90,8 @@ jeopard:
     # That makes it the one endpoint worth a ceiling, so a public URL cannot be
     # used to fill the database. Games created per hour, per client address.
     games-per-hour-per-ip: ${JEOPARD_GAMES_PER_HOUR:30}
+    reports-per-hour-per-ip: ${JEOPARD_REPORTS_PER_HOUR:10}
+    report-cooldown-seconds: ${JEOPARD_REPORT_COOLDOWN_SECONDS:10}
 
 management:
   endpoints:

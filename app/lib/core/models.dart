@@ -726,3 +726,20 @@ class PracticeBatch {
     attribution: j['attribution'] as String?,
   );
 }
+
+
+/// The server response when a clue report is submitted.
+class ReportResult {
+  const ReportResult({required this.status, required this.message});
+
+  final String status;
+  final String message;
+
+  bool get isDuplicate => status == 'duplicate';
+  bool get isOk => status == 'ok';
+
+  factory ReportResult.fromJson(Map<String, dynamic> j) => ReportResult(
+    status: j['status'] as String? ?? 'ok',
+    message: j['message'] as String? ?? '',
+  );
+}

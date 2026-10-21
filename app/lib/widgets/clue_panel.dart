@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/models.dart';
 import '../core/responsive.dart';
 import '../core/theme.dart';
+import 'clue_report_dialog.dart';
 
 /// The clue in play, given the whole screen.
 ///
@@ -106,6 +107,16 @@ class CluePanel extends StatelessWidget {
                     style: engraved(21, glow: false),
                   ),
                 ],
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.flag_outlined, size: 18),
+                  color: Colors.white54,
+                  tooltip: L.reportClue,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () => showClueReportDialog(context, clue: clue),
+                ),
               ],
             ),
           ),

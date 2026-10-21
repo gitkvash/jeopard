@@ -560,6 +560,17 @@ class L {
   static const cancel = 'გაუქმება';
   static const ok = 'კარგი';
 
+  // clue report
+  static const reportClue = 'შეცდომის რეპორტი';
+  static const reportClueTitle = 'შეკითხვის დარეპორტება';
+  static const reportClueSubtitle = 'შეცდომის მოკლე აღწერა';
+  static const reportClueHint = 'აღწერეთ რა არის შეცდომა (მაგ. არასწორი პასუხი, შეცდომა ფაქტში, ბეჭდური შეცდომა)...';
+  static const reportClueSubmit = 'გაგზავნა';
+  static const reportClueCancel = 'გაუქმება';
+  static const reportClueSuccess = 'რეპორტი წარმატებით გაიგზავნა. მადლობა!';
+  static const reportClueErrorMinLength = 'აღწერა უნდა შეიცავდეს მინიმუმ 5 სიმბოლოს';
+  static const reportClueSending = 'იგზავნება...';
+
   // sound
   static const muteSound = 'ხმის გამორთვა';
   static const unmuteSound = 'ხმის ჩართვა';

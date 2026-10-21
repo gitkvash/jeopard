@@ -165,6 +165,14 @@ public class ContentService {
         return fresh;
     }
 
+    public void invalidateBoard(Long roundId) {
+        if (roundId != null) {
+            boardCache.remove(roundId);
+        } else {
+            boardCache.clear();
+        }
+    }
+
     private BoardView buildBoard(Long roundId) {
         GameRound round = requireRound(roundId);
         List<BoardTopic> boardTopics = topics.findByRoundIdWithClues(roundId).stream()

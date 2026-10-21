@@ -25,6 +25,8 @@ services:
       JEOPARD_CORS_ORIGINS: https://${JEOPARD_HOST:?set JEOPARD_HOST in .env}
       JEOPARD_WS_ORIGINS: https://${JEOPARD_HOST}
       JEOPARD_GAMES_PER_HOUR: ${JEOPARD_GAMES_PER_HOUR:-30}
+      JEOPARD_REPORTS_PER_HOUR: ${JEOPARD_REPORTS_PER_HOUR:-10}
+      JEOPARD_REPORT_COOLDOWN_SECONDS: ${JEOPARD_REPORT_COOLDOWN_SECONDS:-10}
       LOGGING_LEVEL_GE_JEOPARD: ${LOG_LEVEL:-INFO}
     # The VM also runs linkup (its app is capped at 3g of ~12g). A game server
     # for a quiz night does not need more than this, and the cap keeps a runaway

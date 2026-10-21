@@ -196,6 +196,71 @@ def cmd_dismiss(args):
     print(f"Note: {res.get('resolutionNote')}")
 
 
+def cmd_topics(args):
+    api_url = getattr(args, "api_url", DEFAULT_API_URL).rstrip("/")
+    url = f"{api_url}/api/topics/suggestions"
+    if args.status and args.status.upper() != "ALL":
+        url += f"?status={urllib.parse.quote(args.status.upper())}"
+
+    suggestions = api_request(url)
+    if not suggestions:
+        print(f"No topic suggestions found (filter: {args.status or 'ALL'}).")
+        return
+
+    print(f"Found {len(suggestions)} topic suggestion(s):")
+    print("-" * 80)
+    for s in suggestions:
+        sid = s.get("id")
+        status = s.get("status")
+        name = s.get("topicName") or "-"
+        author = s.get("authorName") or "ანონიმი"
+        desc = (s.get("description") or "").replace("\n", " ")
+        if len(desc) > 40:
+            desc = desc[:37] + "..."
+        date = (s.get("createdAt") or "")[:19].replace("T", " ")
+        print(f"#{sid:<3} [{status:<8}] '{name}' by {author} | {desc} ({date})")
+    print("-" * 80)
+
+
+def cmd_topic_show(args):
+    api_url = getattr(args, "api_url", DEFAULT_API_URL).rstrip("/")
+    url = f"{api_url}/api/topics/suggestions/{args.id}"
+    s = api_request(url)
+
+    print(f"================ Topic Suggestion #{s.get('id')} [{s.get('status')}] ================")
+    print(f"Created At:   {s.get('createdAt')}")
+    print(f"Suggester IP: {s.get('suggesterIp')}")
+    print(f"Topic Name:   {s.get('topicName')}")
+    print(f"Author:       {s.get('authorName') or 'ანონიმი'}")
+    print(f"\n--- Description / Details ---")
+    print(s.get("description") or "(No description provided)")
+
+    if s.get("reviewNote"):
+        print(f"\n--- Review Note [{s.get('reviewedAt')}] ---")
+        print(s.get("reviewNote"))
+    print("=" * 60)
+
+
+def cmd_topic_approve(args):
+    api_url = getattr(args, "api_url", DEFAULT_API_URL).rstrip("/")
+    url = f"{api_url}/api/topics/suggestions/{args.id}/approve"
+    body = {"reviewNote": args.note or "Approved via manage_reports CLI"}
+    res = api_request(url, method="POST", body=body)
+    print(f"Topic suggestion #{args.id} ('{res.get('topicName')}') APPROVED.")
+    if res.get("reviewNote"):
+        print(f"Note: {res.get('reviewNote')}")
+
+
+def cmd_topic_reject(args):
+    api_url = getattr(args, "api_url", DEFAULT_API_URL).rstrip("/")
+    url = f"{api_url}/api/topics/suggestions/{args.id}/reject"
+    body = {"reviewNote": args.note or "Rejected via manage_reports CLI"}
+    res = api_request(url, method="POST", body=body)
+    print(f"Topic suggestion #{args.id} ('{res.get('topicName')}') REJECTED.")
+    if res.get("reviewNote"):
+        print(f"Note: {res.get('reviewNote')}")
+
+
 def main():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--api-url", default=DEFAULT_API_URL, help=f"Backend API URL (default: {DEFAULT_API_URL})")
@@ -228,6 +293,28 @@ def main():
     p_dismiss.add_argument("id", type=int, help="Report ID")
     p_dismiss.add_argument("--note", help="Dismissal reason / note")
     p_dismiss.set_defaults(func=cmd_dismiss)
+
+    # topics (list suggestions)
+    p_topics = sub.add_parser("topics", help="List topic suggestions", parents=[common])
+    p_topics.add_argument("--status", default="PENDING", help="Filter: PENDING, APPROVED, REJECTED, or ALL")
+    p_topics.set_defaults(func=cmd_topics)
+
+    # topic-show
+    p_tshow = sub.add_parser("topic-show", help="Show topic suggestion details", parents=[common])
+    p_tshow.add_argument("id", type=int, help="Suggestion ID")
+    p_tshow.set_defaults(func=cmd_topic_show)
+
+    # topic-approve
+    p_tappr = sub.add_parser("topic-approve", help="Approve a topic suggestion", parents=[common])
+    p_tappr.add_argument("id", type=int, help="Suggestion ID")
+    p_tappr.add_argument("--note", help="Approval note")
+    p_tappr.set_defaults(func=cmd_topic_approve)
+
+    # topic-reject
+    p_trej = sub.add_parser("topic-reject", help="Reject a topic suggestion", parents=[common])
+    p_trej.add_argument("id", type=int, help="Suggestion ID")
+    p_trej.add_argument("--note", help="Rejection note")
+    p_trej.set_defaults(func=cmd_topic_reject)
 
     args = parser.parse_args()
     args.func(args)

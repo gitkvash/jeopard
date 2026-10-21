@@ -16,6 +16,7 @@ import 'team/buzzer_screen.dart';
 import 'team/join_screen.dart';
 import 'widgets/stage.dart';
 import 'widgets/toast.dart';
+import 'widgets/topic_suggestion_dialog.dart';
 
 /// One binary, two roles: the host drives the board, everyone else buzzes.
 ///
@@ -354,6 +355,20 @@ class _RoleScreenState extends ConsumerState<RoleScreen> with RouteAware {
                       MaterialPageRoute(builder: (_) => const PracticeScreen()),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _RoleCard(
+                    icon: Icons.lightbulb_outline,
+                    label: L.suggestTopic,
+                    hint: L.suggestTopicHint,
+                    primary: false,
+                    iconColors: const [
+                      Color(0xFFFFDF7D),
+                      Color(0xFFE5A624),
+                      Color(0xFF9E6E00),
+                    ],
+                    iconColor: const Color(0xFF14120A),
+                    onTap: () => showTopicSuggestionDialog(context),
+                  ),
                   const SizedBox(height: 28),
                   Text(
                     '${L.server}: ${ApiConfig.describe}',
@@ -380,6 +395,8 @@ class _RoleCard extends StatelessWidget {
     required this.hint,
     required this.primary,
     required this.onTap,
+    this.iconColors,
+    this.iconColor,
   });
 
   final IconData icon;
@@ -389,6 +406,8 @@ class _RoleCard extends StatelessWidget {
   /// The host card leads, so it carries the light.
   final bool primary;
   final VoidCallback onTap;
+  final List<Color>? iconColors;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -405,17 +424,18 @@ class _RoleCard extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: primary
-                    ? const [
-                        Color(0xFFFFF0C4),
-                        JColors.goldBright,
-                        Color(0xFFC99A2E),
-                      ]
-                    : const [
-                        Color(0xFF3A56F5),
-                        JColors.boardLit,
-                        JColors.boardDeep,
-                      ],
+                colors: iconColors ??
+                    (primary
+                        ? const [
+                            Color(0xFFFFF0C4),
+                            JColors.goldBright,
+                            Color(0xFFC99A2E),
+                          ]
+                        : const [
+                            Color(0xFF3A56F5),
+                            JColors.boardLit,
+                            JColors.boardDeep,
+                          ]),
                 stops: const [0, 0.12, 1],
               ),
               borderRadius: BorderRadius.circular(JRadius.tile),
@@ -423,7 +443,8 @@ class _RoleCard extends StatelessWidget {
             child: Icon(
               icon,
               size: 22,
-              color: primary ? const Color(0xFF14120A) : Colors.white,
+              color: iconColor ??
+                  (primary ? const Color(0xFF14120A) : Colors.white),
             ),
           ),
           const SizedBox(width: 16),

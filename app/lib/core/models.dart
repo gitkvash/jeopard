@@ -743,3 +743,20 @@ class ReportResult {
     message: j['message'] as String? ?? '',
   );
 }
+
+/// The server response when a topic suggestion is submitted.
+class TopicSuggestionResult {
+  const TopicSuggestionResult({required this.status, required this.message});
+
+  final String status;
+  final String message;
+
+  bool get isDuplicate => status == 'duplicate';
+  bool get isOk => status == 'ok';
+
+  factory TopicSuggestionResult.fromJson(Map<String, dynamic> j) =>
+      TopicSuggestionResult(
+        status: j['status'] as String? ?? 'ok',
+        message: j['message'] as String? ?? '',
+      );
+}

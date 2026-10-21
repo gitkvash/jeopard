@@ -572,6 +572,23 @@ class L {
   static const reportClueErrorMinLength = 'აღწერა უნდა შეიცავდეს მინიმუმ 5 სიმბოლოს';
   static const reportClueSending = 'იგზავნება...';
 
+  // topic suggestions
+  static const suggestTopic = 'თემის შემოთავაზება';
+  static const suggestTopicHint = 'გაგვიზიარეთ თქვენი იდეა ახალი თემისთვის';
+  static const suggestTopicTitle = 'ახალი თემის შემოთავაზება';
+  static const suggestTopicIntro =
+      'გაქვთ საინტერესო თემის იდეა? გაგვიზიარეთ და დავამატებთ სამომავლო პაკეტებში.';
+  static const topicNameField = 'თემის სახელწოდება *';
+  static const topicNameHint = 'მაგ. ქართული როკი, მსოფლიო ისტორია, ასტრონომია...';
+  static const topicDescField = 'დამატებითი დეტალები / იდეები (არასავალდებულო)';
+  static const topicDescHint = 'რა სახის შეკითხვები ან ფაქტები ისურვებდით ამ თემაში...';
+  static const topicAuthorField = 'თქვენი სახელი (არასავალდებულო)';
+  static const topicAuthorHint = 'ავტორი / მეტსახელი';
+  static const topicSubmit = 'გაგზავნა';
+  static const topicCancel = 'გაუქმება';
+  static const topicSuccess = 'მადლობა! თემის შემოთავაზება მიღებულია.';
+  static const topicErrorMinLength = 'თემის სახელწოდება უნდა შეიცავდეს მინიმუმ 2 სიმბოლოს';
+
   // sound
   static const muteSound = 'ხმის გამორთვა';
   static const unmuteSound = 'ხმის ჩართვა';

@@ -92,6 +92,8 @@ jeopard:
     games-per-hour-per-ip: ${JEOPARD_GAMES_PER_HOUR:30}
     reports-per-hour-per-ip: ${JEOPARD_REPORTS_PER_HOUR:10}
     report-cooldown-seconds: ${JEOPARD_REPORT_COOLDOWN_SECONDS:10}
+    topic-suggestions-per-hour-per-ip: ${JEOPARD_TOPIC_SUGGESTIONS_PER_HOUR:10}
+    topic-suggestion-cooldown-seconds: ${JEOPARD_TOPIC_SUGGESTION_COOLDOWN_SECONDS:10}
 
 management:
   endpoints:

@@ -337,7 +337,7 @@ class RestClient {
     return Snapshot.fromJson(json as Map<String, dynamic>);
   }
 
-  // ---------- reports ----------
+  // ---------- reports & suggestions ----------
 
   /// Submits an error/feedback report on a specific clue.
   Future<ReportResult> reportClue(int clueId, String description) async {
@@ -346,6 +346,25 @@ class RestClient {
       body: {'description': description},
     );
     return ReportResult.fromJson(body as Map<String, dynamic>);
+  }
+
+  /// Submits a user suggestion for a new Jeopardy topic/category.
+  Future<TopicSuggestionResult> suggestTopic({
+    required String topicName,
+    String? description,
+    String? authorName,
+  }) async {
+    final body = await _post(
+      '/api/topics/suggest',
+      body: {
+        'topicName': topicName,
+        if (description != null && description.trim().isNotEmpty)
+          'description': description.trim(),
+        if (authorName != null && authorName.trim().isNotEmpty)
+          'authorName': authorName.trim(),
+      },
+    );
+    return TopicSuggestionResult.fromJson(body as Map<String, dynamic>);
   }
 
   Future<dynamic> _get(String path, {String? hostToken}) async {

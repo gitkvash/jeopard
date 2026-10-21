@@ -11,6 +11,7 @@ import '../core/session_store.dart';
 import '../core/theme.dart';
 import '../widgets/stage.dart';
 import '../widgets/toast.dart';
+import '../widgets/topic_suggestion_dialog.dart';
 import 'host_game_screen.dart';
 import 'package_search.dart';
 
@@ -113,7 +114,16 @@ class _HostSetupScreenState extends ConsumerState<HostSetupScreen> {
     final packages = ref.watch(packagesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text(L.newGame)),
+      appBar: AppBar(
+        title: const Text(L.newGame),
+        actions: [
+          IconButton(
+            tooltip: L.suggestTopic,
+            icon: const Icon(Icons.lightbulb_outline),
+            onPressed: () => showTopicSuggestionDialog(context),
+          ),
+        ],
+      ),
       body: packages.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorPane(

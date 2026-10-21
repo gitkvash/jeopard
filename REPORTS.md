@@ -122,3 +122,53 @@ CREATE TABLE clue_report (
     resolved_at     TIMESTAMPTZ
 );
 ```
+
+
+---
+
+## 6. Topic Suggestions (თემის შემოთავაზება)
+
+Users can suggest new Jeopardy topics/categories for future game packages.
+
+### UI Entry Points:
+1. **Role Screen (`role_screen.dart`):** Dedicated prominent card **„თემის შემოთავაზება“** with a warm amber lightbulb icon right on the main screen.
+2. **Host Setup Screen (`host_setup_screen.dart`):** Lightbulb action button in the top AppBar when browsing packages.
+
+### Anti-Spam Protection Rules:
+1. **IP Rate Limit:** 10 suggestions per hour per IP (`JEOPARD_TOPIC_SUGGESTIONS_PER_HOUR`).
+2. **Cooldown:** 10 seconds between requests (`JEOPARD_TOPIC_SUGGESTION_COOLDOWN_SECONDS`).
+3. **Duplicate Suppression:** Duplicate pending suggestions with the same topic name (case-insensitive) are rejected with a friendly message without cluttering the database.
+4. **Validation:** Topic name must be between 2 and 100 characters. Description up to 1000 characters.
+
+### Instructions for AI Assistants (Reviewing Suggestions):
+To inspect and manage topic suggestions submitted by users:
+
+```bash
+# 1. List pending suggestions
+python src/manage_reports.py topics
+
+# 2. View details of a suggestion
+python src/manage_reports.py topic-show <ID>
+
+# 3. Approve a suggestion
+python src/manage_reports.py topic-approve <ID> --note "დაემატა მე-4 პაკეტში"
+
+# 4. Reject an unsuitable suggestion
+python src/manage_reports.py topic-reject <ID> --note "არ შეესაბამება ფორმატს"
+```
+
+### Database Schema Reference:
+Table: `topic_suggestion` (Migration `V14__topic_suggestions.sql`)
+```sql
+CREATE TABLE topic_suggestion (
+    id           BIGSERIAL PRIMARY KEY,
+    topic_name   VARCHAR(100) NOT NULL,
+    description  TEXT,
+    author_name  VARCHAR(128),
+    status       VARCHAR(32) NOT NULL DEFAULT 'PENDING',  -- PENDING | APPROVED | REJECTED
+    suggester_ip VARCHAR(64) NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    review_note  TEXT,
+    reviewed_at  TIMESTAMPTZ
+);
+```

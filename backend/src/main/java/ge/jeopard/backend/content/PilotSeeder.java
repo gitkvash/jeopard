@@ -50,17 +50,20 @@ public class PilotSeeder implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(PilotSeeder.class);
 
     private final PackageRepository packages;
+    private final TopicRepository topics;
     private final ClueRepository clues;
     private final ResourceLoader resourceLoader;
     private final ObjectMapper objectMapper;
     private final String seedLocation;
 
     PilotSeeder(PackageRepository packages,
+                TopicRepository topics,
                 ClueRepository clues,
                 ResourceLoader resourceLoader,
                 ObjectMapper objectMapper,
                 @Value("${jeopard.seed.resource:classpath:pilot.json}") String seedLocation) {
         this.packages = packages;
+        this.topics = topics;
         this.clues = clues;
         this.resourceLoader = resourceLoader;
         this.objectMapper = objectMapper;
@@ -98,6 +101,7 @@ public class PilotSeeder implements ApplicationRunner {
         long added = 0;
         long skipped = 0;
         Map<Long, Clue> fromFile = new HashMap<>();
+        Map<Long, Topic> topicsFromFile = new HashMap<>();
 
         for (JsonNode pkgNode : root.path("packages")) {
             QuizPackage pkg = new QuizPackage();
@@ -164,7 +168,10 @@ public class PilotSeeder implements ApplicationRunner {
                 skipped++;
                 packages.updateMetadata(pkg.getId(), pkg.getTitle(), pkg.getSubtitle(), pkg.getSourceUrl());
                 pkg.getRounds().forEach(r -> r.getTopics()
-                        .forEach(t -> t.getClues().forEach(c -> fromFile.put(c.getId(), c))));
+                        .forEach(t -> {
+                            topicsFromFile.put(t.getId(), t);
+                            t.getClues().forEach(c -> fromFile.put(c.getId(), c));
+                        }));
                 continue;
             }
             packages.save(pkg);
@@ -172,8 +179,9 @@ public class PilotSeeder implements ApplicationRunner {
         }
 
         long corrections = applyCorrections(fromFile);
+        long topicCorrections = applyTopicCorrections(topicsFromFile);
 
-        if (added == 0 && corrections == 0) {
+        if (added == 0 && corrections == 0 && topicCorrections == 0) {
             log.info("content already seeded ({} packages, {} clues) -- nothing to add or correct",
                     skipped, clues.count());
             return;
@@ -188,6 +196,9 @@ public class PilotSeeder implements ApplicationRunner {
             // Structure is never rewritten, so this cannot renumber a board or
             // move a tile: an existing package gains no clues and loses none.
             log.info("reworded {} clue(s) in packages that were already seeded", corrections);
+        }
+        if (topicCorrections > 0) {
+            log.info("renamed {} topic(s) in packages that were already seeded", topicCorrections);
         }
     }
 
@@ -239,6 +250,19 @@ public class PilotSeeder implements ApplicationRunner {
             });
         }
         return stale.size();
+    }
+
+    private long applyTopicCorrections(Map<Long, Topic> topicsFromFile) {
+        if (topicsFromFile.isEmpty()) return 0;
+        long updated = 0;
+        for (Topic parsed : topicsFromFile.values()) {
+            Topic dbTopic = topics.findById(parsed.getId()).orElse(null);
+            if (dbTopic != null && !Objects.equals(dbTopic.getName(), parsed.getName())) {
+                dbTopic.setName(parsed.getName());
+                updated++;
+            }
+        }
+        return updated;
     }
 
     private static String text(JsonNode node, String field) {

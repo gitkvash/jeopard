@@ -216,6 +216,60 @@ class _BuzzCountdownState extends State<BuzzCountdown> {
       widget.builder(context, _secondsLeft);
 }
 
+/// Countdown timer for the final round thinking time (typically 30 seconds).
+class FinalRoundCountdown extends StatefulWidget {
+  const FinalRoundCountdown({
+    super.key,
+    this.totalSeconds = 30,
+    required this.builder,
+    this.tick = false,
+  });
+
+  final int totalSeconds;
+  final bool tick;
+  final Widget Function(BuildContext context, int secondsLeft) builder;
+
+  @override
+  State<FinalRoundCountdown> createState() => _FinalRoundCountdownState();
+}
+
+class _FinalRoundCountdownState extends State<FinalRoundCountdown> {
+  late DateTime _deadline;
+  Timer? _timer;
+  int? _lastSecond;
+
+  @override
+  void initState() {
+    super.initState();
+    _deadline = DateTime.now().add(Duration(seconds: widget.totalSeconds));
+    _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (!mounted) return;
+      if (widget.tick) {
+        final second = _secondsLeft;
+        if (second != _lastSecond && second >= 1 && second <= 3) {
+          Sfx.instance.play(Cue.tick);
+        }
+        _lastSecond = second;
+      }
+      setState(() {});
+    });
+  }
+
+  int get _secondsLeft {
+    final left = _deadline.difference(DateTime.now()).inMilliseconds;
+    return left <= 0 ? 0 : (left / 1000).ceil();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _secondsLeft);
+}
+
 /// Final standings, shared by the host console and the player devices.
 class ResultsView extends StatelessWidget {
   const ResultsView({

@@ -198,6 +198,23 @@ public class GameController {
         return gameService.finalJudge(gameId, token, req.teamId(), req.correct());
     }
 
+    @PostMapping("/{gameId}/final-answer")
+    public Snapshot setFinalAnswer(@PathVariable UUID gameId, @Valid @RequestBody FinalAnswerRequest req) {
+        return gameService.setFinalAnswer(gameId, req.playerToken(), req.answer());
+    }
+
+    @PostMapping("/{gameId}/lock-final-answers")
+    public Snapshot lockFinalAnswers(@PathVariable UUID gameId, @RequestHeader(HOST_TOKEN) String token) {
+        return gameService.lockFinalAnswers(gameId, token);
+    }
+
+    @PostMapping("/{gameId}/eliminate-topic")
+    public Snapshot eliminateTopic(@PathVariable UUID gameId,
+                                  @RequestHeader(value = HOST_TOKEN, required = false) String hostToken,
+                                  @Valid @RequestBody EliminateTopicRequest req) {
+        return gameService.eliminateTopic(gameId, hostToken, req.playerToken(), req.clueId());
+    }
+
     @PostMapping("/{gameId}/topics/{topicId}/reroll")
     public Snapshot rerollTopic(@PathVariable UUID gameId,
                                 @PathVariable Long topicId,

@@ -52,6 +52,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   bool _wasMyTurn = false;
 
   final _wager = TextEditingController();
+  final _finalAnswer = TextEditingController();
 
   /// Set while a tile this player tapped is on its way to the server, so a
   /// second tap cannot send a second pick.
@@ -99,6 +100,7 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     _feed.removeListener(_onFeed);
     _feed.dispose();
     _wager.dispose();
+    _finalAnswer.dispose();
     super.dispose();
   }
 
@@ -119,6 +121,11 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     }
     _lastClueId = clueId;
     _lastState = snap?.state;
+
+    final myAns = _me?.finalAnswer;
+    if (myAns != null && myAns.isNotEmpty && _finalAnswer.text.isEmpty) {
+      _finalAnswer.text = myAns;
+    }
 
     if (snap?.state == GameState.finished) SessionStore.clear();
   }
@@ -228,6 +235,62 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
       _buzzSent = true;
       _buzzSentForClue = clueId;
     });
+  }
+
+  Future<void> _eliminateTopic(int clueId) async {
+    try {
+      final s = await ref
+          .read(restClientProvider)
+          .eliminateTopic(_gameId, playerToken: _playerToken, clueId: clueId);
+      _feed.push(s);
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) {
+        showToast(
+          context,
+          e.isConflict ? L.pickNotYourTurn : describeError(e),
+          error: true,
+        );
+      }
+      unawaited(_refresh());
+    } catch (e) {
+      if (mounted) showToast(context, describeError(e), error: true);
+    }
+  }
+
+  Future<void> _submitFinalAnswer(String answer) async {
+    try {
+      final s = await ref
+          .read(restClientProvider)
+          .submitFinalAnswer(_gameId, _playerToken, answer);
+      _feed.push(s);
+      if (mounted) {
+        showToast(context, L.answerSubmitted);
+      }
+    } on ApiException catch (e) {
+      if (e.isNotFound) {
+        SessionStore.clear();
+        if (mounted) {
+          showToast(context, L.gameEndedNotice);
+          RoleScreen.replaceAll(context);
+        }
+        return;
+      }
+      if (mounted) {
+        showToast(context, describeError(e), error: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        showToast(context, describeError(e), error: true);
+      }
+    }
   }
 
   Future<void> _submitWager(int amount) async {
@@ -747,22 +810,28 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
   // ---------------- final round ----------------
 
   Widget _wagerPhase() {
-    return SnapshotBuilder<(String?, int?, int?)>(
+    return SnapshotBuilder<(String?, int?, int?, String?, List<BoardColumn>)>(
       feed: _feed,
       select: (s) => (
         s?.currentClue?.topicName,
         s?.teamById(_teamId)?.score,
         s?.teamById(_teamId)?.wager,
+        s?.pickingTeamId,
+        s?.board ?? const <BoardColumn>[],
       ),
+      equals: (a, b) =>
+          a.$1 == b.$1 &&
+          a.$2 == b.$2 &&
+          a.$3 == b.$3 &&
+          a.$4 == b.$4 &&
+          boardsEqual(a.$5, b.$5),
       builder: (context, value) {
+        final snap = _feed.snapshot;
+        if (snap == null) return const SizedBox.shrink();
+
         final topic = value.$1;
         if (topic == null) {
-          return Center(
-            child: Text(
-              L.waitingForHost,
-              style: const TextStyle(color: JColors.textMuted),
-            ),
-          );
+          return _topicEliminationPhase(snap);
         }
         if (value.$3 != null) {
           return Center(
@@ -856,27 +925,333 @@ class _BuzzerScreenState extends ConsumerState<BuzzerScreen> {
     );
   }
 
+  Widget _topicEliminationPhase(Snapshot snap) {
+    final isMyTurn = snap.pickingTeamId == _teamId;
+    final pickingTeam = snap.teamById(snap.pickingTeamId);
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.paddingOf(context).bottom,
+      ),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isMyTurn ? const Color(0x33C89B3C) : JColors.surface,
+                    borderRadius: BorderRadius.circular(JRadius.card),
+                    border: Border.all(
+                      color: isMyTurn ? JColors.goldBright : JColors.line,
+                      width: isMyTurn ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isMyTurn
+                            ? Icons.touch_app
+                            : Icons.hourglass_top_outlined,
+                        color:
+                            isMyTurn ? JColors.goldBright : JColors.textMuted,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          isMyTurn
+                              ? L.yourTurnToEliminate
+                              : '${pickingTeam?.name ?? ''}: ${L.waitingForElimination}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                isMyTurn ? FontWeight.bold : FontWeight.w500,
+                            color: isMyTurn
+                                ? JColors.goldBright
+                                : JColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  L.eliminationPhase,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'დარჩება მხოლოდ 1 ფინალური თემა',
+                  style: TextStyle(color: JColors.textFaint, fontSize: 13),
+                ),
+                const SizedBox(height: 14),
+                for (final col in snap.board) ...[
+                  _buildTeamEliminationTopicCard(col, isMyTurn),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeamEliminationTopicCard(BoardColumn col, bool isMyTurn) {
+    final tile = col.tiles.firstOrNull;
+    if (tile == null) return const SizedBox.shrink();
+    final eliminated = tile.status == TileStatus.done;
+
+    return Card(
+      color: eliminated ? const Color(0x331E293B) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(JRadius.card),
+        side: BorderSide(
+          color: eliminated ? JColors.line : JColors.brass,
+          width: eliminated ? 1 : 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    col.name,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      decoration:
+                          eliminated ? TextDecoration.lineThrough : null,
+                      color: eliminated ? JColors.textFaint : Colors.white,
+                    ),
+                  ),
+                  if (eliminated) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.close_rounded,
+                          size: 13,
+                          color: JColors.wrongBright,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          L.topicEliminated,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: JColors.wrongBright,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!eliminated && isMyTurn) ...[
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: JColors.wrong,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onPressed: () => _eliminateTopic(tile.clueId),
+                icon: const Icon(Icons.close, size: 16),
+                label: const Text(L.eliminateTopic),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _finalPhase() {
-    return SnapshotBuilder<(int?, bool)>(
+    return SnapshotBuilder<(int?, bool, bool, String?, bool)>(
       feed: _feed,
-      select: (s) => (s?.currentClue?.clueId, s?.answerRevealed ?? false),
+      select: (s) => (
+        s?.currentClue?.clueId,
+        s?.answerRevealed ?? false,
+        s?.finalAnswersLocked ?? false,
+        s?.teamById(_teamId)?.finalAnswer,
+        s?.teamById(_teamId)?.hasFinalAnswer ?? false,
+      ),
       builder: (context, _) {
         final snap = _feed.snapshot;
         final clue = snap?.currentClue;
         if (snap == null || clue == null) return const SizedBox.shrink();
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            12,
-            12,
-            12,
-            12 + MediaQuery.paddingOf(context).bottom,
-          ),
-          child: CluePanel(
+
+        final locked = snap.finalAnswersLocked;
+        final isResult = snap.state == GameState.finalResult;
+
+        return ClueLayout(
+          panel: CluePanel(
             clue: _hideQuestionIfNeeded(clue, snap),
             showAnswer: snap.answerRevealed,
+            banner: isResult
+                ? null
+                : locked
+                    ? const CluePanelBanner(
+                        text: L.answersLocked,
+                        color: JColors.goldBright,
+                        icon: Icons.lock_outline,
+                      )
+                    : FinalRoundCountdown(
+                        totalSeconds: 30,
+                        builder: (context, secondsLeft) => CluePanelBanner(
+                          text: secondsLeft > 0
+                              ? '${L.timeRemaining}: $secondsLeft წმ'
+                              : 'დრო ამოიწურა — დაელოდეთ ჰოსტს...',
+                          color: secondsLeft > 0
+                              ? JColors.gold
+                              : JColors.wrongBright,
+                          icon: secondsLeft > 0
+                              ? Icons.timer_outlined
+                              : Icons.hourglass_disabled,
+                        ),
+                      ),
+          ),
+          controls: (side) => ControlShelf(
+            side: side,
+            children: [
+              _finalAnswerArea(snap, locked, isResult),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _finalAnswerArea(Snapshot snap, bool locked, bool isResult) {
+    final myAnswer = _me?.finalAnswer;
+    final hasAnswer = _me?.hasFinalAnswer ?? false;
+
+    if (isResult) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _statusBar(L.answersLocked, Icons.lock_outline),
+          if (myAnswer != null && myAnswer.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${L.yourFinalAnswer}: „$myAnswer“',
+              style: const TextStyle(
+                color: JColors.goldBright,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    if (locked) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _statusBar(L.answersLocked, Icons.lock_outline),
+          const SizedBox(height: 8),
+          Text(
+            myAnswer != null && myAnswer.trim().isNotEmpty
+                ? '${L.yourFinalAnswer}: „$myAnswer“'
+                : L.noAnswerGiven,
+            style: TextStyle(
+              color: myAnswer != null && myAnswer.trim().isNotEmpty
+                  ? JColors.goldBright
+                  : JColors.textMuted,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _finalAnswer,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (val) {
+                  if (val.trim().isNotEmpty) _submitFinalAnswer(val.trim());
+                },
+                decoration: InputDecoration(
+                  labelText: L.yourFinalAnswer,
+                  hintText: 'ჩაწერეთ პასუხი...',
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  suffixIcon: hasAnswer
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: JColors.correct,
+                          size: 18,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+              onPressed: () {
+                final txt = _finalAnswer.text.trim();
+                if (txt.isNotEmpty) _submitFinalAnswer(txt);
+              },
+              icon: const Icon(Icons.send, size: 16),
+              label: Text(hasAnswer ? 'განახლება' : L.submitAnswer),
+            ),
+          ],
+        ),
+        if (hasAnswer) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.check,
+                size: 13,
+                color: JColors.correct,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${L.answerSubmitted}: „${myAnswer ?? _finalAnswer.text}“',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: JColors.correct,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 

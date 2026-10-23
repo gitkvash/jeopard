@@ -125,10 +125,13 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     // read, so fetch it with the host token instead of leaving the panel
     // blank. Guarded so this fires once per clue rather than on every
     // broadcast (a wrong buzz alone produces several while one clue is live).
+    // In finalWager the question is withheld for wagering, so do not fetch
+    // until the final clue is opened.
     if (clue != null &&
         clue.question == null &&
+        snap?.state != GameState.finalWager &&
         !(snap?.questionsVisibleToParticipants ?? true) &&
-        _fetchingQuestionForClue != clue.clueId) {
+        (_fetchingQuestionForClue != clue.clueId || _hostQuestion == null)) {
       _fetchingQuestionForClue = clue.clueId;
       _refresh();
     }
@@ -226,7 +229,10 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
       // carries the gated view a team's own device gets, which would
       // otherwise blank this straight back out (see _onFeed).
       final question = s.currentClue?.question;
-      if (question == null || !mounted) return;
+      if (question == null || !mounted) {
+        _fetchingQuestionForClue = null;
+        return;
+      }
       setState(() {
         _hostQuestion = question;
         _hostQuestionClueId = s.currentClue!.clueId;
@@ -853,31 +859,15 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     if (snap == null) return const SizedBox.shrink();
 
     if (snap.currentClue == null) {
-      return Column(
-        children: [
-          const PhaseHint(L.chooseTile),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                9,
-                0,
-                9,
-                12 + MediaQuery.paddingOf(context).bottom,
-              ),
-              child: SnapshotBuilder<List<BoardColumn>>(
-                feed: _feed,
-                select: (s) => s?.board ?? const <BoardColumn>[],
-                equals: boardsEqual,
-                builder: (context, board) => BoardGrid(
-                  board: board,
-                  onTapTile: (t) =>
-                      _act((c) => c.selectClue(_gameId, _token, t.clueId)),
-                  onRerollTopic: _rerollTopicHandler(),
-                ),
-              ),
-            ),
-          ),
-        ],
+      return SnapshotBuilder<(String?, List<BoardColumn>)>(
+        feed: _feed,
+        select: (s) => (s?.pickingTeamId, s?.board ?? const <BoardColumn>[]),
+        equals: (a, b) => a.$1 == b.$1 && boardsEqual(a.$2, b.$2),
+        builder: (context, _) {
+          final currentSnap = _feed.snapshot;
+          if (currentSnap == null) return const SizedBox.shrink();
+          return _finalEliminationBoard(currentSnap);
+        },
       );
     }
 
@@ -926,7 +916,16 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                 child: FilledButton.icon(
                   onPressed: waiting > 0 || _busy
                       ? null
-                      : () => _act((c) => c.openFinal(_gameId, _token)),
+                      : () => _act((c) async {
+                            final s = await c.openFinal(_gameId, _token);
+                            if (s.currentClue?.question != null) {
+                              setState(() {
+                                _hostQuestion = s.currentClue!.question;
+                                _hostQuestionClueId = s.currentClue!.clueId;
+                              });
+                            }
+                            return s;
+                          }),
                   icon: const Icon(Icons.lock_open, size: 20),
                   label: const Text(L.openFinalClue),
                 ),
@@ -938,93 +937,388 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     );
   }
 
+  Widget _finalEliminationBoard(Snapshot snap) {
+    final pickingTeam = snap.teamById(snap.pickingTeamId);
+    final hint = pickingTeam != null
+        ? '${pickingTeam.name} — ${L.waitingForElimination}'
+        : L.eliminationPhase;
+
+    return Column(
+      children: [
+        PhaseHint(hint),
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              16 + MediaQuery.paddingOf(context).bottom,
+            ),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 680),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        L.eliminationPhase,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        pickingTeam != null
+                            ? '${L.waitingForElimination}: ${pickingTeam.name}'
+                            : L.chooseTile,
+                        style: const TextStyle(
+                          color: JColors.goldBright,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      for (final col in snap.board) ...[
+                        _buildEliminationTopicCard(col),
+                        const SizedBox(height: 10),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEliminationTopicCard(BoardColumn col) {
+    final tile = col.tiles.firstOrNull;
+    if (tile == null) return const SizedBox.shrink();
+    final eliminated = tile.status == TileStatus.done;
+
+    return Card(
+      color: eliminated ? const Color(0x331E293B) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(JRadius.card),
+        side: BorderSide(
+          color: eliminated ? JColors.line : JColors.brass,
+          width: eliminated ? 1 : 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    col.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      decoration:
+                          eliminated ? TextDecoration.lineThrough : null,
+                      color: eliminated ? JColors.textFaint : Colors.white,
+                    ),
+                  ),
+                  if (eliminated) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.close_rounded,
+                          size: 14,
+                          color: JColors.wrongBright,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          L.topicEliminated,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: JColors.wrongBright,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!eliminated) ...[
+              if (_rerollTopicHandler() != null)
+                IconButton(
+                  tooltip: L.rerollCategoryTooltip,
+                  icon: const Icon(Icons.refresh, size: 20),
+                  onPressed: _busy
+                      ? null
+                      : () => _rerollTopicHandler()!(col),
+                ),
+              const SizedBox(width: 6),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: JColors.wrongBright,
+                  side: const BorderSide(color: JColors.wrongBright),
+                ),
+                onPressed: _busy
+                    ? null
+                    : () => _act(
+                        (c) => c.eliminateTopic(
+                          _gameId,
+                          hostToken: _token,
+                          clueId: tile.clueId,
+                        ),
+                      ),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text(L.eliminateTopic),
+              ),
+              const SizedBox(width: 6),
+              FilledButton.tonal(
+                onPressed: _busy
+                    ? null
+                    : () =>
+                        _act((c) => c.selectClue(_gameId, _token, tile.clueId)),
+                child: const Text('არჩევა'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _finalClue() {
-    return SnapshotBuilder<(int?, GameState?, bool, int)>(
+    return SnapshotBuilder<(int?, GameState?, bool, int, bool, int)>(
       feed: _feed,
       select: (s) => (
         s?.currentClue?.clueId,
         s?.state,
         s?.answerRevealed ?? false,
         s?.teams.where((t) => t.lockedOut).length ?? 0,
+        s?.finalAnswersLocked ?? false,
+        s?.teams.where((t) => t.hasFinalAnswer).length ?? 0,
       ),
       builder: (context, _) {
         final snap = _feed.snapshot;
         final clue = snap?.currentClue;
         if (snap == null || clue == null) return const SizedBox.shrink();
 
+        final locked = snap.finalAnswersLocked;
+        final isResult = snap.state == GameState.finalResult;
+
         return ClueLayout(
           panel: CluePanel(
             clue: _withHostQuestion(clue),
             showAnswer: snap.answerRevealed,
+            banner: isResult
+                ? null
+                : locked
+                    ? const CluePanelBanner(
+                        text: L.answersLocked,
+                        color: JColors.goldBright,
+                        icon: Icons.lock_outline,
+                      )
+                    : FinalRoundCountdown(
+                        totalSeconds: 30,
+                        tick: true,
+                        builder: (context, secondsLeft) => CluePanelBanner(
+                          text: secondsLeft > 0
+                              ? '${L.timeRemaining}: $secondsLeft წმ'
+                              : 'დრო ამოიწურა! დახურეთ პასუხები',
+                          color: secondsLeft > 0
+                              ? JColors.gold
+                              : JColors.wrongBright,
+                          icon: secondsLeft > 0
+                              ? Icons.timer_outlined
+                              : Icons.hourglass_disabled,
+                        ),
+                      ),
           ),
           controls: (side) => _FinalShelf(
             side: side,
-            child: snap.state == GameState.finalClue
-                ? Column(
-                    children: [
-                      for (final t in snap.teams.where((t) => !t.lockedOut))
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${t.name}  ·  ${L.wager}: ${t.wager ?? 0}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              IconButton.filled(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: JColors.correct,
-                                  foregroundColor: Colors.white,
-                                ),
-                                onPressed: _busy
-                                    ? null
-                                    : () => _act(
-                                        (c) => c.finalJudge(
-                                          _gameId,
-                                          _token,
-                                          t.id,
-                                          true,
-                                        ),
-                                      ),
-                                icon: const Icon(Icons.check, size: 18),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton.filled(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: JColors.wrong,
-                                  foregroundColor: Colors.white,
-                                ),
-                                onPressed: _busy
-                                    ? null
-                                    : () => _act(
-                                        (c) => c.finalJudge(
-                                          _gameId,
-                                          _token,
-                                          t.id,
-                                          false,
-                                        ),
-                                      ),
-                                icon: const Icon(Icons.close, size: 18),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+            child: isResult
+                ? Center(
+                    child: FilledButton.icon(
+                      onPressed: _busy
+                          ? null
+                          : () => _act((c) => c.next(_gameId, _token)),
+                      icon: const Icon(Icons.flag, size: 20),
+                      label: const Text(L.finalResults),
+                    ),
                   )
-                : FilledButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () => _act((c) => c.next(_gameId, _token)),
-                    icon: const Icon(Icons.flag, size: 20),
-                    label: const Text(L.finalResults),
-                  ),
+                : !locked
+                    ? _finalAnswersPendingShelf(snap)
+                    : _finalJudgingShelf(snap),
           ),
         );
       },
+    );
+  }
+
+  Widget _finalAnswersPendingShelf(Snapshot snap) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final t in snap.teams)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${t.name}  ·  ${L.wager}: ${t.wager ?? 0}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                Icon(
+                  t.hasFinalAnswer
+                      ? Icons.check_circle_rounded
+                      : Icons.pending_outlined,
+                  size: 16,
+                  color: t.hasFinalAnswer
+                      ? JColors.correct
+                      : JColors.textMuted,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  t.hasFinalAnswer ? L.answerSubmitted : 'ფიქრობს...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: t.hasFinalAnswer
+                        ? JColors.correct
+                        : JColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 10),
+        Center(
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: JColors.gold,
+              foregroundColor: Colors.black,
+            ),
+            onPressed: _busy
+                ? null
+                : () => _act((c) => c.lockFinalAnswers(_gameId, _token)),
+            icon: const Icon(Icons.lock_clock, size: 18),
+            label: const Text(L.timeCutoff),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _finalJudgingShelf(Snapshot snap) {
+    final unjudged = snap.teams.where((t) => !t.lockedOut).toList();
+    if (unjudged.isEmpty) {
+      return Center(
+        child: FilledButton.icon(
+          onPressed: _busy
+              ? null
+              : () => _act((c) => c.next(_gameId, _token)),
+          icon: const Icon(Icons.flag, size: 20),
+          label: const Text(L.finalResults),
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final t in unjudged)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: JColors.surface,
+                borderRadius: BorderRadius.circular(JRadius.card),
+                border: Border.all(color: JColors.line),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${t.name}  ·  ${L.wager}: ${t.wager ?? 0}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: JColors.textFaint,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          t.finalAnswer?.trim().isNotEmpty == true
+                              ? '„${t.finalAnswer}“'
+                              : L.noAnswerGiven,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: t.finalAnswer?.trim().isNotEmpty == true
+                                ? JColors.goldBright
+                                : JColors.textFaint,
+                            fontStyle: t.finalAnswer?.trim().isNotEmpty == true
+                                ? FontStyle.normal
+                                : FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    style: IconButton.styleFrom(
+                      backgroundColor: JColors.correct,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _busy
+                        ? null
+                        : () => _act(
+                            (c) => c.finalJudge(
+                              _gameId,
+                              _token,
+                              t.id,
+                              true,
+                            ),
+                          ),
+                    icon: const Icon(Icons.check, size: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    style: IconButton.styleFrom(
+                      backgroundColor: JColors.wrong,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _busy
+                        ? null
+                        : () => _act(
+                            (c) => c.finalJudge(
+                              _gameId,
+                              _token,
+                              t.id,
+                              false,
+                            ),
+                          ),
+                    icon: const Icon(Icons.close, size: 18),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 

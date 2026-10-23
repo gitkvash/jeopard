@@ -265,6 +265,8 @@ class TeamView {
     required this.lockedOut,
     this.players = const [],
     this.solo = false,
+    this.finalAnswer,
+    this.hasFinalAnswer = false,
   });
 
   final String id;
@@ -273,6 +275,8 @@ class TeamView {
   final bool host;
   final int seat;
   final int? wager;
+  final String? finalAnswer;
+  final bool hasFinalAnswer;
   final bool lockedOut;
   final List<PlayerView> players;
 
@@ -293,6 +297,8 @@ class TeamView {
         .map((p) => PlayerView.fromJson(p as Map<String, dynamic>))
         .toList(),
     solo: j['solo'] as bool? ?? false,
+    finalAnswer: j['finalAnswer'] as String?,
+    hasFinalAnswer: j['hasFinalAnswer'] as bool? ?? false,
   );
 }
 
@@ -416,9 +422,12 @@ class Snapshot {
     required this.buzzOpensInMs,
     required this.questionsVisibleToParticipants,
     this.playersPickClues = false,
+    this.finalAnswersLocked = false,
     required this.seq,
     required this.attribution,
   });
+
+  final bool finalAnswersLocked;
 
   final String gameId;
   final String joinCode;
@@ -509,6 +518,7 @@ class Snapshot {
     questionsVisibleToParticipants:
         j['questionsVisibleToParticipants'] as bool? ?? true,
     playersPickClues: j['playersPickClues'] as bool? ?? false,
+    finalAnswersLocked: j['finalAnswersLocked'] as bool? ?? false,
     seq: (j['seq'] as num?)?.toInt() ?? 0,
     attribution: j['attribution'] as String?,
   );

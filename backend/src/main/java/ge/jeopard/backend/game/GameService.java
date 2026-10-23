@@ -950,6 +950,99 @@ public class GameService {
         return snapshotAndBroadcast(game);
     }
 
+    @Transactional
+    public Snapshot setFinalAnswer(UUID gameId, String playerToken, String answer) {
+        Game game = games.findByIdForUpdate(gameId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
+        expect(game, GameState.FINAL_CLUE);
+        if (game.isFinalAnswersLocked()) {
+            throw new ResponseStatusException(CONFLICT, "final answers are already locked");
+        }
+        Player player = players.findByGameIdAndToken(gameId, playerToken)
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "not a player in this game"));
+        Team team = teams.findById(player.getTeamId())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "team is gone"));
+        team.setFinalAnswer(answer != null ? answer.trim() : "");
+        bump(game);
+        return snapshotAndBroadcast(game);
+    }
+
+    @Transactional
+    public Snapshot lockFinalAnswers(UUID gameId, String hostToken) {
+        Game game = lockAndAuthorise(gameId, hostToken);
+        expect(game, GameState.FINAL_CLUE);
+        game.setFinalAnswersLocked(true);
+        bump(game);
+        snapshotAndBroadcast(game);
+        return buildSnapshot(game, true);
+    }
+
+    @Transactional
+    public Snapshot eliminateTopic(UUID gameId, String hostToken, String playerToken, Long clueId) {
+        Game game = games.findByIdForUpdate(gameId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "no such game"));
+        boolean finalRound = game.getRound().isFinalRound();
+        if (!finalRound || game.getState() != GameState.FINAL_WAGER || game.getCurrentClue() != null) {
+            throw new ResponseStatusException(CONFLICT, "topic elimination is only available at the start of the final round");
+        }
+
+        boolean isHost = matchesHostToken(game, hostToken);
+        if (!isHost) {
+            if (playerToken == null) {
+                throw new ResponseStatusException(FORBIDDEN, "player token required");
+            }
+            Player player = players.findByGameIdAndToken(gameId, playerToken)
+                    .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "not a player in this game"));
+            if (game.getPickingTeamId() != null && !player.getTeamId().equals(game.getPickingTeamId())) {
+                throw new ResponseStatusException(CONFLICT, "it is not your team's turn to eliminate a topic");
+            }
+        }
+
+        GameClue tile = gameClues.findByGameIdAndClueId(gameId, clueId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "that topic is not on this board"));
+        if (tile.getStatus() != ClueStatus.AVAILABLE) {
+            throw new ResponseStatusException(CONFLICT, "that topic is already eliminated");
+        }
+
+        tile.setStatus(ClueStatus.DONE);
+
+        List<Long> roundClueIds = clues.findByRoundId(game.getRound().getId()).stream()
+                .map(Clue::getId)
+                .toList();
+        List<GameClue> remaining = gameClues.findByGameId(gameId).stream()
+                .filter(gc -> roundClueIds.contains(gc.getClueId()) && gc.getStatus() == ClueStatus.AVAILABLE)
+                .toList();
+
+        if (remaining.size() <= 1) {
+            if (!remaining.isEmpty()) {
+                GameClue last = remaining.get(0);
+                last.setStatus(ClueStatus.IN_PLAY);
+                game.setCurrentClue(clues.findById(last.getClueId()).orElseThrow());
+            }
+            game.setPickingTeamId(null);
+        } else {
+            game.setPickingTeamId(nextEliminatingTeam(game, game.getPickingTeamId()));
+        }
+
+        bump(game);
+        snapshotAndBroadcast(game);
+        return buildSnapshot(game, isHost);
+    }
+
+    private UUID nextEliminatingTeam(Game game, UUID current) {
+        List<Team> sorted = teams.findByGameIdOrderBySeatAsc(game.getId()).stream()
+                .sorted(Comparator.comparingInt(Team::getScore).thenComparingInt(Team::getSeat))
+                .toList();
+        if (sorted.isEmpty()) return null;
+        if (current == null) return sorted.get(0).getId();
+        for (int i = 0; i < sorted.size(); i++) {
+            if (sorted.get(i).getId().equals(current)) {
+                return sorted.get((i + 1) % sorted.size()).getId();
+            }
+        }
+        return sorted.get(0).getId();
+    }
+
     /** All wagers are in; reveal the final question. */
     @Transactional
     public Snapshot openFinalClue(UUID gameId, String hostToken) {
@@ -958,7 +1051,8 @@ public class GameService {
         requireClueInPlay(game);
         game.setState(GameState.FINAL_CLUE);
         bump(game);
-        return snapshotAndBroadcast(game);
+        snapshotAndBroadcast(game);
+        return buildSnapshot(game, true);
     }
 
     /**
@@ -1043,11 +1137,18 @@ public class GameService {
         final UUID hostTeam = hostTeamId;
 
         List<TeamView> teamViews = teams.findByGameIdOrderBySeatAsc(gameId).stream()
-                .map(t -> new TeamView(t.getId(), t.getName(), t.getScore(),
-                        t.getId().equals(hostTeam), t.getSeat(), t.getWager(),
-                        lockedOut.contains(t.getId()),
-                        byTeam.getOrDefault(t.getId(), List.of()),
-                        t.isSolo()))
+                .map(t -> {
+                    String answerForView = (forHost || game.isAnswerRevealed() || game.isFinalAnswersLocked())
+                            ? t.getFinalAnswer()
+                            : null;
+                    boolean hasAnswer = t.getFinalAnswer() != null && !t.getFinalAnswer().isBlank();
+                    return new TeamView(t.getId(), t.getName(), t.getScore(),
+                            t.getId().equals(hostTeam), t.getSeat(), t.getWager(),
+                            answerForView, hasAnswer,
+                            lockedOut.contains(t.getId()),
+                            byTeam.getOrDefault(t.getId(), List.of()),
+                            t.isSolo());
+                })
                 .toList();
 
         Map<Long, GameClue> byClue = new HashMap<>();
@@ -1097,6 +1198,7 @@ public class GameService {
                 game.getBuzzMode(), game.getBuzzDelaySeconds(), buzzOpensInMs(game),
                 game.isQuestionsVisibleToParticipants(),
                 game.isPlayersPickClues(),
+                game.isFinalAnswersLocked(),
                 game.getEventSeq(), attribution.text());
     }
 
@@ -1178,11 +1280,26 @@ public class GameService {
         }
         game.setRound(next);
         seedTiles(game, next);
-        // Wagers belong to a single final round.
+        // Wagers and final answers belong to a single final round.
         for (Team t : teams.findByGameIdOrderBySeatAsc(game.getId())) {
             t.setWager(null);
+            t.setFinalAnswer(null);
         }
-        game.setState(next.isFinalRound() ? GameState.FINAL_WAGER : GameState.BOARD);
+        game.setFinalAnswersLocked(false);
+        if (next.isFinalRound()) {
+            game.setState(GameState.FINAL_WAGER);
+            List<Clue> roundClues = clues.findByRoundId(next.getId());
+            if (roundClues.size() <= 1 && !roundClues.isEmpty()) {
+                putClueInPlay(game, roundClues.get(0).getId());
+            } else {
+                List<Team> sorted = teams.findByGameIdOrderBySeatAsc(game.getId()).stream()
+                        .sorted(Comparator.comparingInt(Team::getScore).thenComparingInt(Team::getSeat))
+                        .toList();
+                game.setPickingTeamId(sorted.isEmpty() ? null : sorted.get(0).getId());
+            }
+        } else {
+            game.setState(GameState.BOARD);
+        }
         return true;
     }
 

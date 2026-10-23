@@ -531,7 +531,7 @@ class _PackageBuilderScreenState extends ConsumerState<PackageBuilderScreen> {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       itemCount: filteredPool.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, i) {
                         final topic = filteredPool[i];
                         final isSelectedInThisRound = selected.any((t) => t.id == topic.id);

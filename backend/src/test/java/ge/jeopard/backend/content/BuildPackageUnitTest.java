@@ -56,11 +56,11 @@ class BuildPackageUnitTest {
 
         when(topics.findAvailableTopicRefs()).thenReturn(List.of(ref1, ref2, ref3, ref4));
 
-        // Filter by round 1
+        // Filter by round 1 (any playable, non-final topic is available for rounds 1-3)
         List<AvailableTopic> round1Topics = contentService.availableTopics(1, null);
-        assertThat(round1Topics).hasSize(2);
-        assertThat(round1Topics.get(0).name()).isEqualTo("საქართველოს ისტორია");
-        assertThat(round1Topics.get(1).name()).isEqualTo("მსოფლიო გეოგრაფია");
+        assertThat(round1Topics).hasSize(3);
+        assertThat(round1Topics.stream().map(AvailableTopic::name))
+                .containsExactlyInAnyOrder("საქართველოს ისტორია", "მსოფლიო გეოგრაფია", "ქართული ლიტერატურა");
 
         // Filter by query "გეოგრაფია"
         List<AvailableTopic> queryTopics = contentService.availableTopics(null, "გეოგრაფია");
@@ -161,7 +161,7 @@ class BuildPackageUnitTest {
         assertThat(summary.rounds().get(0).topics()).hasSize(6);
         assertThat(summary.rounds().get(1).topics()).hasSize(6);
         assertThat(summary.rounds().get(2).topics()).hasSize(6);
-        assertThat(summary.rounds().get(3).topics()).hasSize(2);
+        assertThat(summary.rounds().get(3).topics()).hasSize(5);
 
         verify(packages).save(any(QuizPackage.class));
     }

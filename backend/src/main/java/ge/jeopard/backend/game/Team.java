@@ -32,6 +32,9 @@ public class Team {
     /** Final round only. */
     private Integer wager;
 
+    @Column(name = "final_answer")
+    private String finalAnswer;
+
     /**
      * A team of one, made for a player who chose not to sit with anyone. It is
      * named after the player, is never offered on the join list, and goes away
@@ -57,6 +60,8 @@ public class Team {
     public void setSolo(boolean solo) { this.solo = solo; }
     public Integer getWager() { return wager; }
     public void setWager(Integer wager) { this.wager = wager; }
+    public String getFinalAnswer() { return finalAnswer; }
+    public void setFinalAnswer(String finalAnswer) { this.finalAnswer = finalAnswer; }
     public Instant getJoinedAt() { return joinedAt; }
     public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
 }

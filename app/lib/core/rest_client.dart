@@ -97,10 +97,10 @@ class RestClient {
       '/api/packages/build',
       body: {
         if (title != null && title.isNotEmpty) 'title': title,
-        if (round1TopicIds != null) 'round1TopicIds': round1TopicIds,
-        if (round2TopicIds != null) 'round2TopicIds': round2TopicIds,
-        if (round3TopicIds != null) 'round3TopicIds': round3TopicIds,
-        if (finalTopicIds != null) 'finalTopicIds': finalTopicIds,
+        'round1TopicIds': ?round1TopicIds,
+        'round2TopicIds': ?round2TopicIds,
+        'round3TopicIds': ?round3TopicIds,
+        'finalTopicIds': ?finalTopicIds,
       },
     );
     return PackageSummary.fromJson(body as Map<String, dynamic>);
@@ -361,6 +361,35 @@ class RestClient {
     hostToken,
     body: {'teamId': teamId, 'correct': correct},
   );
+
+  Future<Snapshot> submitFinalAnswer(
+    String gameId,
+    String playerToken,
+    String answer,
+  ) async {
+    final body = await _post(
+      '/api/games/$gameId/final-answer',
+      body: {'playerToken': playerToken, 'answer': answer},
+    );
+    return Snapshot.fromJson(body as Map<String, dynamic>);
+  }
+
+  Future<Snapshot> lockFinalAnswers(String gameId, String hostToken) =>
+      _hostAction(gameId, 'lock-final-answers', hostToken);
+
+  Future<Snapshot> eliminateTopic(
+    String gameId, {
+    String? hostToken,
+    String? playerToken,
+    required int clueId,
+  }) async {
+    final body = await _post(
+      '/api/games/$gameId/eliminate-topic',
+      hostToken: hostToken,
+      body: {'playerToken': ?playerToken, 'clueId': clueId},
+    );
+    return Snapshot.fromJson(body as Map<String, dynamic>);
+  }
 
   /// Ends and deletes the game.
   Future<void> deleteGame(String gameId, String hostToken) async {

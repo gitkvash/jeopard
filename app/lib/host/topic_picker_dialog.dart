@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/models.dart';
 import '../core/providers.dart';
 import '../core/theme.dart';
-import '../widgets/stage.dart';
 
 /// Shows a dialog or sheet to search and pick a topic from the library.
 Future<AvailableTopic?> showTopicPickerDialog(
@@ -284,7 +283,7 @@ class _TopicPickerDialogState extends ConsumerState<_TopicPickerDialog> {
                             : ListView.separated(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 itemCount: filtered.length,
-                                separatorBuilder: (_, __) => const Divider(height: 1),
+                                separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (context, i) {
                                   final topic = filtered[i];
                                   final isCurrent = widget.currentTopicName == topic.name;

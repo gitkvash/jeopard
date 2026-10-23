@@ -128,6 +128,12 @@ public final class GameDtos {
     public record FinalJudgeRequest(@NotNull UUID teamId, boolean correct) {
     }
 
+    public record FinalAnswerRequest(@NotBlank String playerToken, String answer) {
+    }
+
+    public record EliminateTopicRequest(String playerToken, @NotNull Long clueId) {
+    }
+
     // ---------- responses ----------
 
     public record CreatedGame(
@@ -190,6 +196,8 @@ public final class GameDtos {
             boolean host,
             int seat,
             Integer wager,
+            String finalAnswer,
+            boolean hasFinalAnswer,
             boolean lockedOutOnCurrentClue,
             List<PlayerView> players,
             /* A player who chose to play alone; named after them. */
@@ -287,6 +295,7 @@ public final class GameDtos {
              * member of it may pick; the host may pick regardless.
              */
             boolean playersPickClues,
+            boolean finalAnswersLocked,
             long seq,
             String attribution) {
     }

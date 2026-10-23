@@ -566,6 +566,18 @@ class L {
   static const openFinalClue = 'ფინალური შეკითხვის გახსნა';
   static const finalResults = 'ფინალური შედეგი';
   static const maxWager = 'მაქსიმუმ';
+  static const eliminateTopic = 'თემის ამოშლა';
+  static const topicEliminated = 'ამოშლილია';
+  static const eliminationPhase = 'ფინალური თემების ამოშლა (ვეტო)';
+  static const yourTurnToEliminate = 'თქვენი ჯერია თემის ამოსაშლელად';
+  static const waitingForElimination = 'თემას შლის:';
+  static const yourFinalAnswer = 'თქვენი საბოლოო პასუხი';
+  static const submitAnswer = 'პასუხის გაგზავნა';
+  static const answerSubmitted = 'პასუხი გაგზავნილია';
+  static const timeCutoff = 'დროის ამოწურვა (პასუხების დახურვა)';
+  static const answersLocked = 'პასუხების მიღება დასრულებულია';
+  static const noAnswerGiven = 'პასუხი არ გაუციათ';
+  static const timeRemaining = 'დარჩენილი დრო';
 
   // end
   static const gameOver = 'თამაში დასრულდა';

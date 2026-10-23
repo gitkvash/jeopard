@@ -96,6 +96,9 @@ public class Game {
     @Column(name = "buzzed_player_id")
     private UUID buzzedPlayerId;
 
+    @Column(name = "final_answers_locked", nullable = false)
+    private boolean finalAnswersLocked;
+
     @Column(name = "answer_revealed", nullable = false)
     private boolean answerRevealed;
 
@@ -150,6 +153,9 @@ public class Game {
     public void setBuzzedTeamId(UUID buzzedTeamId) { this.buzzedTeamId = buzzedTeamId; }
     public UUID getBuzzedPlayerId() { return buzzedPlayerId; }
     public void setBuzzedPlayerId(UUID buzzedPlayerId) { this.buzzedPlayerId = buzzedPlayerId; }
+    public boolean isFinalAnswersLocked() { return finalAnswersLocked; }
+    public void setFinalAnswersLocked(boolean finalAnswersLocked) { this.finalAnswersLocked = finalAnswersLocked; }
+
     public boolean isAnswerRevealed() { return answerRevealed; }
     public void setAnswerRevealed(boolean answerRevealed) { this.answerRevealed = answerRevealed; }
     public boolean isAnswerPeeked() { return answerPeeked; }

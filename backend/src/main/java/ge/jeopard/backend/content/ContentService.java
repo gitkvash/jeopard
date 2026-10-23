@@ -195,7 +195,7 @@ public class ContentService {
                         if (roundIdx == 4 || roundIdx > PLAYABLE_ROUNDS) {
                             if (!t.finalRound()) return false;
                         } else {
-                            if (t.finalRound() || !Objects.equals(t.roundIdx(), roundIdx)) return false;
+                            if (t.finalRound()) return false;
                         }
                     }
                     if (q != null && !q.isEmpty()) {
@@ -213,10 +213,10 @@ public class ContentService {
 
     @Transactional
     public PackageSummary buildCustomPackage(BuildPackageRequest req) {
-        Map<Integer, List<TopicRef>> pool = topics.findPlayableTopicRefs(PLAYABLE_ROUNDS).stream()
-                .collect(Collectors.groupingBy(TopicRef::getRoundIdx));
+        List<TopicRef> playablePool = topics.findPlayableTopicRefs(PLAYABLE_ROUNDS);
 
         Set<String> chosenNames = new HashSet<>();
+        Set<Long> chosenTopicIds = new HashSet<>();
         Map<Integer, List<Long>> boardTopicIds = new LinkedHashMap<>();
 
         List<List<Long>> roundInputs = List.of(
@@ -230,8 +230,9 @@ public class ContentService {
             List<Long> roundTopicIds = new ArrayList<>();
             for (Long id : inputIds) {
                 if (roundTopicIds.size() >= TOPICS_PER_ROUND) break;
-                if (!roundTopicIds.contains(id)) {
+                if (!chosenTopicIds.contains(id)) {
                     roundTopicIds.add(id);
+                    chosenTopicIds.add(id);
                 }
             }
             if (!roundTopicIds.isEmpty()) {
@@ -240,37 +241,45 @@ public class ContentService {
 
             int needed = TOPICS_PER_ROUND - roundTopicIds.size();
             if (needed > 0) {
-                List<TopicRef> available = pool.getOrDefault(idx, List.of()).stream()
-                        .filter(t -> !chosenNames.contains(t.getName()) && !roundTopicIds.contains(t.getId()))
+                List<TopicRef> available = playablePool.stream()
+                        .filter(t -> !chosenNames.contains(t.getName()) && !chosenTopicIds.contains(t.getId()))
                         .toList();
                 List<Long> randomPicked = pickDistinctByNameAndExclude(available, needed, chosenNames);
                 roundTopicIds.addAll(randomPicked);
+                chosenTopicIds.addAll(randomPicked);
             }
             boardTopicIds.put(idx, roundTopicIds);
         }
 
         List<Long> finalTopicIds = new ArrayList<>();
         List<Long> finalInput = req != null && req.finalTopicIds() != null ? req.finalTopicIds() : List.of();
+        int targetFinalCount = (req != null && req.finalTopicIds() != null && !req.finalTopicIds().isEmpty())
+                ? Math.min(Math.max(req.finalTopicIds().size(), 2), 7)
+                : 5;
         for (Long id : finalInput) {
-            if (finalTopicIds.size() >= 2) break;
-            if (!finalTopicIds.contains(id)) finalTopicIds.add(id);
+            if (finalTopicIds.size() >= targetFinalCount) break;
+            if (!chosenTopicIds.contains(id)) {
+                finalTopicIds.add(id);
+                chosenTopicIds.add(id);
+            }
         }
         if (!finalTopicIds.isEmpty()) {
             topics.findAllById(finalTopicIds).forEach(t -> chosenNames.add(t.getName()));
         }
-        int finalNeeded = 2 - finalTopicIds.size();
+        int finalNeeded = targetFinalCount - finalTopicIds.size();
         if (finalNeeded > 0) {
             List<TopicRef> finalPool = topics.findFinalTopicRefs().stream()
-                    .filter(t -> !chosenNames.contains(t.getName()) && !finalTopicIds.contains(t.getId()))
+                    .filter(t -> !chosenNames.contains(t.getName()) && !chosenTopicIds.contains(t.getId()))
                     .toList();
             List<Long> randomFinal = pickDistinctByNameAndExclude(finalPool, finalNeeded, chosenNames);
             finalTopicIds.addAll(randomFinal);
+            chosenTopicIds.addAll(randomFinal);
         }
 
         List<Long> chosen = new ArrayList<>(finalTopicIds);
         boardTopicIds.values().forEach(chosen::addAll);
         Map<Long, Topic> sources = topics.findAllWithCluesByIdIn(chosen).stream()
-                .collect(Collectors.toMap(Topic::getId, Function.identity()));
+                .collect(Collectors.toMap(Topic::getId, Function.identity(), (a, b) -> a));
 
         int roundCount = PLAYABLE_ROUNDS + (finalTopicIds.isEmpty() ? 0 : 1);
         int clueCount = chosen.stream()
@@ -334,10 +343,7 @@ public class ContentService {
         if (round.isFinalRound()) {
             candidates = topics.findFinalTopicRefs();
         } else {
-            int roundIdx = round.getIdx();
-            candidates = topics.findPlayableTopicRefs(roundIdx).stream()
-                    .filter(t -> Objects.equals(t.getRoundIdx(), roundIdx))
-                    .toList();
+            candidates = topics.findPlayableTopicRefs(PLAYABLE_ROUNDS);
         }
 
         List<TopicRef> available = candidates.stream()

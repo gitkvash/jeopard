@@ -204,6 +204,9 @@ class PackageSummary {
   bool get generated => sourceUrl?.startsWith('generated') ?? false;
   bool get isArgon => sourceUrl?.startsWith('generated:argon') ?? false;
   bool get isGemini => sourceUrl?.startsWith('generated:gemini') ?? false;
+  bool get isAi =>
+      (sourceUrl?.startsWith('generated:ai') ?? false) ||
+      (generated && !isGemini && !isArgon);
   bool get isRandom => synthetic || number < 0;
 
   PackageSummary copyWith({

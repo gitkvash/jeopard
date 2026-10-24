@@ -5,14 +5,16 @@ enum PackageSourceFilter {
   all,
   original,
   gemini,
-  argon;
+  argon,
+  ai;
 
   bool matches(PackageSummary p) {
     return switch (this) {
       PackageSourceFilter.all => true,
-      PackageSourceFilter.original => !p.generated && !p.isArgon,
-      PackageSourceFilter.gemini => p.isGemini || (p.generated && !p.isArgon),
+      PackageSourceFilter.original => !p.generated,
+      PackageSourceFilter.gemini => p.isGemini,
       PackageSourceFilter.argon => p.isArgon,
+      PackageSourceFilter.ai => p.isAi,
     };
   }
 }
@@ -272,13 +274,20 @@ class PackageSearch {
         }
       }
 
-      // Check provenance matches (Gemini, Argon, 2008 archive)
+      // Check provenance matches (Gemini, Argon, AI, 2008 archive)
       for (final t in tokens) {
         final canT = toCanonicalPhonetic(t);
         if ((t == 'gemini' || t == 'გემინი' || canT == 'Jemini') && p.isGemini) {
           score += 400;
         } else if ((t == 'argon' || t == 'არგონი' || canT == 'arGoni') &&
             p.isArgon) {
+          score += 400;
+        } else if ((t == 'ai' ||
+                t == 'აი' ||
+                t == 'claude' ||
+                t == 'ქლოდი' ||
+                canT == 'klodi') &&
+            p.isAi) {
           score += 400;
         } else if ((t == '2008' ||
                 t == 'არქივი' ||
@@ -324,6 +333,17 @@ class PackageSearch {
         if (!tokenMatched && canonicalFull.contains(canToken)) {
           score += 100;
           tokenMatched = true;
+        }
+
+        // Provenance keyword match
+        if (!tokenMatched) {
+          if ((token == 'gemini' || token == 'გემინი' || canToken == 'Jemini') && p.isGemini) {
+            tokenMatched = true;
+          } else if ((token == 'argon' || token == 'არგონი' || canToken == 'arGoni') && p.isArgon) {
+            tokenMatched = true;
+          } else if ((token == 'ai' || token == 'აი' || token == 'claude' || token == 'ქლოდი' || canToken == 'klodi') && p.isAi) {
+            tokenMatched = true;
+          }
         }
 
         // 3b. Vowel-stripped stem match (e.g. "drosha" -> "drosh" matches "droshebi / დროშები")

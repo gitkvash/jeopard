@@ -372,6 +372,7 @@ class L {
   static const originalPackages = 'ორიგინალური პაკეტები (2008)';
   static const generatedPackages = 'გენერირებული პაკეტები (Gemini)';
   static const argonPackages = 'გენერირებული პაკეტები (Argon AI)';
+  static const aiPackages = 'გენერირებული პაკეტები (AI)';
   static const randomPackage = 'შემთხვევითი პაკეტი';
   static const randomPackageHint = 'თემები შემთხვევითობით აირჩევა ყველა პაკეტიდან';
   static const randomPackageError = 'ვერ მოხერხდა შემთხვევითი პაკეტის შექმნა';
@@ -419,6 +420,7 @@ class L {
   static const filterOriginal = '2008 არქივი';
   static const filterGemini = 'Gemini';
   static const filterArgon = 'Argon AI';
+  static const filterAi = 'AI';
   static const searchResults = 'ძებნის შედეგები';
   static String foundPackagesCount(int count) => 'ნაპოვნია $count პაკეტი';
   static const choosePackage = 'აირჩიეთ პაკეტი';

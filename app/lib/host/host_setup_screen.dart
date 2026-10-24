@@ -764,10 +764,13 @@ class _PackageListState extends State<_PackageList> {
       final original = <_Row>[];
       final generated = <_Row>[];
       final argon = <_Row>[];
+      final ai = <_Row>[];
       for (final p in widget.packages) {
-        if (p.isArgon) {
+        if (p.isAi) {
+          ai.add(_PackageRow(p));
+        } else if (p.isArgon) {
           argon.add(_PackageRow(p));
-        } else if (p.generated) {
+        } else if (p.isGemini || p.generated) {
           generated.add(_PackageRow(p));
         } else {
           original.add(_PackageRow(p));
@@ -780,6 +783,7 @@ class _PackageListState extends State<_PackageList> {
           (label: L.originalPackages, rows: original),
           (label: L.generatedPackages, rows: generated),
           (label: L.argonPackages, rows: argon),
+          (label: L.aiPackages, rows: ai),
         ])
           if (group.rows.isNotEmpty) ...[
             _HeaderRow('${group.label}  ·  ${group.rows.length}'),
@@ -817,6 +821,8 @@ class _PackageListState extends State<_PackageList> {
                 '${L.generatedPackages.toUpperCase()}  ·  ${searchResults.length}',
               PackageSourceFilter.argon =>
                 '${L.argonPackages.toUpperCase()}  ·  ${searchResults.length}',
+              PackageSourceFilter.ai =>
+                '${L.aiPackages.toUpperCase()}  ·  ${searchResults.length}',
               PackageSourceFilter.all =>
                 '${L.packageLabel.toUpperCase()}  ·  ${searchResults.length}',
             };
@@ -902,6 +908,11 @@ class _PackageListState extends State<_PackageList> {
               label: L.filterArgon,
               selected: _filter == PackageSourceFilter.argon,
               onTap: () => setState(() => _filter = PackageSourceFilter.argon),
+            ),
+            _Chip(
+              label: L.filterAi,
+              selected: _filter == PackageSourceFilter.ai,
+              onTap: () => setState(() => _filter = PackageSourceFilter.ai),
             ),
           ],
         ),

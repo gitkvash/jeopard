@@ -46,6 +46,7 @@ void main() {
     pkg(55, generated: true, sourceUrl: 'generated:argon', subtitle: 'გენერირებული პაკეტი (Argon AI) · საქართველოს პირველი რესპუბლიკა, სკანდინავიური მითოლოგია და ასტრონომია'),
     pkg(56, generated: true, sourceUrl: 'generated:argon', subtitle: 'გენერირებული პაკეტი (Argon AI) · ანტიკური ფილოსოფია, ანტიუტოპიები, გენეტიკა, ჭადრაკი და შუა საუკუნეები'),
     pkg(57, generated: true, sourceUrl: 'generated:argon', subtitle: 'გენერირებული პაკეტი (Argon AI) · რომის იმპერატორები, როკ-მუსიკა, მედიცინის ნობელი და ასტრონომია'),
+    pkg(95, generated: true, sourceUrl: 'generated:ai', subtitle: 'გენერირებული პაკეტი (AI) · კოსმოსი და მეცნიერება'),
   ];
 
   group('PackageSearch - Smart Searching', () {
@@ -127,6 +128,10 @@ void main() {
       final resArgon = PackageSearch.search(testPackages, 'argon');
       expect(resArgon.every((r) => r.package.isArgon), isTrue);
 
+      final resAi = PackageSearch.search(testPackages, 'claude');
+      expect(resAi.every((r) => r.package.isAi), isTrue);
+      expect(resAi.first.package.number, 95);
+
       final res2008 = PackageSearch.search(testPackages, '2008');
       expect(res2008.map((r) => r.package.number), containsAll([2, 3]));
     });
@@ -172,6 +177,10 @@ void main() {
       final argon = PackageSearch.search(testPackages, '', filter: PackageSourceFilter.argon);
       expect(argon.length, 4);
       expect(argon.map((r) => r.package.number), containsAll([51, 55, 56, 57]));
+
+      final ai = PackageSearch.search(testPackages, '', filter: PackageSourceFilter.ai);
+      expect(ai.length, 1);
+      expect(ai.map((r) => r.package.number), containsAll([95]));
     });
 
     test('Highlight ranges are properly calculated', () {

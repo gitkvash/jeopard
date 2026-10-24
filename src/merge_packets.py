@@ -4,7 +4,8 @@
 authentic moazrovne.net games, untouched, and the baseline the duplicate check
 in `validate_packets.py` runs against. This script leaves it alone and writes a
 second file that is the original six *plus* whatever validated packages are in
-`data/agy_packets/`, renumbered to follow on.
+`data/agy_packets/` (Gemini), `data/argon_packets/` (Argon AI) and
+`data/ai_packets/` (any other AI), in the order of the numbers they declare.
 
 Provenance is not left implicit. Generated packages say so in their subtitle,
 which is what the host sees while picking one, and the credit line the app shows
@@ -39,17 +40,30 @@ PRIVATE_USE = re.compile(r'[-\U000f0000-\U000ffffd]')
 PILOT = os.path.join('data', 'pilot.json')
 GEMINI_GLOB = os.path.join('data', 'agy_packets', 'packet_*.json')
 ARGON_GLOB = os.path.join('data', 'argon_packets', 'packet_*.json')
+# Generated packages from any other AI. They are listed with the Gemini ones,
+# not in the Argon section.
+AI_GLOB = os.path.join('data', 'ai_packets', 'packet_*.json')
 MERGED = os.path.join('data', 'packets_all.json')
 BACKEND_SEED = os.path.join('backend', 'src', 'main', 'resources', 'pilot.json')
 
 GENERATED_NOTE_GEMINI = 'გენერირებული პაკეტი (Gemini)'
 GENERATED_NOTE_ARGON = 'გენერირებული პაკეტი (Argon AI)'
+GENERATED_NOTE_AI = 'გენერირებული პაკეტი (AI)'
 # The seeder already reads source_url and the API already returns it, so this is
 # how a client tells generated packages from archive ones without matching on
 # subtitle text.
 GENERATED_SOURCE_GEMINI = 'generated:gemini-3.1-pro'
 GENERATED_SOURCE_ARGON = 'generated:argon'
-GENERATED_CREDIT = 'პაკეტები #7-50: Gemini AI-ით გენერირებული შეკითხვები. პაკეტები #51 და შემდეგ: Argon AI-ით გენერირებული შეკითხვები.'
+GENERATED_SOURCE_AI = 'generated:ai'
+SOURCES = (
+    (GEMINI_GLOB, GENERATED_SOURCE_GEMINI, GENERATED_NOTE_GEMINI, 'Gemini AI-ით'),
+    (ARGON_GLOB, GENERATED_SOURCE_ARGON, GENERATED_NOTE_ARGON, 'Argon AI-ით'),
+    (AI_GLOB, GENERATED_SOURCE_AI, GENERATED_NOTE_AI, 'AI-ით'),
+)
+NOTES = {source: note for _, source, note, _ in SOURCES}
+# A previous run's "პაკეტები #7-50: ..." sentences, stripped from the credit
+# line before the current ranges are written into it.
+OLD_CREDIT = re.compile(r'\s*პაკეტ(?:ი|ები) #[^.]*\.')
 
 
 def load(path: str) -> dict:
@@ -66,7 +80,7 @@ def clue_count(pkg: dict) -> int:
 def label(pkg: dict, source_url: str) -> str:
     """Mark a generated package so a host picking one knows what it is."""
     subtitle = (pkg.get('subtitle') or '').strip()
-    prefix = GENERATED_NOTE_ARGON if 'argon' in source_url else GENERATED_NOTE_GEMINI
+    prefix = NOTES[source_url]
     if prefix in subtitle:
         return subtitle
     for old_prefix in ('გენერირებული პაკეტი (AI) · ', 'გენერირებული პაკეტი (AI)'):
@@ -98,22 +112,30 @@ def build() -> tuple[dict, list[str]]:
     notes = [f'{len(original)} original packages from {PILOT}']
 
     generated = []
-    for path in sorted(glob.glob(GEMINI_GLOB)):
-        data = load(path)
-        packages = data['packages'] if 'packages' in data else [data]
-        for pkg in packages:
-            generated.append((path, pkg, GENERATED_SOURCE_GEMINI))
-
-    for path in sorted(glob.glob(ARGON_GLOB)):
-        data = load(path)
-        packages = data['packages'] if 'packages' in data else [data]
-        for pkg in packages:
-            generated.append((path, pkg, GENERATED_SOURCE_ARGON))
+    for pattern, source_url, _, _ in SOURCES:
+        for path in sorted(glob.glob(pattern)):
+            data = load(path)
+            packages = data['packages'] if 'packages' in data else [data]
+            for pkg in packages:
+                generated.append((path, pkg, source_url))
+    # Ordered by the number each file declares, not by directory: a package
+    # added to an earlier directory must still land after everything already
+    # seeded, or the seeder's positional ids would shift under live games.
+    generated.sort(key=lambda g: g[1].get('number') or 0)
 
     number = len(original)
     merged = [*original]
+    runs: list[list] = []
     for path, pkg, source_url in generated:
         number += 1
+        if pkg.get('number') != number:
+            raise SystemExit(f'{path} declares #{pkg.get("number")} but would be '
+                             f'merged as #{number}; packages must be numbered '
+                             f'contiguously from #{len(original) + 1}')
+        if runs and runs[-1][0] == source_url:
+            runs[-1][2] = number
+        else:
+            runs.append([source_url, number, number])
         pkg = dict(pkg)
         pkg['number'] = number
         pkg['title'] = f'პაკეტი #{number}'
@@ -127,9 +149,11 @@ def build() -> tuple[dict, list[str]]:
     if scrubbed:
         notes.append(f'stripped {scrubbed} unpaintable private-use character(s)')
 
-    credit = pilot.get('attribution', '').strip()
-    if generated and GENERATED_CREDIT not in credit:
-        credit = f'{credit} {GENERATED_CREDIT}'.strip()
+    credit = OLD_CREDIT.sub('', pilot.get('attribution', '')).strip()
+    by_source = {source: by for _, source, _, by in SOURCES}
+    for source_url, first, last in runs:
+        span = f'პაკეტი #{first}' if first == last else f'პაკეტები #{first}-{last}'
+        credit = f'{credit} {span}: {by_source[source_url]} გენერირებული შეკითხვები.'
 
     return {
         'attribution': credit,
